@@ -6,7 +6,6 @@ data/
 *.db-shm
 .env
 .DS_Store
-*.png
 *.pen
 .omc
 .playwright-mcp

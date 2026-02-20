@@ -12,6 +12,8 @@
 [![Fastify](https://img.shields.io/badge/Fastify-000000?logo=fastify&logoColor=white)](https://fastify.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+![Mocka Screenshot](screenshot.png)
+
 </div>
 
 ## 소개
