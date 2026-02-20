@@ -1,0 +1,63 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-bg-page: #121212;
+  --color-bg-surface: #1C1C1C;
+  --color-bg-sidebar: #161616;
+  --color-bg-input: #1F1F1F;
+  --color-bg-hover: #242424;
+  --color-bg-overlay: #00000099;
+
+  --color-border-primary: #232323;
+  --color-border-secondary: #2E2E2E;
+
+  --color-text-primary: #E5E5E5;
+  --color-text-secondary: #A3A3A3;
+  --color-text-tertiary: #737373;
+  --color-text-muted: #525252;
+
+  --color-accent-primary: #3B82F6;
+
+  --color-method-get: #22C55E;
+  --color-method-get-bg: #22C55E20;
+  --color-method-post: #F59E0B;
+  --color-method-post-bg: #F59E0B20;
+  --color-method-put: #3B82F6;
+  --color-method-put-bg: #3B82F620;
+  --color-method-delete: #EF4444;
+  --color-method-delete-bg: #EF444420;
+  --color-method-patch: #A855F7;
+  --color-method-patch-bg: #A855F720;
+
+  --color-status-2xx: #22C55E;
+  --color-status-4xx: #F59E0B;
+  --color-status-5xx: #EF4444;
+
+  --color-server-running: #22C55E;
+  --color-server-stopped: #EF4444;
+
+  --color-code-key: #7DD3FC;
+  --color-code-string: #86EFAC;
+  --color-code-number: #FCA5A5;
+  --color-code-boolean: #C4B5FD;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2A2A2A transparent;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #3B82F640;
+}
