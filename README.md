@@ -22,8 +22,6 @@ Mocka is a web-based HTTP mock server that lets you create, manage, and serve mo
 
 The application runs two servers: an **Admin API** (default port 3000) that serves the management UI and REST API, and a **Mock Server** (default port 8080) that dynamically handles incoming requests based on your configured endpoints. All data is persisted in a local SQLite database, so your mock configurations survive restarts.
 
-Mocka was originally inspired by SwiftMocker (a macOS-only native app) and rebuilt as a cross-platform web application that runs anywhere Node.js does.
-
 ## Features
 
 - **Mock Endpoint Management** — Create endpoints with any HTTP method (GET, POST, PUT, DELETE, PATCH)
@@ -97,6 +95,11 @@ The admin UI and mock server will be available at:
 |----------|---------|-------------|
 | `ADMIN_PORT` | `3000` | Port for the Admin API |
 | `MOCK_PORT` | `8080` | Port for the Mock Server |
+
+```bash
+# Example: Run with custom ports
+ADMIN_PORT=4000 MOCK_PORT=9090 npm start
+```
 
 ### Development
 

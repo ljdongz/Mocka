@@ -22,8 +22,6 @@ Mocka는 브라우저에서 Mock API endpoint를 생성, 관리, 제공할 수 �
 
 애플리케이션은 두 개의 서버로 구성됩니다. 관리 UI와 REST API를 제공하는 **Admin API** (기본 포트 3000)와, 설정된 endpoint에 따라 요청을 처리하는 **Mock Server** (기본 포트 8080)입니다. 모든 데이터는 로컬 SQLite 데이터베이스에 저장되므로 서버를 재시작해도 설정이 유지됩니다.
 
-Mocka는 macOS 전용 네이티브 앱인 SwiftMocker에서 영감을 받아, Node.js가 실행되는 어디서든 사용할 수 있는 크로스 플랫폼 웹 애플리케이션으로 재구현한 프로젝트입니다.
-
 ## 주요 기능
 
 - **Mock Endpoint 관리** — GET, POST, PUT, DELETE, PATCH 등 모든 HTTP 메서드로 endpoint 생성
@@ -97,6 +95,11 @@ npm run build && npm start    # 빌드 후 서버 시작
 |------|--------|------|
 | `ADMIN_PORT` | `3000` | Admin API 포트 |
 | `MOCK_PORT` | `8080` | Mock Server 포트 |
+
+```bash
+# 예시: 커스텀 포트로 실행
+ADMIN_PORT=4000 MOCK_PORT=9090 npm start
+```
 
 ### 개발 모드
 
