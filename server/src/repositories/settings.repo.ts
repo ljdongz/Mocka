@@ -24,6 +24,7 @@ export function setAll(settings: Partial<Settings>): Settings {
     if (settings.port !== undefined) update.run('port', settings.port);
     if (settings.responseDelay !== undefined) update.run('response_delay', settings.responseDelay);
     if (settings.autoSaveEndpoints !== undefined) update.run('auto_save_endpoints', settings.autoSaveEndpoints);
+    if (settings.historyToast !== undefined) update.run('history_toast', settings.historyToast);
   });
   txn();
   return getAll();

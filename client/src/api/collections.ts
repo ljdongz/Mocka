@@ -11,4 +11,8 @@ export const collectionsApi = {
     api.put('/api/collections/move-endpoint', data),
   removeEndpointFromCollection: (collectionId: string, endpointId: string) =>
     api.delete(`/api/collections/${collectionId}/endpoints/${endpointId}`),
+  reorderCollections: (orderedIds: string[]) =>
+    api.put('/api/collections/reorder', { orderedIds }),
+  reorderEndpoints: (collectionId: string, orderedEndpointIds: string[]) =>
+    api.put(`/api/collections/${collectionId}/reorder-endpoints`, { orderedEndpointIds }),
 };

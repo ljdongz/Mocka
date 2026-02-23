@@ -5,6 +5,7 @@ export function useResizable(
   onResize: (width: number) => void,
   min = 200,
   max = 500,
+  reverse = false,
 ) {
   const startX = useRef(0);
   const startWidth = useRef(initialWidth);
@@ -15,7 +16,7 @@ export function useResizable(
 
     const onMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - startX.current;
-      const newWidth = Math.min(max, Math.max(min, startWidth.current + delta));
+      const newWidth = Math.min(max, Math.max(min, startWidth.current + (reverse ? -delta : delta)));
       onResize(newWidth);
     };
 
@@ -30,7 +31,7 @@ export function useResizable(
     document.addEventListener('mouseup', onMouseUp);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-  }, [initialWidth, onResize, min, max]);
+  }, [initialWidth, onResize, min, max, reverse]);
 
   return { onMouseDown };
 }

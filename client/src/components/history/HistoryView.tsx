@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useHistoryStore } from '../../stores/history.store';
 import { useSettingsStore } from '../../stores/settings.store';
+import { useUIStore } from '../../stores/ui.store';
+import { useResizable } from '../../hooks/useResizable';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
 import { HistoryDetail } from './HistoryDetail';
@@ -20,6 +22,9 @@ export function HistoryView() {
   const clearAll = useHistoryStore(s => s.clearAll);
   const fetch = useHistoryStore(s => s.fetch);
   const serverStatus = useSettingsStore(s => s.serverStatus);
+  const historyDetailWidth = useUIStore(s => s.historyDetailWidth);
+  const setHistoryDetailWidth = useUIStore(s => s.setHistoryDetailWidth);
+  const { onMouseDown } = useResizable(historyDetailWidth, setHistoryDetailWidth, 300, 700, true);
 
   useEffect(() => { fetch(); }, [fetch]);
 
@@ -108,9 +113,15 @@ export function HistoryView() {
 
         {/* Detail panel */}
         {selectedRecord && (
-          <div className="w-[400px] border-l border-border-primary overflow-y-auto">
-            <HistoryDetail record={selectedRecord} onClose={() => selectRecord(null)} />
-          </div>
+          <>
+            <div
+              onMouseDown={onMouseDown}
+              className="w-1 cursor-col-resize bg-border-primary hover:bg-accent-primary transition-colors flex-shrink-0"
+            />
+            <div style={{ width: historyDetailWidth, minWidth: historyDetailWidth }} className="flex-shrink-0 overflow-y-auto">
+              <HistoryDetail record={selectedRecord} onClose={() => selectRecord(null)} />
+            </div>
+          </>
         )}
       </div>
     </div>

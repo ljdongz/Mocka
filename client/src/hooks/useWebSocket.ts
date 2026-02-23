@@ -37,11 +37,13 @@ export function useWebSocket() {
           break;
         case 'history:new':
           addRecord(data);
-          useToastStore.getState().addToast({
-            method: data.method,
-            path: data.path,
-            statusCode: data.statusCode,
-          });
+          if (useSettingsStore.getState().settings.historyToast === 'true') {
+            useToastStore.getState().addToast({
+              method: data.method,
+              path: data.path,
+              statusCode: data.statusCode,
+            });
+          }
           break;
         case 'history:cleared':
           useHistoryStore.getState().fetch();

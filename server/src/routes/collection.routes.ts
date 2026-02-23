@@ -40,6 +40,21 @@ export async function collectionRoutes(app: FastifyInstance): Promise<void> {
     return c;
   });
 
+  app.put('/api/collections/reorder', async (req) => {
+    const { orderedIds } = req.body as { orderedIds: string[] };
+    collectionService.reorderCollections(orderedIds);
+    broadcast('collection:reordered', null);
+    return { success: true };
+  });
+
+  app.put('/api/collections/:id/reorder-endpoints', async (req) => {
+    const { id } = req.params as { id: string };
+    const { orderedEndpointIds } = req.body as { orderedEndpointIds: string[] };
+    collectionService.reorderEndpoints(id, orderedEndpointIds);
+    broadcast('collection:reordered', null);
+    return { success: true };
+  });
+
   app.put('/api/collections/move-endpoint', async (req) => {
     const { endpointId, fromCollectionId, toCollectionId, sortOrder } = req.body as any;
     collectionService.moveEndpoint(endpointId, fromCollectionId, toCollectionId, sortOrder);

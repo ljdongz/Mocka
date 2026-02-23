@@ -81,5 +81,6 @@ export function initSchema(): void {
     INSERT OR IGNORE INTO settings VALUES ('port', '8080');
     INSERT OR IGNORE INTO settings VALUES ('response_delay', '0');
     INSERT OR IGNORE INTO settings VALUES ('auto_save_endpoints', 'true');
+    INSERT OR IGNORE INTO settings VALUES ('history_toast', 'true');
   `);
 }

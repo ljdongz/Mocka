@@ -69,6 +69,7 @@ export interface Settings {
   port: string;
   responseDelay: string;
   autoSaveEndpoints: string;
+  historyToast: string;
 }
 
 export interface ServerStatus {

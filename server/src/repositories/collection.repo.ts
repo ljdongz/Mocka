@@ -67,6 +67,24 @@ export function removeEndpoint(collectionId: string, endpointId: string): void {
   db.prepare('DELETE FROM collection_endpoints WHERE collection_id = ? AND endpoint_id = ?').run(collectionId, endpointId);
 }
 
+export function reorderCollections(orderedIds: string[]): void {
+  const db = getDb();
+  const update = db.prepare('UPDATE collections SET sort_order = ? WHERE id = ?');
+  const txn = db.transaction(() => {
+    orderedIds.forEach((id, index) => update.run(index, id));
+  });
+  txn();
+}
+
+export function reorderEndpoints(collectionId: string, orderedEndpointIds: string[]): void {
+  const db = getDb();
+  const update = db.prepare('UPDATE collection_endpoints SET sort_order = ? WHERE collection_id = ? AND endpoint_id = ?');
+  const txn = db.transaction(() => {
+    orderedEndpointIds.forEach((eid, index) => update.run(index, collectionId, eid));
+  });
+  txn();
+}
+
 export function moveEndpoint(endpointId: string, fromCollectionId: string | null, toCollectionId: string, sortOrder: number): void {
   const db = getDb();
   if (fromCollectionId) {

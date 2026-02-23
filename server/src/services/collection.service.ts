@@ -23,6 +23,14 @@ export function toggleExpanded(id: string): Collection | null {
   return collectionRepo.toggleExpanded(id);
 }
 
+export function reorderCollections(orderedIds: string[]): void {
+  collectionRepo.reorderCollections(orderedIds);
+}
+
+export function reorderEndpoints(collectionId: string, orderedEndpointIds: string[]): void {
+  collectionRepo.reorderEndpoints(collectionId, orderedEndpointIds);
+}
+
 export function moveEndpoint(endpointId: string, fromCollectionId: string | null, toCollectionId: string, sortOrder: number): void {
   collectionRepo.moveEndpoint(endpointId, fromCollectionId, toCollectionId, sortOrder);
 }

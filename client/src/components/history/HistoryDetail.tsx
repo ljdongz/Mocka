@@ -25,10 +25,10 @@ export function HistoryDetail({ record, onClose }: { record: RequestRecord; onCl
           <HttpMethodBadge method={record.method as HttpMethod} />
           <StatusCodeBadge code={record.statusCode} />
         </div>
-        <button onClick={onClose} className="text-text-muted hover:text-text-secondary text-sm">&times;</button>
+        <button onClick={onClose} className="text-text-muted hover:text-text-secondary text-xl leading-none px-1">&times;</button>
       </div>
 
-      <div className="px-4 py-2 text-sm text-text-tertiary font-mono border-b border-border-primary truncate">
+      <div className="px-4 py-2 text-sm text-text-tertiary font-mono border-b border-border-primary break-all">
         {record.path}
       </div>
 

@@ -13,7 +13,7 @@ interface SettingsStore {
 }
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
-  settings: { port: '8080', responseDelay: '0', autoSaveEndpoints: 'true' },
+  settings: { port: '8080', responseDelay: '0', autoSaveEndpoints: 'true', historyToast: 'true' },
   serverStatus: { running: false, port: '8080', localIp: 'localhost' },
 
   fetch: async () => {
