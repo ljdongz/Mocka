@@ -10,6 +10,7 @@ interface CollectionStore {
   remove: (id: string) => Promise<void>;
   toggleExpanded: (id: string) => Promise<void>;
   moveEndpoint: (endpointId: string, from: string | null, to: string, sortOrder: number) => Promise<void>;
+  removeEndpointFromCollection: (collectionId: string, endpointId: string) => Promise<void>;
   reorderCollections: (orderedIds: string[]) => Promise<void>;
   reorderEndpoints: (collectionId: string, orderedEndpointIds: string[]) => Promise<void>;
   replaceCollection: (c: Collection) => void;
@@ -51,6 +52,12 @@ export const useCollectionStore = create<CollectionStore>((set) => ({
 
   moveEndpoint: async (endpointId, from, to, sortOrder) => {
     await collectionsApi.moveEndpoint({ endpointId, fromCollectionId: from, toCollectionId: to, sortOrder });
+    const collections = await collectionsApi.getAll();
+    set({ collections });
+  },
+
+  removeEndpointFromCollection: async (collectionId, endpointId) => {
+    await collectionsApi.removeEndpointFromCollection(collectionId, endpointId);
     const collections = await collectionsApi.getAll();
     set({ collections });
   },

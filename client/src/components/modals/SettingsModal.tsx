@@ -10,19 +10,21 @@ export function SettingsModal() {
   const updateSettings = useSettingsStore(s => s.update);
   const restartServer = useSettingsStore(s => s.restartServer);
 
-  const [port, setPort] = useState(settings.port);
-  const [delay, setDelay] = useState(settings.responseDelay);
-  const [historyToast, setHistoryToast] = useState(settings.historyToast === 'true');
+  const [port, setPort] = useState(String(settings.port));
+  const [delay, setDelay] = useState(String(settings.responseDelay));
+  const [historyToast, setHistoryToast] = useState(settings.historyToast);
 
   useEffect(() => {
-    setPort(settings.port);
-    setDelay(settings.responseDelay);
-    setHistoryToast(settings.historyToast === 'true');
+    setPort(String(settings.port));
+    setDelay(String(settings.responseDelay));
+    setHistoryToast(settings.historyToast);
   }, [settings]);
 
   const handleSave = async () => {
-    await updateSettings({ port, responseDelay: delay, historyToast: historyToast ? 'true' : 'false' });
-    if (port !== settings.port) {
+    const newPort = parseInt(port, 10) || 8080;
+    const newDelay = parseInt(delay, 10) || 0;
+    await updateSettings({ port: newPort, responseDelay: newDelay, historyToast });
+    if (newPort !== settings.port) {
       await restartServer();
     }
     close();

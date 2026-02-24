@@ -1,5 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import * as recordRepo from '../repositories/record.repo.js';
+import { broadcast } from '../plugins/websocket.js';
 import type { RequestRecord } from '../models/request-record.js';
 
 export function getAll(opts?: { method?: string; search?: string; limit?: number; offset?: number }): RequestRecord[] {
@@ -12,9 +13,12 @@ export function record(data: Omit<RequestRecord, 'id' | 'timestamp'>): RequestRe
     ...data,
     timestamp: new Date().toISOString(),
   };
-  return recordRepo.create(rec);
+  const created = recordRepo.create(rec);
+  broadcast('history:new', created);
+  return created;
 }
 
 export function clearAll(): void {
   recordRepo.clearAll();
+  broadcast('history:cleared');
 }

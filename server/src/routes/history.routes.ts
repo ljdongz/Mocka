@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import * as historyService from '../services/history.service.js';
-import { broadcast } from '../plugins/websocket.js';
 
 export async function historyRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/history', async (req) => {
@@ -15,7 +14,6 @@ export async function historyRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete('/api/history', async () => {
     historyService.clearAll();
-    broadcast('history:cleared');
     return { success: true };
   });
 }

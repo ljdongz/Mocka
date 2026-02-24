@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import * as endpointService from '../services/endpoint.service.js';
-import { broadcast } from '../plugins/websocket.js';
 
 export async function endpointRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/endpoints', async () => {
@@ -17,14 +16,11 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/endpoints', async (req, reply) => {
     const body = req.body as { method: string; path: string; collectionId?: string };
     try {
-      const ep = endpointService.create({ method: body.method as any, path: body.path });
-      if (body.collectionId) {
-        const collectionService = await import('../services/collection.service.js');
-        collectionService.addEndpoint(body.collectionId, ep.id);
-        const updated = collectionService.getAll().find(c => c.id === body.collectionId);
-        if (updated) broadcast('collection:updated', updated);
-      }
-      broadcast('endpoint:created', ep);
+      const ep = endpointService.create({
+        method: body.method as any,
+        path: body.path,
+        collectionId: body.collectionId,
+      });
       reply.code(201);
       return ep;
     } catch (e: any) {
@@ -41,7 +37,6 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
     const data = req.body as any;
     const ep = endpointService.update(id, data);
     if (!ep) { reply.code(404); return { error: 'Not found' }; }
-    broadcast('endpoint:updated', ep);
     return ep;
   });
 
@@ -49,7 +44,6 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
     const { id } = req.params as { id: string };
     const ok = endpointService.remove(id);
     if (!ok) { reply.code(404); return { error: 'Not found' }; }
-    broadcast('endpoint:deleted', { id });
     return { success: true };
   });
 
@@ -57,7 +51,6 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
     const { id } = req.params as { id: string };
     const ep = endpointService.toggleEnabled(id);
     if (!ep) { reply.code(404); return { error: 'Not found' }; }
-    broadcast('endpoint:updated', ep);
     return ep;
   });
 
@@ -66,7 +59,6 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
     const { variantId } = req.body as { variantId: string | null };
     const ep = endpointService.setActiveVariant(id, variantId);
     if (!ep) { reply.code(404); return { error: 'Not found' }; }
-    broadcast('endpoint:updated', ep);
     return ep;
   });
 
@@ -76,7 +68,6 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
     const data = req.body as any;
     const ep = endpointService.addVariant(id, data);
     if (!ep) { reply.code(404); return { error: 'Not found' }; }
-    broadcast('endpoint:updated', ep);
     reply.code(201);
     return ep;
   });
@@ -86,7 +77,6 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
     const data = req.body as any;
     const variant = endpointService.updateVariant(id, data);
     if (!variant) { reply.code(404); return { error: 'Not found' }; }
-    broadcast('variant:updated', variant);
     return variant;
   });
 
@@ -94,7 +84,6 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
     const { id } = req.params as { id: string };
     const ok = endpointService.removeVariant(id);
     if (!ok) { reply.code(404); return { error: 'Not found' }; }
-    broadcast('variant:deleted', { id });
     return { success: true };
   });
 }

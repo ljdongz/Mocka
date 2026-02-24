@@ -3,28 +3,11 @@ import { Check, X } from 'lucide-react';
 import { useEndpointStore } from '../../../stores/endpoint.store';
 import { StatusCodeBadge } from '../../shared/StatusCodeBadge';
 import { CodeEditor } from '../../shared/CodeEditor';
+import { STATUS_CODES } from '../../../utils/http';
+import { formatJson } from '../../../utils/json';
+import { validateStatusCode } from '../../../utils/validation';
 import type { Endpoint, ResponseVariant } from '../../../types';
 import clsx from 'clsx';
-
-const STATUS_CODES = [
-  { code: 200, label: '200 OK' },
-  { code: 201, label: '201 Created' },
-  { code: 204, label: '204 No Content' },
-  { code: 301, label: '301 Moved Permanently' },
-  { code: 302, label: '302 Found' },
-  { code: 304, label: '304 Not Modified' },
-  { code: 400, label: '400 Bad Request' },
-  { code: 401, label: '401 Unauthorized' },
-  { code: 403, label: '403 Forbidden' },
-  { code: 404, label: '404 Not Found' },
-  { code: 405, label: '405 Method Not Allowed' },
-  { code: 409, label: '409 Conflict' },
-  { code: 422, label: '422 Unprocessable Entity' },
-  { code: 429, label: '429 Too Many Requests' },
-  { code: 500, label: '500 Internal Server Error' },
-  { code: 502, label: '502 Bad Gateway' },
-  { code: 503, label: '503 Service Unavailable' },
-];
 
 export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
   const setActiveVariant = useEndpointStore(s => s.setActiveVariant);
@@ -49,10 +32,10 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
 
   const handleBeautify = useCallback(() => {
     if (!selectedVariant) return;
-    try {
-      const formatted = JSON.stringify(JSON.parse(selectedVariant.body), null, 2);
+    const formatted = formatJson(selectedVariant.body);
+    if (formatted !== selectedVariant.body) {
       updateVariant(selectedVariant.id, { body: formatted });
-    } catch { /* not valid JSON */ }
+    }
   }, [selectedVariant, updateVariant]);
 
   // Close dropdown on outside click
@@ -126,7 +109,7 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
                         onKeyDown={e => {
                           if (e.key === 'Enter') {
                             const code = parseInt(customCodeInput);
-                            if (code >= 100 && code <= 599) {
+                            if (validateStatusCode(code)) {
                               updateVariant(v.id, { statusCode: code });
                               setStatusDropdownId(null);
                               setCustomCodeInput('');

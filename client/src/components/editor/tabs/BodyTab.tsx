@@ -2,17 +2,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { useEndpointStore } from '../../../stores/endpoint.store';
 import { CodeEditor } from '../../shared/CodeEditor';
 import { X } from 'lucide-react';
+import { formatJson } from '../../../utils/json';
+import { createFormDataField, type FormDataField } from '../../../utils/entity-factory';
 import type { Endpoint } from '../../../types';
 
 const CONTENT_TYPES = ['application/json', 'text/plain', 'application/xml', 'application/x-www-form-urlencoded', 'multipart/form-data'];
-
-interface FormDataField {
-  id: string;
-  key: string;
-  value: string;
-  type: 'text' | 'file';
-  isEnabled: boolean;
-}
 
 function parseFormDataFields(raw: string): FormDataField[] {
   try {
@@ -63,7 +57,7 @@ function FormDataEditor({ endpoint }: { endpoint: Endpoint }) {
   }, [fields, save]);
 
   const addField = useCallback(() => {
-    save([...fields, { id: crypto.randomUUID(), key: '', value: '', type: 'text', isEnabled: true }]);
+    save([...fields, createFormDataField()]);
   }, [fields, save]);
 
   return (
@@ -138,10 +132,10 @@ export function BodyTab({ endpoint }: { endpoint: Endpoint }) {
   }, [endpoint.id, endpoint.requestBodyContentType, endpoint.requestBodyRaw, updateEndpoint]);
 
   const beautify = useCallback(() => {
-    try {
-      const formatted = JSON.stringify(JSON.parse(endpoint.requestBodyRaw), null, 2);
+    const formatted = formatJson(endpoint.requestBodyRaw);
+    if (formatted !== endpoint.requestBodyRaw) {
       updateEndpoint(endpoint.id, { requestBodyRaw: formatted });
-    } catch { /* not valid JSON */ }
+    }
   }, [endpoint.id, endpoint.requestBodyRaw, updateEndpoint]);
 
   return (

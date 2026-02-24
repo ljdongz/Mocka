@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { createKeyValueRow } from '../../utils/entity-factory';
 
 interface Row {
   id: string;
@@ -49,8 +50,7 @@ export function KeyValueTable({ rows, onChange, keyLabel = 'Parameter', valueLab
   }, [rows, onChange]);
 
   const addRow = useCallback(() => {
-    const id = crypto.randomUUID();
-    onChange([...rows, { id, key: '', value: '', isEnabled: true, sortOrder: rows.length }]);
+    onChange([...rows, createKeyValueRow(rows.length)]);
   }, [rows, onChange]);
 
   return (

@@ -4,7 +4,6 @@ import { Pencil, Check, X, FolderInput } from 'lucide-react';
 import { useEndpointStore } from '../../stores/endpoint.store';
 import { useCollectionStore } from '../../stores/collection.store';
 import { useUIStore } from '../../stores/ui.store';
-import { collectionsApi } from '../../api/collections';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
 import type { Endpoint, HttpMethod } from '../../types';
@@ -20,7 +19,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
   const setShowHistory = useUIStore(s => s.setShowHistory);
   const collections = useCollectionStore(s => s.collections);
   const moveEndpoint = useCollectionStore(s => s.moveEndpoint);
-  const fetchCollections = useCollectionStore(s => s.fetch);
+  const removeEndpointFromCollection = useCollectionStore(s => s.removeEndpointFromCollection);
   const isSelected = selectedId === endpoint.id;
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const moveRef = useRef<HTMLDivElement>(null);
@@ -43,8 +42,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
     if (targetCollId === currentCollId) return;
 
     if (targetCollId === null && currentCollId) {
-      await collectionsApi.removeEndpointFromCollection(currentCollId, endpoint.id);
-      await fetchCollections();
+      await removeEndpointFromCollection(currentCollId, endpoint.id);
     } else if (targetCollId) {
       await moveEndpoint(endpoint.id, currentCollId, targetCollId, 0);
     }

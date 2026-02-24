@@ -6,6 +6,7 @@ import { useUIStore } from '../../stores/ui.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { ModalOverlay } from '../shared/ModalOverlay';
 import type { HttpMethod } from '../../types';
+import { validatePath } from '../../utils/validation';
 import clsx from 'clsx';
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
@@ -53,7 +54,8 @@ export function NewEndpointModal() {
   }
 
   const handleSubmit = async () => {
-    if (!path.trim()) { setError('Path is required'); return; }
+    const pathError = validatePath(path);
+    if (pathError) { setError(pathError); return; }
     try {
       await createEndpoint(method, path.trim(), collectionId || undefined);
       if (collectionId) {

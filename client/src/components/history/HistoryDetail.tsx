@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
 import { CodeEditor } from '../shared/CodeEditor';
+import { formatJson } from '../../utils/json';
 import type { RequestRecord, HttpMethod } from '../../types';
 import clsx from 'clsx';
 
@@ -9,10 +10,6 @@ type DetailTab = 'response' | 'headers' | 'body';
 
 export function HistoryDetail({ record, onClose }: { record: RequestRecord; onClose: () => void }) {
   const [tab, setTab] = useState<DetailTab>('response');
-
-  const formatJson = (str: string) => {
-    try { return JSON.stringify(JSON.parse(str), null, 2); } catch { return str; }
-  };
 
   const headers = (() => {
     try { return JSON.parse(record.requestHeaders); } catch { return {}; }

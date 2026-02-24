@@ -1,7 +1,5 @@
 import Fastify from 'fastify';
-import { match } from './services/route-registry.js';
-import * as historyService from './services/history.service.js';
-import { broadcast } from './plugins/websocket.js';
+import { handleMockRequest } from './services/mock-handler.service.js';
 
 export async function createMockServer(port: number) {
   const app = Fastify({ logger: false });
@@ -27,66 +25,22 @@ export async function createMockServer(port: number) {
     }
   });
 
-  // Catch-all handler for actual requests
+  // Catch-all handler delegates to mock-handler service
   const handler = async (req: any, reply: any) => {
-    const method = req.method;
-    const fullUrl = req.url;
-    const path = fullUrl.split('?')[0];
+    const result = await handleMockRequest(
+      req.method,
+      req.url,
+      req.body ?? req.query ?? {},
+      req.headers as Record<string, string>,
+    );
 
-    const endpoint = match(method, path);
-
-    if (!endpoint) {
-      const message = `No mock endpoint configured for ${method} ${path}`;
-      const record = historyService.record({
-        method,
-        path: fullUrl,
-        statusCode: 404,
-        bodyOrParams: JSON.stringify(req.body ?? {}),
-        requestHeaders: JSON.stringify(req.headers),
-        responseBody: JSON.stringify({ error: message }),
-      });
-      broadcast('history:new', record);
-      reply.code(404);
-      return { error: message };
+    for (const [key, value] of Object.entries(result.headers)) {
+      reply.header(key, value);
     }
 
-    // Find active variant
-    const variant = endpoint.responseVariants?.find(v => v.id === endpoint.activeVariantId)
-      ?? endpoint.responseVariants?.[0];
-
-    if (!variant) {
-      reply.code(500);
-      return { error: 'No response variant configured' };
-    }
-
-    // Apply delay
-    const delay = variant.delay ?? 0;
-    if (delay > 0) {
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-
-    // Parse response headers
-    try {
-      const headers = JSON.parse(variant.headers);
-      for (const [key, value] of Object.entries(headers)) {
-        reply.header(key, value as string);
-      }
-    } catch { /* ignore invalid headers */ }
-
-    // Record request
-    const record = historyService.record({
-      method,
-      path: fullUrl,
-      statusCode: variant.statusCode,
-      bodyOrParams: JSON.stringify(req.body ?? req.query ?? {}),
-      requestHeaders: JSON.stringify(req.headers),
-      responseBody: variant.body,
-    });
-    broadcast('history:new', record);
-
-    reply.code(variant.statusCode);
+    reply.code(result.statusCode);
     reply.header('content-type', 'application/json');
-    return reply.send(variant.body);
+    return reply.send(result.body);
   };
 
   // Register for each method individually (avoids OPTIONS conflict)

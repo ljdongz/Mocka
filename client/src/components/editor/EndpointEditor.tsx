@@ -10,6 +10,8 @@ import { ResponseTab } from './tabs/ResponseTab';
 import clsx from 'clsx';
 import type { HttpMethod } from '../../types';
 import { buildFullUrl, parseUrlWithParams } from '../../utils/url';
+import { validatePath } from '../../utils/validation';
+import { createQueryParam } from '../../utils/entity-factory';
 
 const TABS = ['Params', 'Headers', 'Body', 'Response'] as const;
 type Tab = (typeof TABS)[number];
@@ -72,8 +74,9 @@ export function EndpointEditor() {
 
   const savePath = async () => {
     const trimmed = pathValue.trim();
-    if (!trimmed) {
-      setError('Path is required');
+    const pathError = validatePath(trimmed);
+    if (pathError) {
+      setError(pathError);
       return;
     }
     const { path: parsedPath, params } = parseUrlWithParams(trimmed);
@@ -90,14 +93,11 @@ export function EndpointEditor() {
       const merged = [...existing];
       for (const p of params) {
         if (!merged.some(e => e.key === p.key)) {
-          merged.push({
-            id: crypto.randomUUID(),
-            endpointId: endpoint.id,
+          merged.push(createQueryParam(endpoint.id, {
             key: p.key,
             value: p.value,
-            isEnabled: true,
             sortOrder: merged.length,
-          });
+          }));
         }
       }
       updates.queryParams = merged;
