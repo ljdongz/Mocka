@@ -6,6 +6,16 @@ import { broadcast } from './plugins/websocket.js';
 export async function createMockServer(port: number) {
   const app = Fastify({ logger: false });
 
+  // Accept multipart/form-data requests (store raw body without parsing)
+  app.addContentTypeParser('multipart/form-data', function (_req, payload, done) {
+    const chunks: Buffer[] = [];
+    payload.on('data', (chunk: Buffer) => chunks.push(chunk));
+    payload.on('end', () => {
+      done(null, { raw: Buffer.concat(chunks).toString() });
+    });
+    payload.on('error', done);
+  });
+
   // Manual CORS handling via hooks (avoids route conflict with catch-all)
   app.addHook('onRequest', async (req, reply) => {
     reply.header('access-control-allow-origin', '*');
