@@ -49,7 +49,7 @@ export function HistoryDetail({ record, onClose }: { record: RequestRecord; onCl
 
       <div className="flex-1 overflow-y-auto p-4">
         {tab === 'response' && (
-          <CodeEditor value={formatJson(record.responseBody)} readOnly height="300px" />
+          <CodeEditor value={formatJson(record.responseBody)} readOnly height="100%" />
         )}
         {tab === 'headers' && (
           <div className="space-y-1">
@@ -62,7 +62,7 @@ export function HistoryDetail({ record, onClose }: { record: RequestRecord; onCl
           </div>
         )}
         {tab === 'body' && (
-          <CodeEditor value={formatJson(record.bodyOrParams)} readOnly height="300px" />
+          <CodeEditor value={formatJson(record.bodyOrParams)} readOnly height="100%" />
         )}
       </div>
     </div>

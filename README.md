@@ -24,8 +24,9 @@ The application runs two servers: an **Admin API** (default port 3000) that serv
 
 ## Features
 
+- **Fully Local & Self-Hosted** — Runs entirely on your machine with no cloud dependency, no account required, and no rate limits. Works offline and serves mock responses over your local network, so real devices (iOS, Android) on the same Wi-Fi can call the mock API directly
 - **Mock Endpoint Management** — Create endpoints with any HTTP method (GET, POST, PUT, DELETE, PATCH)
-- **Multiple Response Variants** — Define several response variants per endpoint and switch between them
+- **Instant Response Switching** — Define multiple response variants per endpoint (success, error, empty, etc.) and switch between them with a single click — no redeployment or restart needed
 - **Collections** — Organize endpoints into groups with drag-and-drop reordering
 - **Real-time Request Logging** — Monitor incoming requests via WebSocket in real time
 - **Response Delay** — Simulate network latency with configurable delays
