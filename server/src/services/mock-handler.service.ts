@@ -15,9 +15,9 @@ export async function handleMockRequest(
   headers: Record<string, string>,
 ): Promise<MockResponse> {
   const path = url.split('?')[0];
-  const endpoint = match(method, path);
+  const result = match(method, path);
 
-  if (!endpoint) {
+  if (!result) {
     const message = `No mock endpoint configured for ${method} ${path}`;
     historyService.record({
       method,
@@ -34,6 +34,8 @@ export async function handleMockRequest(
       delay: 0,
     };
   }
+
+  const { endpoint, pathParams } = result;
 
   // Find active variant
   const variant = endpoint.responseVariants?.find(v => v.id === endpoint.activeVariantId)
@@ -60,12 +62,22 @@ export async function handleMockRequest(
     responseHeaders = JSON.parse(variant.headers);
   } catch { /* ignore invalid headers */ }
 
+  // Build request info with path params (safely handle non-object bodies)
+  const hasPathParams = Object.keys(pathParams).length > 0;
+  let recordBody: string;
+  if (hasPathParams) {
+    const safeBody = (typeof body === 'object' && body !== null && !Array.isArray(body)) ? body : { _body: body };
+    recordBody = JSON.stringify({ ...safeBody, _pathParams: pathParams });
+  } else {
+    recordBody = JSON.stringify(body ?? {});
+  }
+
   // Record request
   historyService.record({
     method,
     path: url,
     statusCode: variant.statusCode,
-    bodyOrParams: JSON.stringify(body ?? {}),
+    bodyOrParams: recordBody,
     requestHeaders: JSON.stringify(headers),
     responseBody: variant.body,
   });
