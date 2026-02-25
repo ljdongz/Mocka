@@ -8,12 +8,24 @@ import clsx from 'clsx';
 
 type DetailTab = 'response' | 'headers' | 'body';
 
+function parsePathParams(bodyOrParams: string): Record<string, string> | null {
+  try {
+    const parsed = JSON.parse(bodyOrParams);
+    if (parsed && typeof parsed === 'object' && parsed._pathParams) {
+      return parsed._pathParams;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 export function HistoryDetail({ record, onClose }: { record: RequestRecord; onClose: () => void }) {
   const [tab, setTab] = useState<DetailTab>('response');
 
   const headers = (() => {
     try { return JSON.parse(record.requestHeaders); } catch { return {}; }
   })();
+
+  const pathParams = parsePathParams(record.bodyOrParams);
 
   return (
     <div className="flex flex-col h-full">
@@ -28,6 +40,21 @@ export function HistoryDetail({ record, onClose }: { record: RequestRecord; onCl
       <div className="px-4 py-2 text-sm text-text-tertiary font-mono border-b border-border-primary break-all">
         {record.path}
       </div>
+
+      {/* Path Parameters badge */}
+      {pathParams && (
+        <div className="px-4 py-2 border-b border-border-primary">
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(pathParams).map(([key, value]) => (
+              <span key={key} className="inline-flex items-center gap-1 rounded bg-accent-primary/10 px-2 py-0.5 text-xs font-mono">
+                <span className="text-accent-primary">{key}</span>
+                <span className="text-text-muted">=</span>
+                <span className="text-text-primary">{value}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex border-b border-border-primary">
         {(['response', 'headers', 'body'] as DetailTab[]).map(t => (

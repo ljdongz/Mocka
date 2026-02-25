@@ -12,6 +12,7 @@ import type { HttpMethod } from '../../types';
 import { buildFullUrl, parseUrlWithParams } from '../../utils/url';
 import { validatePath } from '../../utils/validation';
 import { createQueryParam } from '../../utils/entity-factory';
+import { hasPathParams } from '../../utils/path-params';
 
 const TABS = ['Params', 'Headers', 'Body', 'Response'] as const;
 type Tab = (typeof TABS)[number];
@@ -57,6 +58,30 @@ export function EndpointEditor() {
     setShowMethodDropdown(false);
     setError('');
   }, [selectedId]);
+
+  const renderHighlightedPath = (fullUrl: string) => {
+    // Split path from query string
+    const [pathPart, ...queryParts] = fullUrl.split('?');
+    const query = queryParts.length > 0 ? `?${queryParts.join('?')}` : '';
+    const segments = pathPart.split('/');
+
+    return (
+      <>
+        {segments.map((seg, i) => {
+          const isParam = /^:[a-zA-Z_]\w*$/.test(seg) || /^\{[a-zA-Z_]\w*\}$/.test(seg);
+          return (
+            <span key={i}>
+              {i > 0 && '/'}
+              {isParam
+                ? <span className="rounded bg-accent-primary/15 px-0.5 text-accent-primary">{seg}</span>
+                : seg}
+            </span>
+          );
+        })}
+        {query && <span className="text-text-muted">{query}</span>}
+      </>
+    );
+  };
 
   if (!endpoint) {
     return (
@@ -173,7 +198,9 @@ export function EndpointEditor() {
             className="font-mono text-base text-text-primary cursor-pointer hover:text-accent-primary transition-colors"
             title="Click to edit path"
           >
-            {buildFullUrl(endpoint.path, endpoint.queryParams)}
+            {hasPathParams(endpoint.path)
+              ? renderHighlightedPath(buildFullUrl(endpoint.path, endpoint.queryParams))
+              : buildFullUrl(endpoint.path, endpoint.queryParams)}
           </span>
         )}
         {error && <span className="text-xs text-method-delete">{error}</span>}
