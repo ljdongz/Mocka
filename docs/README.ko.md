@@ -28,11 +28,17 @@ Mocka는 브라우저에서 Mock API endpoint를 생성, 관리, 제공할 수 �
 - **Mock Endpoint 관리** — GET, POST, PUT, DELETE, PATCH 등 모든 HTTP 메서드로 endpoint 생성
 - **Path Parameter 매칭** — `:param` 또는 `{param}` 문법으로 동적 경로 변수를 정의 (예: `/users/:id`). 정확 매칭이 패턴 매칭보다 우선하며, 캡처된 값은 요청 기록에서 확인 가능
 - **즉석 응답 전환** — endpoint당 여러 응답 변형(성공, 에러, 빈 데이터 등)을 정의하고 클릭 한 번으로 즉시 전환 — 재배포나 재시작 불필요
+- **동적 템플릿 변수** — `{{$randomUUID}}`, `{{$randomEmail}}`, `{{$isoTimestamp}}` 등 30+ 내장 변수로 매 요청마다 실제와 유사한 Mock 데이터를 자동 생성
+- **요청 컨텍스트 헬퍼** — `{{$body 'field'}}`, `{{$headers 'key'}}`, `{{$queryParams 'q'}}`, `{{$pathParams 'id'}}` 등으로 수신 요청 데이터를 응답에 반영. dot-notation으로 중첩 필드도 접근 가능
+- **조건부 매치 룰** — 수신 요청의 body나 header를 기반으로 적절한 응답 변형을 자동 선택. equals, contains, startsWith, endsWith, regex 연산자와 AND/OR 조합 지원
+- **환경 변수** — dev, staging, production 등 여러 환경을 key-value 변수로 관리. 응답 본문과 헤더에서 `{{variableName}}` 문법으로 참조하고 활성 환경을 즉시 전환
+- **Mock 응답 헤더 오버라이드** — `x-mock-response-code`, `x-mock-response-name`, `x-mock-response-delay` 헤더로 요청별 응답 변형 선택 가능
 - **Import / Export** — 모든 endpoint, 응답 변형, collection을 JSON 파일로 내보내고 불러오기. 중복 처리 정책 지원 (건너뛰기, 덮어쓰기, 병합)
 - **Collection 관리** — endpoint를 그룹으로 정리하고 drag-and-drop으로 순서 변경
 - **실시간 요청 기록** — WebSocket을 통해 수신 요청을 실시간으로 모니터링
 - **응답 지연 설정** — 지연 시간을 설정하여 네트워크 레이턴시 시뮬레이션
-- **Monaco Editor** — JSON 응답 본문을 구문 강조 및 유효성 검사와 함께 편집
+- **Monaco Editor** — JSON 응답 본문을 구문 강조, 유효성 검사, 템플릿 변수 자동완성과 함께 편집
+- **온보딩 가이드** — 주요 기능을 인터랙티브 미리보기와 함께 소개하는 내장 가이드 페이지
 - **SQLite 영구 저장** — 모든 설정이 로컬 SQLite 데이터베이스에 저장
 - **크로스 플랫폼** — macOS, Linux, Windows에서 실행
 
@@ -138,11 +144,43 @@ curl -X POST http://localhost:8080/api/users \
 
 # 예시: Path parameter — /api/users/:id 로 정의된 endpoint에 매칭
 curl http://localhost:8080/api/users/42
+
+# 예시: 헤더로 응답 변형 오버라이드
+curl http://localhost:8080/api/users \
+  -H "x-mock-response-code: 404"
+
+curl http://localhost:8080/api/users \
+  -H "x-mock-response-name: error" \
+  -H "x-mock-response-delay: 2000"
 ```
+
+5. 응답 본문에 **템플릿 변수**를 사용하여 동적 데이터를 생성합니다:
+
+```json
+{
+  "id": "{{$randomUUID}}",
+  "name": "{{$randomFullName}}",
+  "email": "{{$randomEmail}}",
+  "createdAt": "{{$isoTimestamp}}"
+}
+```
+
+6. **요청 컨텍스트 헬퍼**를 사용하여 수신 요청 데이터를 응답에 반영합니다:
+
+```json
+{
+  "receivedName": "{{$body 'user.name'}}",
+  "authToken": "{{$headers 'authorization'}}",
+  "searchQuery": "{{$queryParams 'q'}}",
+  "userId": "{{$pathParams 'id'}}"
+}
+```
+
+7. **환경 변수**를 설정하여 다양한 구성(dev, staging, production)을 관리합니다. 응답 본문에서 `{{variableName}}` 문법으로 참조합니다.
 
 > **Tip:** Mock 서버는 로컬 네트워크 IP에서도 접근할 수 있습니다 (시작 시 콘솔에 표시). 같은 네트워크의 다른 기기에서도 요청을 보낼 수 있습니다 — 예: `curl http://192.168.x.x:8080/api/users`. 모바일 앱이나 다른 클라이언트를 테스트할 때 유용합니다.
 
-5. 관리 UI의 요청 기록에서 **수신 요청을 실시간으로 모니터링**합니다
+8. 관리 UI의 요청 기록에서 **수신 요청을 실시간으로 모니터링**합니다
 
 ## 프로젝트 구조
 

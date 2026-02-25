@@ -28,11 +28,17 @@ The application runs two servers: an **Admin API** (default port 3000) that serv
 - **Mock Endpoint Management** — Create endpoints with any HTTP method (GET, POST, PUT, DELETE, PATCH)
 - **Path Parameter Matching** — Define dynamic routes with `:param` or `{param}` syntax (e.g. `/users/:id`). Exact paths take priority over patterns, and captured values are shown in the request log
 - **Instant Response Switching** — Define multiple response variants per endpoint (success, error, empty, etc.) and switch between them with a single click — no redeployment or restart needed
+- **Dynamic Template Variables** — Generate realistic mock data with 30+ built-in variables like `{{$randomUUID}}`, `{{$randomEmail}}`, `{{$isoTimestamp}}`, and more. Values are regenerated on every request
+- **Request Context Helpers** — Echo back request data in responses using `{{$body 'field'}}`, `{{$headers 'key'}}`, `{{$queryParams 'q'}}`, and `{{$pathParams 'id'}}` helpers with dot-notation for nested fields
+- **Conditional Match Rules** — Automatically select the right response variant based on incoming request body or headers. Define rules with operators (equals, contains, startsWith, endsWith, regex) and combine them with AND/OR logic
+- **Environment Variables** — Create multiple environments (dev, staging, production) with key-value variables. Reference them in response bodies and headers via `{{variableName}}` syntax and switch the active environment instantly
+- **Mock Response Headers** — Override variant selection per-request using `x-mock-response-code`, `x-mock-response-name`, or `x-mock-response-delay` headers
 - **Import / Export** — Export all endpoints, response variants, and collections as a JSON file and import them back with conflict resolution (skip, overwrite, or merge duplicates)
 - **Collections** — Organize endpoints into groups with drag-and-drop reordering
 - **Real-time Request Logging** — Monitor incoming requests via WebSocket in real time
 - **Response Delay** — Simulate network latency with configurable delays
-- **Monaco Editor** — Edit JSON response bodies with syntax highlighting and validation
+- **Monaco Editor** — Edit JSON response bodies with syntax highlighting, validation, and template variable autocomplete
+- **Onboarding Guide** — Built-in feature introduction page with interactive previews for new users
 - **SQLite Persistence** — All configurations are stored in a local SQLite database
 - **Cross-platform** — Runs on macOS, Linux, and Windows
 
@@ -138,11 +144,43 @@ curl -X POST http://localhost:8080/api/users \
 
 # Example: Path parameter — matches an endpoint defined as /api/users/:id
 curl http://localhost:8080/api/users/42
+
+# Example: Override response variant via headers
+curl http://localhost:8080/api/users \
+  -H "x-mock-response-code: 404"
+
+curl http://localhost:8080/api/users \
+  -H "x-mock-response-name: error" \
+  -H "x-mock-response-delay: 2000"
 ```
+
+5. **Use template variables** in response bodies for dynamic data:
+
+```json
+{
+  "id": "{{$randomUUID}}",
+  "name": "{{$randomFullName}}",
+  "email": "{{$randomEmail}}",
+  "createdAt": "{{$isoTimestamp}}"
+}
+```
+
+6. **Echo request data** back in responses using context helpers:
+
+```json
+{
+  "receivedName": "{{$body 'user.name'}}",
+  "authToken": "{{$headers 'authorization'}}",
+  "searchQuery": "{{$queryParams 'q'}}",
+  "userId": "{{$pathParams 'id'}}"
+}
+```
+
+7. **Set up environments** to manage variables across different configurations (dev, staging, production). Use `{{variableName}}` in response bodies to reference them.
 
 > **Tip:** The mock server also listens on your local network IP (shown in the console on startup), so you can send requests from other devices on the same network — for example, `curl http://192.168.x.x:8080/api/users`. This is especially useful for testing mobile apps or other clients.
 
-5. **Monitor requests** in real time from the admin UI's request log
+8. **Monitor requests** in real time from the admin UI's request log
 
 ## Project Structure
 
