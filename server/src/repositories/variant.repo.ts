@@ -12,6 +12,7 @@ function rowToVariant(row: any): ResponseVariant {
     delay: row.delay,
     memo: row.memo,
     sortOrder: row.sort_order,
+    matchRules: row.match_rules ? JSON.parse(row.match_rules) : null,
   };
 }
 
@@ -29,9 +30,10 @@ export function findById(id: string): ResponseVariant | null {
 export function create(v: ResponseVariant): ResponseVariant {
   const db = getDb();
   db.prepare(`
-    INSERT INTO response_variants (id, endpoint_id, status_code, description, body, headers, delay, memo, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(v.id, v.endpointId, v.statusCode, v.description, v.body, v.headers, v.delay, v.memo, v.sortOrder);
+    INSERT INTO response_variants (id, endpoint_id, status_code, description, body, headers, delay, memo, sort_order, match_rules)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(v.id, v.endpointId, v.statusCode, v.description, v.body, v.headers, v.delay, v.memo, v.sortOrder,
+    v.matchRules ? JSON.stringify(v.matchRules) : null);
   return findById(v.id)!;
 }
 
@@ -40,8 +42,12 @@ export function update(id: string, data: Partial<ResponseVariant>): ResponseVari
   const existing = findById(id);
   if (!existing) return null;
 
+  const matchRules = data.matchRules !== undefined
+    ? (data.matchRules ? JSON.stringify(data.matchRules) : null)
+    : (existing.matchRules ? JSON.stringify(existing.matchRules) : null);
+
   db.prepare(`
-    UPDATE response_variants SET status_code=?, description=?, body=?, headers=?, delay=?, memo=?, sort_order=?
+    UPDATE response_variants SET status_code=?, description=?, body=?, headers=?, delay=?, memo=?, sort_order=?, match_rules=?
     WHERE id=?
   `).run(
     data.statusCode ?? existing.statusCode,
@@ -51,6 +57,7 @@ export function update(id: string, data: Partial<ResponseVariant>): ResponseVari
     data.delay !== undefined ? data.delay : existing.delay,
     data.memo ?? existing.memo,
     data.sortOrder ?? existing.sortOrder,
+    matchRules,
     id,
   );
   return findById(id);

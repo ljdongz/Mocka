@@ -49,6 +49,7 @@ function rowToVariant(row: any): ResponseVariant {
     delay: row.delay,
     memo: row.memo,
     sortOrder: row.sort_order,
+    matchRules: row.match_rules ? JSON.parse(row.match_rules) : null,
   };
 }
 

@@ -26,7 +26,8 @@ export function initSchema(): void {
       headers TEXT NOT NULL DEFAULT '{}',
       delay REAL,
       memo TEXT NOT NULL DEFAULT '',
-      sort_order INTEGER NOT NULL DEFAULT 0
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      match_rules TEXT
     );
 
     CREATE TABLE IF NOT EXISTS query_params (
@@ -73,6 +74,15 @@ export function initSchema(): void {
       timestamp TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS environments (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      variables TEXT NOT NULL DEFAULT '{}',
+      is_active INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -83,4 +93,10 @@ export function initSchema(): void {
     INSERT OR IGNORE INTO settings VALUES ('auto_save_endpoints', 'true');
     INSERT OR IGNORE INTO settings VALUES ('history_toast', 'true');
   `);
+
+  // Migration: add match_rules column if missing (for existing databases)
+  const cols = db.prepare("PRAGMA table_info(response_variants)").all() as { name: string }[];
+  if (!cols.some(c => c.name === 'match_rules')) {
+    db.exec("ALTER TABLE response_variants ADD COLUMN match_rules TEXT");
+  }
 }

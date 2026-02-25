@@ -41,6 +41,7 @@ export function create(data: { method: HttpMethod; path: string; collectionId?: 
     delay: null,
     memo: '',
     sortOrder: 0,
+    matchRules: null,
   });
 
   const full = endpointRepo.findById(id)!;
@@ -117,6 +118,7 @@ export function addVariant(endpointId: string, data?: Partial<{ statusCode: numb
     delay: null,
     memo: '',
     sortOrder: existing.length,
+    matchRules: null,
   });
   const updated = endpointRepo.findById(endpointId)!;
   routeRegistry.update(updated);

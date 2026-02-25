@@ -35,6 +35,7 @@ interface ExportVariant {
   delay: number | null;
   memo: string;
   sortOrder: number;
+  matchRules?: import('../models/response-variant.js').MatchRules | null;
 }
 
 interface ExportCollection {
@@ -102,6 +103,7 @@ export function exportData(collectionIds?: string[]): ExportData {
         delay: v.delay,
         memo: v.memo,
         sortOrder: v.sortOrder,
+        matchRules: v.matchRules ?? null,
       })),
       activeVariantIndex: activeVariantIndex >= 0 ? activeVariantIndex : 0,
     };
@@ -201,6 +203,7 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
                     delay: v.delay,
                     memo: v.memo,
                     sortOrder: nextSort++,
+                    matchRules: v.matchRules ?? null,
                   });
                 }
               }
@@ -308,6 +311,7 @@ function createEndpointFromImport(db: any, importEp: ExportEndpoint): string {
       delay: v.delay,
       memo: v.memo ?? '',
       sortOrder: v.sortOrder,
+      matchRules: v.matchRules ?? null,
     });
   }
 

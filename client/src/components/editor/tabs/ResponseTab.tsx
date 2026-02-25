@@ -1,12 +1,12 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, Plus, Trash2, Filter } from 'lucide-react';
 import { useEndpointStore } from '../../../stores/endpoint.store';
 import { StatusCodeBadge } from '../../shared/StatusCodeBadge';
 import { CodeEditor } from '../../shared/CodeEditor';
 import { STATUS_CODES } from '../../../utils/http';
 import { formatJson } from '../../../utils/json';
 import { validateStatusCode } from '../../../utils/validation';
-import type { Endpoint, ResponseVariant } from '../../../types';
+import type { Endpoint, ResponseVariant, MatchRules, MatchRule } from '../../../types';
 import clsx from 'clsx';
 
 export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
@@ -161,7 +161,14 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
                 </div>
               )}
             </div>
-            <span className="flex-1 text-sm text-text-secondary">{v.description}</span>
+            <span className="flex-1 text-sm text-text-secondary flex items-center gap-1.5">
+              {v.description}
+              {v.matchRules && (v.matchRules.bodyRules.length > 0 || v.matchRules.headerRules.length > 0) && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-full" title="Conditional match rules active">
+                  <Filter size={10} /> {v.matchRules.bodyRules.length + v.matchRules.headerRules.length}
+                </span>
+              )}
+            </span>
             {variants.length > 1 && (
               <button
                 onClick={e => { e.stopPropagation(); deleteVariant(v.id); }}
@@ -244,6 +251,9 @@ function VariantEditor({
         />
       </div>
 
+      {/* Match Rules */}
+      <MatchRulesEditor variant={variant} updateVariant={updateVariant} />
+
       <div className="flex items-center justify-between mb-2">
         <label className="text-xs text-text-tertiary uppercase tracking-wider">Response Body</label>
         <button onClick={handleBeautify} className="text-sm text-accent-primary hover:underline">
@@ -257,6 +267,195 @@ function VariantEditor({
           height="500px"
         />
       </div>
+    </div>
+  );
+}
+
+const OPERATORS: { value: MatchRule['operator']; label: string }[] = [
+  { value: 'equals', label: 'Equals' },
+  { value: 'contains', label: 'Contains' },
+  { value: 'startsWith', label: 'Starts with' },
+  { value: 'endsWith', label: 'Ends with' },
+  { value: 'regex', label: 'Regex' },
+];
+
+function MatchRulesEditor({
+  variant,
+  updateVariant,
+}: {
+  variant: ResponseVariant;
+  updateVariant: (id: string, data: Partial<ResponseVariant>) => Promise<void>;
+}) {
+  const rules: MatchRules = variant.matchRules ?? { bodyRules: [], headerRules: [], combineWith: 'AND' };
+  const hasRules = rules.bodyRules.length > 0 || rules.headerRules.length > 0;
+  const [expanded, setExpanded] = useState(hasRules);
+
+  const save = (next: MatchRules) => {
+    const isEmpty = next.bodyRules.length === 0 && next.headerRules.length === 0;
+    updateVariant(variant.id, { matchRules: isEmpty ? null : next });
+  };
+
+  const addBodyRule = () => {
+    save({ ...rules, bodyRules: [...rules.bodyRules, { field: '', operator: 'equals', value: '' }] });
+    setExpanded(true);
+  };
+
+  const addHeaderRule = () => {
+    save({ ...rules, headerRules: [...rules.headerRules, { field: '', operator: 'equals', value: '' }] });
+    setExpanded(true);
+  };
+
+  const updateBodyRule = (idx: number, patch: Partial<MatchRule>) => {
+    const next = [...rules.bodyRules];
+    next[idx] = { ...next[idx], ...patch };
+    save({ ...rules, bodyRules: next });
+  };
+
+  const updateHeaderRule = (idx: number, patch: Partial<MatchRule>) => {
+    const next = [...rules.headerRules];
+    next[idx] = { ...next[idx], ...patch };
+    save({ ...rules, headerRules: next });
+  };
+
+  const removeBodyRule = (idx: number) => {
+    save({ ...rules, bodyRules: rules.bodyRules.filter((_, i) => i !== idx) });
+  };
+
+  const removeHeaderRule = (idx: number) => {
+    save({ ...rules, headerRules: rules.headerRules.filter((_, i) => i !== idx) });
+  };
+
+  const toggleCombine = () => {
+    save({ ...rules, combineWith: rules.combineWith === 'AND' ? 'OR' : 'AND' });
+  };
+
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-2">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-1.5 text-xs text-text-tertiary uppercase tracking-wider hover:text-text-secondary"
+        >
+          <Filter size={12} />
+          Match Conditions
+          {hasRules && (
+            <span className="text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-full text-[10px] normal-case">
+              {rules.bodyRules.length + rules.headerRules.length}
+            </span>
+          )}
+        </button>
+        {expanded && (
+          <div className="flex items-center gap-2">
+            <button onClick={addBodyRule} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
+              <Plus size={12} /> Body
+            </button>
+            <button onClick={addHeaderRule} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
+              <Plus size={12} /> Header
+            </button>
+          </div>
+        )}
+      </div>
+
+      {expanded && (
+        <div className="rounded border border-border-secondary bg-bg-surface/50 p-3 space-y-2">
+          {!hasRules && (
+            <p className="text-xs text-text-muted text-center py-2">
+              No conditions set — this variant acts as a fallback.
+              Add body or header conditions to enable conditional matching.
+            </p>
+          )}
+
+          {hasRules && (rules.bodyRules.length + rules.headerRules.length) > 1 && (
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs text-text-tertiary">Combine:</span>
+              <button
+                onClick={toggleCombine}
+                className={clsx(
+                  'text-xs px-2 py-0.5 rounded font-medium',
+                  rules.combineWith === 'AND'
+                    ? 'bg-accent-primary/15 text-accent-primary'
+                    : 'bg-method-patch/15 text-method-patch',
+                )}
+              >
+                {rules.combineWith}
+              </button>
+            </div>
+          )}
+
+          {rules.bodyRules.length > 0 && (
+            <div>
+              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Body Rules</div>
+              {rules.bodyRules.map((rule, idx) => (
+                <RuleRow
+                  key={idx}
+                  rule={rule}
+                  fieldPlaceholder="e.g. user.role"
+                  onChange={patch => updateBodyRule(idx, patch)}
+                  onRemove={() => removeBodyRule(idx)}
+                />
+              ))}
+            </div>
+          )}
+
+          {rules.headerRules.length > 0 && (
+            <div>
+              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Header Rules</div>
+              {rules.headerRules.map((rule, idx) => (
+                <RuleRow
+                  key={idx}
+                  rule={rule}
+                  fieldPlaceholder="e.g. x-api-key"
+                  onChange={patch => updateHeaderRule(idx, patch)}
+                  onRemove={() => removeHeaderRule(idx)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RuleRow({
+  rule,
+  fieldPlaceholder,
+  onChange,
+  onRemove,
+}: {
+  rule: MatchRule;
+  fieldPlaceholder: string;
+  onChange: (patch: Partial<MatchRule>) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 mb-1">
+      <input
+        type="text"
+        value={rule.field}
+        onChange={e => onChange({ field: e.target.value })}
+        placeholder={fieldPlaceholder}
+        className="flex-1 min-w-0 rounded border border-border-secondary bg-bg-input px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-primary font-mono"
+      />
+      <select
+        value={rule.operator}
+        onChange={e => onChange({ operator: e.target.value as MatchRule['operator'] })}
+        className="rounded border border-border-secondary bg-bg-input px-1.5 py-1 text-xs text-text-primary outline-none focus:border-accent-primary"
+      >
+        {OPERATORS.map(op => (
+          <option key={op.value} value={op.value}>{op.label}</option>
+        ))}
+      </select>
+      <input
+        type="text"
+        value={rule.value}
+        onChange={e => onChange({ value: e.target.value })}
+        placeholder="value"
+        className="flex-1 min-w-0 rounded border border-border-secondary bg-bg-input px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-primary font-mono"
+      />
+      <button onClick={onRemove} className="text-text-muted hover:text-method-delete flex-shrink-0">
+        <Trash2 size={13} />
+      </button>
     </div>
   );
 }
