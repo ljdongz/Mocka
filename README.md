@@ -26,7 +26,9 @@ The application runs two servers: an **Admin API** (default port 3000) that serv
 
 - **Fully Local & Self-Hosted** — Runs entirely on your machine with no cloud dependency, no account required, and no rate limits. Works offline and serves mock responses over your local network, so real devices (iOS, Android) on the same Wi-Fi can call the mock API directly
 - **Mock Endpoint Management** — Create endpoints with any HTTP method (GET, POST, PUT, DELETE, PATCH)
+- **Path Parameter Matching** — Define dynamic routes with `:param` or `{param}` syntax (e.g. `/users/:id`). Exact paths take priority over patterns, and captured values are shown in the request log
 - **Instant Response Switching** — Define multiple response variants per endpoint (success, error, empty, etc.) and switch between them with a single click — no redeployment or restart needed
+- **Import / Export** — Export all endpoints, response variants, and collections as a JSON file and import them back with conflict resolution (skip, overwrite, or merge duplicates)
 - **Collections** — Organize endpoints into groups with drag-and-drop reordering
 - **Real-time Request Logging** — Monitor incoming requests via WebSocket in real time
 - **Response Delay** — Simulate network latency with configurable delays
@@ -133,6 +135,9 @@ curl http://localhost:8080/api/users
 curl -X POST http://localhost:8080/api/users \
   -H "Content-Type: application/json" \
   -d '{"name": "John"}'
+
+# Example: Path parameter — matches an endpoint defined as /api/users/:id
+curl http://localhost:8080/api/users/42
 ```
 
 > **Tip:** The mock server also listens on your local network IP (shown in the console on startup), so you can send requests from other devices on the same network — for example, `curl http://192.168.x.x:8080/api/users`. This is especially useful for testing mobile apps or other clients.

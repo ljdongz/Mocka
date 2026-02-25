@@ -26,7 +26,9 @@ Mocka는 브라우저에서 Mock API endpoint를 생성, 관리, 제공할 수 �
 
 - **완전한 로컬 실행** — 클라우드 의존 없이 내 컴퓨터에서 완전히 실행. 계정 가입이나 호출 횟수 제한 없이 오프라인에서도 사용 가능. 같은 Wi-Fi의 실제 디바이스(iOS, Android)에서 로컬 네트워크 IP로 바로 Mock API 호출 가능
 - **Mock Endpoint 관리** — GET, POST, PUT, DELETE, PATCH 등 모든 HTTP 메서드로 endpoint 생성
+- **Path Parameter 매칭** — `:param` 또는 `{param}` 문법으로 동적 경로 변수를 정의 (예: `/users/:id`). 정확 매칭이 패턴 매칭보다 우선하며, 캡처된 값은 요청 기록에서 확인 가능
 - **즉석 응답 전환** — endpoint당 여러 응답 변형(성공, 에러, 빈 데이터 등)을 정의하고 클릭 한 번으로 즉시 전환 — 재배포나 재시작 불필요
+- **Import / Export** — 모든 endpoint, 응답 변형, collection을 JSON 파일로 내보내고 불러오기. 중복 처리 정책 지원 (건너뛰기, 덮어쓰기, 병합)
 - **Collection 관리** — endpoint를 그룹으로 정리하고 drag-and-drop으로 순서 변경
 - **실시간 요청 기록** — WebSocket을 통해 수신 요청을 실시간으로 모니터링
 - **응답 지연 설정** — 지연 시간을 설정하여 네트워크 레이턴시 시뮬레이션
@@ -133,6 +135,9 @@ curl http://localhost:8080/api/users
 curl -X POST http://localhost:8080/api/users \
   -H "Content-Type: application/json" \
   -d '{"name": "John"}'
+
+# 예시: Path parameter — /api/users/:id 로 정의된 endpoint에 매칭
+curl http://localhost:8080/api/users/42
 ```
 
 > **Tip:** Mock 서버는 로컬 네트워크 IP에서도 접근할 수 있습니다 (시작 시 콘솔에 표시). 같은 네트워크의 다른 기기에서도 요청을 보낼 수 있습니다 — 예: `curl http://192.168.x.x:8080/api/users`. 모바일 앱이나 다른 클라이언트를 테스트할 때 유용합니다.
