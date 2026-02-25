@@ -10,6 +10,7 @@ import { endpointRoutes } from './routes/endpoint.routes.js';
 import { collectionRoutes } from './routes/collection.routes.js';
 import { historyRoutes } from './routes/history.routes.js';
 import { settingsRoutes } from './routes/settings.routes.js';
+import { importExportRoutes } from './routes/import-export.routes.js';
 import { addClient } from './plugins/websocket.js';
 import * as settingsService from './services/settings.service.js';
 
@@ -33,6 +34,7 @@ export async function createAdminServer(onRestart: RestartHandler) {
   await app.register(collectionRoutes);
   await app.register(historyRoutes);
   await app.register(settingsRoutes);
+  await app.register(importExportRoutes);
 
   // Server status
   let mockServerRunning = false;

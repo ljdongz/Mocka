@@ -5,6 +5,7 @@ import { HistoryView } from './components/history/HistoryView';
 import { NewEndpointModal } from './components/modals/NewEndpointModal';
 import { NewCollectionModal } from './components/modals/NewCollectionModal';
 import { SettingsModal } from './components/modals/SettingsModal';
+import { ImportExportModal } from './components/modals/ImportExportModal';
 import { ResizableDivider } from './components/layout/ResizableDivider';
 import { useEndpointStore } from './stores/endpoint.store';
 import { useCollectionStore } from './stores/collection.store';
@@ -50,6 +51,7 @@ export default function App() {
       <NewEndpointModal />
       <NewCollectionModal />
       <SettingsModal />
+      <ImportExportModal />
 
       {/* Toast notifications */}
       <ToastContainer />

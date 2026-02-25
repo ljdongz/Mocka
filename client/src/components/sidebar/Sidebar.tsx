@@ -12,6 +12,7 @@ export function Sidebar() {
   const showHistory = useUIStore(s => s.showHistory);
 
   const setShowNewCollection = useUIStore(s => s.setShowNewCollection);
+  const setShowImportExport = useUIStore(s => s.setShowImportExport);
 
   return (
     <div className="flex h-full flex-col bg-bg-sidebar border-r border-border-primary">
@@ -61,6 +62,12 @@ export function Sidebar() {
             className={`flex-1 rounded px-3 py-2 text-sm ${showHistory ? 'bg-bg-hover text-text-primary' : 'text-text-tertiary hover:bg-bg-hover hover:text-text-secondary'}`}
           >
             History
+          </button>
+          <button
+            onClick={() => setShowImportExport(true)}
+            className="flex-1 rounded px-3 py-2 text-sm text-text-tertiary hover:bg-bg-hover hover:text-text-secondary"
+          >
+            Import/Export
           </button>
           <button
             onClick={() => setShowSettings(true)}
