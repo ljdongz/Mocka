@@ -1,6 +1,6 @@
 import { getDb } from '../db/connection.js';
 import type { Endpoint, QueryParam, RequestHeader } from '../models/endpoint.js';
-import type { ResponseVariant } from '../models/response-variant.js';
+import { rowToVariant } from './variant.repo.js';
 
 function rowToEndpoint(row: any): Endpoint {
   return {
@@ -35,21 +35,6 @@ function rowToHeader(row: any): RequestHeader {
     value: row.value,
     isEnabled: !!row.is_enabled,
     sortOrder: row.sort_order,
-  };
-}
-
-function rowToVariant(row: any): ResponseVariant {
-  return {
-    id: row.id,
-    endpointId: row.endpoint_id,
-    statusCode: row.status_code,
-    description: row.description,
-    body: row.body,
-    headers: row.headers,
-    delay: row.delay,
-    memo: row.memo,
-    sortOrder: row.sort_order,
-    matchRules: row.match_rules ? JSON.parse(row.match_rules) : null,
   };
 }
 
@@ -140,6 +125,22 @@ export function setActiveVariant(id: string, variantId: string | null): Endpoint
   const db = getDb();
   db.prepare('UPDATE endpoints SET active_variant_id = ?, updated_at = datetime(\'now\') WHERE id = ?').run(variantId, id);
   return findById(id);
+}
+
+export function createQueryParams(endpointId: string, params: { id: string; key: string; value: string; isEnabled: boolean; sortOrder: number }[]): void {
+  const db = getDb();
+  const ins = db.prepare('INSERT INTO query_params (id, endpoint_id, key, value, is_enabled, sort_order) VALUES (?,?,?,?,?,?)');
+  for (const p of params) {
+    ins.run(p.id, endpointId, p.key, p.value, p.isEnabled ? 1 : 0, p.sortOrder);
+  }
+}
+
+export function createRequestHeaders(endpointId: string, headers: { id: string; key: string; value: string; isEnabled: boolean; sortOrder: number }[]): void {
+  const db = getDb();
+  const ins = db.prepare('INSERT INTO request_headers (id, endpoint_id, key, value, is_enabled, sort_order) VALUES (?,?,?,?,?,?)');
+  for (const h of headers) {
+    ins.run(h.id, endpointId, h.key, h.value, h.isEnabled ? 1 : 0, h.sortOrder);
+  }
 }
 
 export function findByMethodAndPath(method: string, path: string): Endpoint | null {

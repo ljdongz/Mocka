@@ -3,7 +3,7 @@ import { reload } from './services/route-registry.js';
 import { createAdminServer } from './admin-server.js';
 import { createMockServer } from './mock-server.js';
 import * as settingsService from './services/settings.service.js';
-import { broadcast } from './plugins/websocket.js';
+import { emit } from './services/domain-events.js';
 import { getLocalIp, checkPort } from './utils/network.js';
 import { closeDb } from './db/connection.js';
 
@@ -16,7 +16,7 @@ async function main() {
   reload();
 
   const settings = settingsService.getAll();
-  const mockPort = MOCK_PORT_OVERRIDE ?? (parseInt(settings.port) || 8080);
+  const mockPort = MOCK_PORT_OVERRIDE ?? (settings.port || 8080);
 
   // Check port availability before starting
   try {
@@ -39,7 +39,7 @@ async function main() {
   // Restart handler (passed to admin server before listen)
   const handleRestart = async () => {
     const newSettings = settingsService.getAll();
-    const newPort = parseInt(newSettings.port) || 8080;
+    const newPort = newSettings.port || 8080;
 
     try {
       await mockApp.close();
@@ -49,11 +49,11 @@ async function main() {
     try {
       await mockApp.listen({ port: newPort, host: '0.0.0.0' });
       setMockStatus(true);
-      broadcast('server:status', { running: true, port: newPort });
+      emit('server:status', { running: true, port: newPort });
       return { success: true, port: newPort };
     } catch (err: any) {
       setMockStatus(false);
-      broadcast('server:status', { running: false, port: newPort });
+      emit('server:status', { running: false, port: newPort });
       return { success: false, error: err.message };
     }
   };
@@ -73,7 +73,7 @@ async function main() {
     setMockStatus(true);
     console.log(`Mock Server: http://localhost:${mockPort}`);
     console.log(`             http://${localIp}:${mockPort}`);
-    broadcast('server:status', { running: true, port: mockPort });
+    emit('server:status', { running: true, port: mockPort });
   } catch (err) {
     console.error(`Failed to start mock server on port ${mockPort}:`, err);
     setMockStatus(false);

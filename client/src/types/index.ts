@@ -78,15 +78,6 @@ export interface RequestRecord {
   timestamp: string;
 }
 
-/** Server DTO — all values are strings (SQLite key-value store) */
-export interface SettingsDTO {
-  port: string;
-  responseDelay: string;
-  autoSaveEndpoints: string;
-  historyToast: string;
-}
-
-/** Client model — properly typed */
 export interface Settings {
   port: number;
   responseDelay: number;
@@ -96,7 +87,7 @@ export interface Settings {
 
 export interface ServerStatus {
   running: boolean;
-  port: string;
+  port: number;
   localIp: string;
 }
 

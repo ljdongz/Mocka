@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import * as collectionRepo from '../repositories/collection.repo.js';
-import { broadcast } from '../plugins/websocket.js';
+import { emit } from './domain-events.js';
 import type { Collection } from '../models/collection.js';
 
 export function getAll(): Collection[] {
@@ -10,41 +10,41 @@ export function getAll(): Collection[] {
 export function create(name: string): Collection {
   const existing = collectionRepo.findAll();
   const c = collectionRepo.create({ id: uuid(), name, sortOrder: existing.length });
-  broadcast('collection:created', c);
+  emit('collection:created', c);
   return c;
 }
 
 export function update(id: string, data: { name?: string }): Collection | null {
   const c = collectionRepo.update(id, data);
-  if (c) broadcast('collection:updated', c);
+  if (c) emit('collection:updated', c);
   return c;
 }
 
 export function remove(id: string): boolean {
   const ok = collectionRepo.remove(id);
-  if (ok) broadcast('collection:deleted', { id });
+  if (ok) emit('collection:deleted', { id });
   return ok;
 }
 
 export function toggleExpanded(id: string): Collection | null {
   const c = collectionRepo.toggleExpanded(id);
-  if (c) broadcast('collection:updated', c);
+  if (c) emit('collection:updated', c);
   return c;
 }
 
 export function reorderCollections(orderedIds: string[]): void {
   collectionRepo.reorderCollections(orderedIds);
-  broadcast('collection:reordered', null);
+  emit('collection:reordered', null);
 }
 
 export function reorderEndpoints(collectionId: string, orderedEndpointIds: string[]): void {
   collectionRepo.reorderEndpoints(collectionId, orderedEndpointIds);
-  broadcast('collection:reordered', null);
+  emit('collection:reordered', null);
 }
 
 export function moveEndpoint(endpointId: string, fromCollectionId: string | null, toCollectionId: string, sortOrder: number): void {
   collectionRepo.moveEndpoint(endpointId, fromCollectionId, toCollectionId, sortOrder);
-  broadcast('collection:reordered', null);
+  emit('collection:reordered', null);
 }
 
 export function addEndpoint(collectionId: string, endpointId: string): void {
@@ -56,5 +56,5 @@ export function addEndpoint(collectionId: string, endpointId: string): void {
 export function removeEndpoint(collectionId: string, endpointId: string): void {
   collectionRepo.removeEndpoint(collectionId, endpointId);
   const updated = collectionRepo.findById(collectionId);
-  if (updated) broadcast('collection:updated', updated);
+  if (updated) emit('collection:updated', updated);
 }

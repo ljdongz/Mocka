@@ -1,6 +1,6 @@
 import { randomUUID as uuid } from 'crypto';
 import * as envRepo from '../repositories/environment.repo.js';
-import { broadcast } from '../plugins/websocket.js';
+import { emit } from './domain-events.js';
 import type { Environment } from '../models/environment.js';
 
 export function getAll(): Environment[] {
@@ -30,25 +30,25 @@ export function create(data: { name: string }): Environment {
     sortOrder: all.length,
     createdAt: '',
   });
-  broadcast('environment:created', env);
+  emit('environment:created', env);
   return env;
 }
 
 export function update(id: string, data: Partial<Environment>): Environment | null {
   const env = envRepo.update(id, data);
-  if (env) broadcast('environment:updated', env);
+  if (env) emit('environment:updated', env);
   return env;
 }
 
 export function setActive(id: string | null): Environment[] {
   envRepo.setActive(id);
   const all = envRepo.findAll();
-  broadcast('environment:active-changed', { activeId: id });
+  emit('environment:active-changed', { activeId: id });
   return all;
 }
 
 export function remove(id: string): boolean {
   const ok = envRepo.remove(id);
-  if (ok) broadcast('environment:deleted', { id });
+  if (ok) emit('environment:deleted', { id });
   return ok;
 }

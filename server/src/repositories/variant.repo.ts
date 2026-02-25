@@ -1,7 +1,7 @@
 import { getDb } from '../db/connection.js';
 import type { ResponseVariant } from '../models/response-variant.js';
 
-function rowToVariant(row: any): ResponseVariant {
+export function rowToVariant(row: any): ResponseVariant {
   return {
     id: row.id,
     endpointId: row.endpoint_id,

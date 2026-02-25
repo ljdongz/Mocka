@@ -19,6 +19,13 @@ export function getDb(): Database.Database {
   return db;
 }
 
+/** Run a callback inside a database transaction */
+export function withTransaction<T>(fn: () => T): T {
+  const db = getDb();
+  const txn = db.transaction(fn);
+  return txn();
+}
+
 export function closeDb(): void {
   if (db) {
     db.close();

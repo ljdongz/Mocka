@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { settingsApi } from '../api/settings';
-import { parseSettings, toSettingsDTO } from '../utils/settings';
 import type { Settings, ServerStatus } from '../types';
 
 interface SettingsStore {
@@ -15,16 +14,16 @@ interface SettingsStore {
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
   settings: { port: 8080, responseDelay: 0, autoSaveEndpoints: true, historyToast: true },
-  serverStatus: { running: false, port: '8080', localIp: 'localhost' },
+  serverStatus: { running: false, port: 8080, localIp: 'localhost' },
 
   fetch: async () => {
-    const dto = await settingsApi.getAll();
-    set({ settings: parseSettings(dto) });
+    const settings = await settingsApi.getAll();
+    set({ settings });
   },
 
   update: async (data) => {
-    const dto = await settingsApi.update(toSettingsDTO(data));
-    set({ settings: parseSettings(dto) });
+    const settings = await settingsApi.update(data);
+    set({ settings });
   },
 
   fetchServerStatus: async () => {

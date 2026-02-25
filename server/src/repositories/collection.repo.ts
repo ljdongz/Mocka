@@ -85,6 +85,23 @@ export function reorderEndpoints(collectionId: string, orderedEndpointIds: strin
   txn();
 }
 
+export function findMembershipsByEndpointId(endpointId: string): { collectionId: string; sortOrder: number }[] {
+  const db = getDb();
+  const rows = db.prepare('SELECT collection_id, sort_order FROM collection_endpoints WHERE endpoint_id = ?').all(endpointId) as any[];
+  return rows.map(r => ({ collectionId: r.collection_id, sortOrder: r.sort_order }));
+}
+
+export function isEndpointLinked(collectionId: string, endpointId: string): boolean {
+  const db = getDb();
+  return !!db.prepare('SELECT 1 FROM collection_endpoints WHERE collection_id = ? AND endpoint_id = ?').get(collectionId, endpointId);
+}
+
+export function getMaxSortOrder(collectionId: string): number {
+  const db = getDb();
+  const row = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM collection_endpoints WHERE collection_id = ?').get(collectionId) as { m: number };
+  return row.m;
+}
+
 export function moveEndpoint(endpointId: string, fromCollectionId: string | null, toCollectionId: string, sortOrder: number): void {
   const db = getDb();
   if (fromCollectionId) {

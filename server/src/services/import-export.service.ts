@@ -1,10 +1,10 @@
 import { v4 as uuid } from 'uuid';
-import { getDb } from '../db/connection.js';
+import { withTransaction } from '../db/connection.js';
 import * as endpointRepo from '../repositories/endpoint.repo.js';
 import * as variantRepo from '../repositories/variant.repo.js';
 import * as collectionRepo from '../repositories/collection.repo.js';
 import * as routeRegistry from './route-registry.js';
-import { broadcast } from '../plugins/websocket.js';
+import { emit } from './domain-events.js';
 import type { Endpoint } from '../models/endpoint.js';
 import type { Collection } from '../models/collection.js';
 
@@ -129,7 +129,6 @@ const VALID_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']);
 
 /** Import data with conflict resolution (wrapped in a transaction) */
 export function importData(data: ExportData, conflictPolicy: ConflictPolicy): ImportResult {
-  const db = getDb();
   const result: ImportResult = {
     created: 0,
     skipped: 0,
@@ -140,7 +139,7 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
     errors: [],
   };
 
-  const txn = db.transaction(() => {
+  withTransaction(() => {
     const importedEndpointIds = new Map<number, string>();
 
     for (let i = 0; i < data.endpoints.length; i++) {
@@ -166,18 +165,15 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
 
             case 'overwrite': {
               // Preserve existing collection memberships
-              const membershipRows = db.prepare(
-                'SELECT collection_id, sort_order FROM collection_endpoints WHERE endpoint_id = ?'
-              ).all(existing.id) as { collection_id: string; sort_order: number }[];
+              const memberships = collectionRepo.findMembershipsByEndpointId(existing.id);
 
               routeRegistry.remove(existing.method, existing.path);
               endpointRepo.remove(existing.id);
-              const newId = createEndpointFromImport(db, importEp);
+              const newId = createEndpointFromImport(importEp);
 
               // Re-link to existing collections
-              for (const row of membershipRows) {
-                db.prepare('INSERT OR IGNORE INTO collection_endpoints (collection_id, endpoint_id, sort_order) VALUES (?, ?, ?)')
-                  .run(row.collection_id, newId, row.sort_order);
+              for (const m of memberships) {
+                collectionRepo.addEndpoint(m.collectionId, newId, m.sortOrder);
               }
 
               importedEndpointIds.set(i, newId);
@@ -216,7 +212,7 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
             }
           }
         } else {
-          const newId = createEndpointFromImport(db, importEp);
+          const newId = createEndpointFromImport(importEp);
           importedEndpointIds.set(i, newId);
           result.created++;
         }
@@ -229,7 +225,6 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
     const importCollections = Array.isArray(data.collections) ? data.collections : [];
     for (const importCol of importCollections) {
       try {
-        // Check if collection with same name exists
         const allCollections = collectionRepo.findAll();
         const existingCol = allCollections.find(c => c.name === importCol.name);
 
@@ -237,16 +232,9 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
           // Link new endpoints to existing collection
           for (const epIndex of importCol.endpointIndices ?? []) {
             const epId = importedEndpointIds.get(epIndex);
-            if (epId) {
-              const alreadyLinked = db.prepare(
-                'SELECT 1 FROM collection_endpoints WHERE collection_id = ? AND endpoint_id = ?'
-              ).get(existingCol.id, epId);
-              if (!alreadyLinked) {
-                const maxSort = db.prepare(
-                  'SELECT COALESCE(MAX(sort_order), -1) as m FROM collection_endpoints WHERE collection_id = ?'
-                ).get(existingCol.id) as { m: number };
-                collectionRepo.addEndpoint(existingCol.id, epId, maxSort.m + 1);
-              }
+            if (epId && !collectionRepo.isEndpointLinked(existingCol.id, epId)) {
+              const maxSort = collectionRepo.getMaxSortOrder(existingCol.id);
+              collectionRepo.addEndpoint(existingCol.id, epId, maxSort + 1);
             }
           }
           result.collectionsSkipped++;
@@ -273,15 +261,13 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
     }
   });
 
-  txn();
-
   routeRegistry.reload();
-  broadcast('import:completed', result);
+  emit('import:completed', result);
 
   return result;
 }
 
-function createEndpointFromImport(db: any, importEp: ExportEndpoint): string {
+function createEndpointFromImport(importEp: ExportEndpoint): string {
   const endpointId = uuid();
   const variants = importEp.responseVariants ?? [];
   const variantIds: string[] = variants.map(() => uuid());
@@ -315,15 +301,15 @@ function createEndpointFromImport(db: any, importEp: ExportEndpoint): string {
     });
   }
 
-  const paramIns = db.prepare('INSERT INTO query_params (id, endpoint_id, key, value, is_enabled, sort_order) VALUES (?,?,?,?,?,?)');
-  for (const p of importEp.queryParams ?? []) {
-    paramIns.run(uuid(), endpointId, p.key, p.value, p.isEnabled ? 1 : 0, p.sortOrder);
-  }
+  endpointRepo.createQueryParams(
+    endpointId,
+    (importEp.queryParams ?? []).map(p => ({ id: uuid(), ...p })),
+  );
 
-  const headerIns = db.prepare('INSERT INTO request_headers (id, endpoint_id, key, value, is_enabled, sort_order) VALUES (?,?,?,?,?,?)');
-  for (const h of importEp.requestHeaders ?? []) {
-    headerIns.run(uuid(), endpointId, h.key, h.value, h.isEnabled ? 1 : 0, h.sortOrder);
-  }
+  endpointRepo.createRequestHeaders(
+    endpointId,
+    (importEp.requestHeaders ?? []).map(h => ({ id: uuid(), ...h })),
+  );
 
   const full = endpointRepo.findById(endpointId)!;
   routeRegistry.add(full);
