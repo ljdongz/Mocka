@@ -1,5 +1,6 @@
-import { Braces, SlidersHorizontal, Layers, Reply, Route, ArrowUpDown, Plus, Sparkles, Info, Check } from 'lucide-react';
+import { Braces, SlidersHorizontal, Layers, Reply, Route, ArrowUpDown, X, Sparkles, Info, Check } from 'lucide-react';
 import { useUIStore } from '../../stores/ui.store';
+import { ModalOverlay } from '../shared/ModalOverlay';
 
 const features = [
   {
@@ -52,93 +53,71 @@ const features = [
   },
 ];
 
-const shortcuts = [
-  { key: 'N', label: 'New Endpoint' },
-  { key: 'E', label: 'Environments' },
-  { key: 'I', label: 'Import / Export' },
-];
-
 export function OnboardingPage() {
-  const setShowNewEndpoint = useUIStore(s => s.setShowNewEndpoint);
-  const dismissOnboarding = useUIStore(s => s.dismissOnboarding);
+  const showOnboarding = useUIStore(s => s.showOnboarding);
+  const setShowOnboarding = useUIStore(s => s.setShowOnboarding);
 
-  const handleGetStarted = () => {
-    dismissOnboarding();
-    setShowNewEndpoint(true);
-  };
+  const handleClose = () => setShowOnboarding(false);
 
   return (
-    <div className="flex h-full w-full flex-col overflow-y-auto bg-bg-page">
-      {/* Header */}
-      <div className="flex flex-col items-center gap-3 px-16 pt-12 pb-8">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-primary px-4 py-1.5 text-xs font-semibold text-white">
-          <Sparkles size={14} />
-          Welcome to Mocka
-        </span>
-        <h1 className="text-3xl font-bold text-text-primary">
-          Build Mock APIs in Seconds
-        </h1>
-        <p className="max-w-xl text-center text-sm leading-relaxed text-text-tertiary">
-          Mocka helps you create, manage, and serve mock API endpoints with dynamic responses,
-          conditional logic, and environment variables — all from a beautiful interface.
-        </p>
-      </div>
-
-      {/* Feature Grid */}
-      <div className="grid grid-cols-3 gap-4 px-16 pb-4">
-        {features.map((f) => (
-          <div
-            key={f.title}
-            className="flex flex-col gap-3 rounded-xl border border-border-secondary bg-bg-surface p-5"
+    <ModalOverlay open={showOnboarding} onClose={handleClose}>
+      <div className="flex max-h-[80vh] w-[1100px] flex-col rounded-2xl border border-border-secondary bg-bg-page shadow-xl">
+        {/* Fixed top bar */}
+        <div className="flex flex-shrink-0 items-center justify-between rounded-t-2xl border-b border-border-primary bg-bg-page px-6 py-3">
+          <span className="text-sm font-semibold text-text-primary">Feature Guide</span>
+          <button
+            onClick={handleClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-hover hover:text-text-primary"
           >
-            {/* Preview */}
-            <div className="overflow-hidden rounded-lg border border-border-primary bg-bg-page">
-              <f.preview />
-            </div>
-
-            {/* Icon + Title */}
-            <div className="flex items-center gap-2.5">
-              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${f.iconBg}`}>
-                <f.icon size={16} className={f.iconColor} />
-              </div>
-              <span className="text-sm font-semibold text-text-primary">{f.title}</span>
-            </div>
-
-            {/* Description */}
-            <p className="text-xs leading-relaxed text-text-tertiary">{f.description}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer CTA */}
-      <div className="flex flex-col items-center gap-4 px-16 pt-4 pb-10">
-        <button
-          onClick={handleGetStarted}
-          className="flex items-center gap-2 rounded-lg bg-accent-primary px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-primary/90"
-        >
-          <Plus size={16} />
-          Create Your First Endpoint
-        </button>
-
-        <div className="flex items-center gap-6">
-          {shortcuts.map((s) => (
-            <div key={s.key} className="flex items-center gap-1.5">
-              <kbd className="rounded border border-border-secondary bg-bg-surface px-2 py-0.5 font-mono text-xs text-text-secondary">
-                {s.key}
-              </kbd>
-              <span className="text-xs text-text-muted">{s.label}</span>
-            </div>
-          ))}
+            <X size={18} />
+          </button>
         </div>
 
-        <button
-          onClick={dismissOnboarding}
-          className="text-xs text-text-muted underline hover:text-text-tertiary"
-        >
-          Don't show this again
-        </button>
+        {/* Scrollable content */}
+        <div className="min-h-0 overflow-y-auto">
+          {/* Header */}
+          <div className="flex flex-col items-center gap-3 px-12 pt-8 pb-6">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-primary px-4 py-1.5 text-xs font-semibold text-white">
+              <Sparkles size={14} />
+              Welcome to Mocka
+            </span>
+            <h1 className="text-2xl font-bold text-text-primary">
+              Build Mock APIs in Seconds
+            </h1>
+            <p className="max-w-xl text-center text-sm leading-relaxed text-text-tertiary">
+              Mocka helps you create, manage, and serve mock API endpoints with dynamic responses,
+              conditional logic, and environment variables — all from a beautiful interface.
+            </p>
+          </div>
+
+          {/* Feature Grid */}
+          <div className="grid grid-cols-3 gap-4 px-12 pb-10">
+            {features.map((f) => (
+              <div
+                key={f.title}
+                className="flex flex-col gap-3 rounded-xl border border-border-secondary bg-bg-surface p-5"
+              >
+                {/* Preview */}
+                <div className="overflow-hidden rounded-lg border border-border-primary bg-bg-page">
+                  <f.preview />
+                </div>
+
+                {/* Icon + Title */}
+                <div className="flex items-center gap-2.5">
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${f.iconBg}`}>
+                    <f.icon size={16} className={f.iconColor} />
+                  </div>
+                  <span className="text-sm font-semibold text-text-primary">{f.title}</span>
+                </div>
+
+                {/* Description */}
+                <p className="text-xs leading-relaxed text-text-tertiary">{f.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

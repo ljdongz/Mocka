@@ -24,7 +24,6 @@ export default function App() {
   const fetchSettings = useSettingsStore(s => s.fetch);
   const fetchServerStatus = useSettingsStore(s => s.fetchServerStatus);
   const showHistory = useUIStore(s => s.showHistory);
-  const showOnboarding = useUIStore(s => s.showOnboarding);
   const sidebarWidth = useUIStore(s => s.sidebarWidth);
 
   useWebSocket();
@@ -49,7 +48,7 @@ export default function App() {
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {showOnboarding ? <OnboardingPage /> : showHistory ? <HistoryView /> : <EndpointEditor />}
+        {showHistory ? <HistoryView /> : <EndpointEditor />}
       </div>
 
       {/* Modals */}
@@ -58,6 +57,7 @@ export default function App() {
       <SettingsModal />
       <ImportExportModal />
       <EnvironmentModal />
+      <OnboardingPage />
 
       {/* Toast notifications */}
       <ToastContainer />
