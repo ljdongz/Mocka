@@ -34,13 +34,9 @@ The application runs two servers: an **Admin API** (default port 3000) that serv
 - **Environment Variables** — Create multiple environments (dev, staging, production) with key-value variables. Reference them in response bodies and headers via `{{variableName}}` syntax and switch the active environment instantly
 - **Mock Response Headers** — Override variant selection per-request using `x-mock-response-code`, `x-mock-response-name`, or `x-mock-response-delay` headers
 - **Import / Export** — Export all endpoints, response variants, and collections as a JSON file and import them back with conflict resolution (skip, overwrite, or merge duplicates)
-- **Collections** — Organize endpoints into groups with drag-and-drop reordering
 - **Real-time Request Logging** — Monitor incoming requests via WebSocket in real time
 - **Response Delay** — Simulate network latency with configurable delays
-- **Monaco Editor** — Edit JSON response bodies with syntax highlighting, validation, and template variable autocomplete
-- **Onboarding Guide** — Built-in feature introduction page with interactive previews for new users
 - **SQLite Persistence** — All configurations are stored in a local SQLite database
-- **Cross-platform** — Runs on macOS, Linux, and Windows
 
 ## Architecture
 

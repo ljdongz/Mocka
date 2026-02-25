@@ -34,13 +34,9 @@ Mocka는 브라우저에서 Mock API endpoint를 생성, 관리, 제공할 수 �
 - **환경 변수** — dev, staging, production 등 여러 환경을 key-value 변수로 관리. 응답 본문과 헤더에서 `{{variableName}}` 문법으로 참조하고 활성 환경을 즉시 전환
 - **Mock 응답 헤더 오버라이드** — `x-mock-response-code`, `x-mock-response-name`, `x-mock-response-delay` 헤더로 요청별 응답 변형 선택 가능
 - **Import / Export** — 모든 endpoint, 응답 변형, collection을 JSON 파일로 내보내고 불러오기. 중복 처리 정책 지원 (건너뛰기, 덮어쓰기, 병합)
-- **Collection 관리** — endpoint를 그룹으로 정리하고 drag-and-drop으로 순서 변경
 - **실시간 요청 기록** — WebSocket을 통해 수신 요청을 실시간으로 모니터링
 - **응답 지연 설정** — 지연 시간을 설정하여 네트워크 레이턴시 시뮬레이션
-- **Monaco Editor** — JSON 응답 본문을 구문 강조, 유효성 검사, 템플릿 변수 자동완성과 함께 편집
-- **온보딩 가이드** — 주요 기능을 인터랙티브 미리보기와 함께 소개하는 내장 가이드 페이지
 - **SQLite 영구 저장** — 모든 설정이 로컬 SQLite 데이터베이스에 저장
-- **크로스 플랫폼** — macOS, Linux, Windows에서 실행
 
 ## 아키텍처
 
