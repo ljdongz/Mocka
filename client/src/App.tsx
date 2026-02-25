@@ -8,6 +8,7 @@ import { NewCollectionModal } from './components/modals/NewCollectionModal';
 import { SettingsModal } from './components/modals/SettingsModal';
 import { ImportExportModal } from './components/modals/ImportExportModal';
 import { EnvironmentModal } from './components/modals/EnvironmentModal';
+import { OnboardingPage } from './components/onboarding/OnboardingPage';
 import { ResizableDivider } from './components/layout/ResizableDivider';
 import { useEndpointStore } from './stores/endpoint.store';
 import { useCollectionStore } from './stores/collection.store';
@@ -23,6 +24,7 @@ export default function App() {
   const fetchSettings = useSettingsStore(s => s.fetch);
   const fetchServerStatus = useSettingsStore(s => s.fetchServerStatus);
   const showHistory = useUIStore(s => s.showHistory);
+  const showOnboarding = useUIStore(s => s.showOnboarding);
   const sidebarWidth = useUIStore(s => s.sidebarWidth);
 
   useWebSocket();
@@ -47,7 +49,7 @@ export default function App() {
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {showHistory ? <HistoryView /> : <EndpointEditor />}
+        {showOnboarding ? <OnboardingPage /> : showHistory ? <HistoryView /> : <EndpointEditor />}
       </div>
 
       {/* Modals */}

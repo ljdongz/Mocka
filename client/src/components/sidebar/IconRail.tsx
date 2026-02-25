@@ -1,4 +1,4 @@
-import { Folder, History, Layers, ArrowUpDown, Settings } from 'lucide-react';
+import { Folder, History, Layers, ArrowUpDown, Settings, BookOpen } from 'lucide-react';
 import { useUIStore } from '../../stores/ui.store';
 
 const railItems = [
@@ -9,6 +9,8 @@ const railItems = [
 export function IconRail() {
   const showHistory = useUIStore(s => s.showHistory);
   const setShowHistory = useUIStore(s => s.setShowHistory);
+  const showOnboarding = useUIStore(s => s.showOnboarding);
+  const setShowOnboarding = useUIStore(s => s.setShowOnboarding);
   const setShowEnvironments = useUIStore(s => s.setShowEnvironments);
   const setShowImportExport = useUIStore(s => s.setShowImportExport);
   const setShowSettings = useUIStore(s => s.setShowSettings);
@@ -51,6 +53,17 @@ export function IconRail() {
 
       {/* Bottom section - modal actions + settings */}
       <div className="flex flex-col items-center gap-1">
+        <button
+          onClick={() => setShowOnboarding(!showOnboarding)}
+          className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+            showOnboarding
+              ? 'bg-bg-hover text-text-primary'
+              : 'text-text-tertiary hover:bg-bg-hover hover:text-text-secondary'
+          }`}
+          title="Guide"
+        >
+          <BookOpen size={20} strokeWidth={1.8} />
+        </button>
         <button
           onClick={() => setShowEnvironments(true)}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-hover hover:text-text-secondary"

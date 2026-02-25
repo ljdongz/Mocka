@@ -7,6 +7,7 @@ interface UIStore {
   showNewCollection: boolean;
   showImportExport: boolean;
   showEnvironments: boolean;
+  showOnboarding: boolean;
   newEndpointCollectionId: string;
   sidebarWidth: number;
   historyDetailWidth: number;
@@ -17,6 +18,8 @@ interface UIStore {
   setShowNewCollection: (v: boolean) => void;
   setShowImportExport: (v: boolean) => void;
   setShowEnvironments: (v: boolean) => void;
+  setShowOnboarding: (v: boolean) => void;
+  dismissOnboarding: () => void;
   setSidebarWidth: (w: number) => void;
   setHistoryDetailWidth: (w: number) => void;
   setDetailTab: (tab: 'params' | 'headers' | 'body' | 'response') => void;
@@ -29,6 +32,7 @@ export const useUIStore = create<UIStore>((set) => ({
   showNewCollection: false,
   showImportExport: false,
   showEnvironments: false,
+  showOnboarding: !localStorage.getItem('mocka:onboarding-dismissed'),
   newEndpointCollectionId: '',
   sidebarWidth: 280,
   historyDetailWidth: 400,
@@ -40,6 +44,11 @@ export const useUIStore = create<UIStore>((set) => ({
   setShowNewCollection: (v) => set({ showNewCollection: v }),
   setShowImportExport: (v) => set({ showImportExport: v }),
   setShowEnvironments: (v) => set({ showEnvironments: v }),
+  setShowOnboarding: (v) => set({ showOnboarding: v }),
+  dismissOnboarding: () => {
+    localStorage.setItem('mocka:onboarding-dismissed', '1');
+    set({ showOnboarding: false });
+  },
   setSidebarWidth: (w) => set({ sidebarWidth: w }),
   setHistoryDetailWidth: (w) => set({ historyDetailWidth: w }),
   setDetailTab: (tab) => set({ detailTab: tab }),
