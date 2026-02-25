@@ -6,6 +6,7 @@ interface UIStore {
   showNewEndpoint: boolean;
   showNewCollection: boolean;
   showImportExport: boolean;
+  showEnvironments: boolean;
   newEndpointCollectionId: string;
   sidebarWidth: number;
   historyDetailWidth: number;
@@ -15,6 +16,7 @@ interface UIStore {
   setShowNewEndpoint: (v: boolean, collectionId?: string) => void;
   setShowNewCollection: (v: boolean) => void;
   setShowImportExport: (v: boolean) => void;
+  setShowEnvironments: (v: boolean) => void;
   setSidebarWidth: (w: number) => void;
   setHistoryDetailWidth: (w: number) => void;
   setDetailTab: (tab: 'params' | 'headers' | 'body' | 'response') => void;
@@ -26,6 +28,7 @@ export const useUIStore = create<UIStore>((set) => ({
   showNewEndpoint: false,
   showNewCollection: false,
   showImportExport: false,
+  showEnvironments: false,
   newEndpointCollectionId: '',
   sidebarWidth: 280,
   historyDetailWidth: 400,
@@ -36,6 +39,7 @@ export const useUIStore = create<UIStore>((set) => ({
   setShowNewEndpoint: (v, collectionId) => set({ showNewEndpoint: v, newEndpointCollectionId: v ? (collectionId ?? '') : '' }),
   setShowNewCollection: (v) => set({ showNewCollection: v }),
   setShowImportExport: (v) => set({ showImportExport: v }),
+  setShowEnvironments: (v) => set({ showEnvironments: v }),
   setSidebarWidth: (w) => set({ sidebarWidth: w }),
   setHistoryDetailWidth: (w) => set({ historyDetailWidth: w }),
   setDetailTab: (tab) => set({ detailTab: tab }),

@@ -1,46 +1,38 @@
-import { Plus } from 'lucide-react';
-import { useEndpointStore } from '../../stores/endpoint.store';
+import { Plus, FolderPlus } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
 import { CollectionTree } from './CollectionTree';
 
 export function Sidebar() {
   const serverStatus = useSettingsStore(s => s.serverStatus);
-  const setShowHistory = useUIStore(s => s.setShowHistory);
-  const setShowSettings = useUIStore(s => s.setShowSettings);
-  const setShowNewEndpoint = useUIStore(s => s.setShowNewEndpoint);
   const showHistory = useUIStore(s => s.showHistory);
-
+  const setShowNewEndpoint = useUIStore(s => s.setShowNewEndpoint);
   const setShowNewCollection = useUIStore(s => s.setShowNewCollection);
-  const setShowImportExport = useUIStore(s => s.setShowImportExport);
+
+  const panelTitle = showHistory ? 'History' : 'Collections';
 
   return (
-    <div className="flex h-full flex-col bg-bg-sidebar border-r border-border-primary">
+    <div className="flex h-full flex-col bg-bg-sidebar">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border-primary">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-base font-semibold text-text-primary">Mocka</span>
-            <span className={`h-2.5 w-2.5 rounded-full ${serverStatus.running ? 'bg-server-running' : 'bg-server-stopped'}`} />
-          </div>
-          <div className="text-xs text-text-muted font-mono">
-            {serverStatus.localIp}:{serverStatus.port}
-          </div>
+      <div className="flex flex-col gap-1 px-3 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-text-primary">{panelTitle}</span>
+          {!showHistory && (
+            <button
+              onClick={() => setShowNewCollection(true)}
+              className="flex items-center rounded p-0.5 text-text-muted hover:bg-bg-hover hover:text-text-secondary"
+              title="New Collection"
+            >
+              <FolderPlus size={14} strokeWidth={2} />
+            </button>
+          )}
         </div>
-      </div>
-
-      {/* Collections label */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-1">
-        <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
-          Collections
-        </span>
-        <button
-          onClick={() => setShowNewCollection(true)}
-          className="text-text-muted hover:text-text-secondary leading-none px-1 rounded hover:bg-bg-hover flex items-center"
-          title="New Collection"
-        >
-          <Plus size={16} strokeWidth={2.5} />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <span className={`h-1.5 w-1.5 rounded-full ${serverStatus.running ? 'bg-server-running' : 'bg-server-stopped'}`} />
+          <span className="text-[10px] text-text-tertiary font-mono">
+            {serverStatus.localIp}:{serverStatus.port}
+          </span>
+        </div>
       </div>
 
       {/* Collection tree */}
@@ -49,33 +41,14 @@ export function Sidebar() {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-border-primary p-2 flex flex-col gap-1">
+      <div className="border-t border-border-primary p-2">
         <button
           onClick={() => setShowNewEndpoint(true)}
-          className="w-full rounded px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-hover"
+          className="flex w-full items-center gap-1.5 rounded px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
         >
-          + New Endpoint
+          <Plus size={14} strokeWidth={2} />
+          New Endpoint
         </button>
-        <div className="flex gap-1">
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className={`flex-1 rounded px-3 py-2 text-sm ${showHistory ? 'bg-bg-hover text-text-primary' : 'text-text-tertiary hover:bg-bg-hover hover:text-text-secondary'}`}
-          >
-            History
-          </button>
-          <button
-            onClick={() => setShowImportExport(true)}
-            className="flex-1 rounded px-3 py-2 text-sm text-text-tertiary hover:bg-bg-hover hover:text-text-secondary"
-          >
-            Import/Export
-          </button>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="flex-1 rounded px-3 py-2 text-sm text-text-tertiary hover:bg-bg-hover hover:text-text-secondary"
-          >
-            Settings
-          </button>
-        </div>
       </div>
     </div>
   );

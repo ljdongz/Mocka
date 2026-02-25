@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { IconRail } from './components/sidebar/IconRail';
 import { Sidebar } from './components/sidebar/Sidebar';
 import { EndpointEditor } from './components/editor/EndpointEditor';
 import { HistoryView } from './components/history/HistoryView';
@@ -6,6 +7,7 @@ import { NewEndpointModal } from './components/modals/NewEndpointModal';
 import { NewCollectionModal } from './components/modals/NewCollectionModal';
 import { SettingsModal } from './components/modals/SettingsModal';
 import { ImportExportModal } from './components/modals/ImportExportModal';
+import { EnvironmentModal } from './components/modals/EnvironmentModal';
 import { ResizableDivider } from './components/layout/ResizableDivider';
 import { useEndpointStore } from './stores/endpoint.store';
 import { useCollectionStore } from './stores/collection.store';
@@ -35,8 +37,9 @@ export default function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-page">
-      {/* Sidebar */}
-      <div style={{ width: sidebarWidth, minWidth: sidebarWidth }} className="flex-shrink-0">
+      {/* Icon Rail + Sidebar */}
+      <IconRail />
+      <div style={{ width: sidebarWidth, minWidth: sidebarWidth }} className="flex-shrink-0 border-r border-border-primary">
         <Sidebar />
       </div>
 
@@ -52,6 +55,7 @@ export default function App() {
       <NewCollectionModal />
       <SettingsModal />
       <ImportExportModal />
+      <EnvironmentModal />
 
       {/* Toast notifications */}
       <ToastContainer />
