@@ -170,11 +170,14 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
             </div>
             <span className="flex-1 text-sm text-text-secondary flex items-center gap-1.5">
               {v.description}
-              {v.matchRules && (v.matchRules.bodyRules.length > 0 || v.matchRules.headerRules.length > 0) && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-full" title={t.response.matchConditions}>
-                  <Filter size={10} /> {v.matchRules.bodyRules.length + v.matchRules.headerRules.length}
-                </span>
-              )}
+              {v.matchRules && (() => {
+                const count = (v.matchRules.bodyRules?.length ?? 0) + (v.matchRules.headerRules?.length ?? 0) + (v.matchRules.queryParamRules?.length ?? 0) + (v.matchRules.pathParamRules?.length ?? 0);
+                return count > 0 ? (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-full" title={t.response.matchConditions}>
+                    <Filter size={10} /> {count}
+                  </span>
+                ) : null;
+              })()}
             </span>
             {variants.length > 1 && (
               <button
@@ -265,6 +268,9 @@ function VariantEditor({
 
       {/* Match Rules */}
       <MatchRulesEditor variant={variant} updateVariant={updateVariant} />
+
+      {/* Response Headers */}
+      <ResponseHeadersEditor variant={variant} updateVariant={updateVariant} />
 
       <div className="flex items-center justify-between mb-2">
         <label className="text-xs text-text-tertiary uppercase tracking-wider">{t.response.responseBody}</label>
@@ -431,6 +437,120 @@ function MatchRulesEditor({
         )}
       </div>
     </div>
+  );
+}
+
+interface HeaderEntry {
+  id: string;
+  key: string;
+  value: string;
+}
+
+function parseResponseHeaders(raw: string): HeaderEntry[] {
+  try {
+    const obj = JSON.parse(raw);
+    if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
+      return Object.entries(obj).map(([key, value], i) => ({
+        id: `h-${i}-${key}`,
+        key,
+        value: String(value),
+      }));
+    }
+  } catch { /* not valid JSON */ }
+  return [];
+}
+
+function serializeResponseHeaders(entries: HeaderEntry[]): string {
+  const obj: Record<string, string> = {};
+  for (const e of entries) {
+    if (e.key.trim()) obj[e.key.trim()] = e.value;
+  }
+  return JSON.stringify(obj);
+}
+
+function ResponseHeadersEditor({
+  variant,
+  updateVariant,
+}: {
+  variant: ResponseVariant;
+  updateVariant: (id: string, data: Partial<ResponseVariant>) => Promise<void>;
+}) {
+  const t = useTranslation();
+  const [entries, setEntries] = useState<HeaderEntry[]>(() => parseResponseHeaders(variant.headers));
+
+  useEffect(() => {
+    setEntries(parseResponseHeaders(variant.headers));
+  }, [variant.id]);
+
+  const save = (next: HeaderEntry[]) => {
+    setEntries(next);
+    updateVariant(variant.id, { headers: serializeResponseHeaders(next) });
+  };
+
+  const addEntry = () => {
+    save([...entries, { id: `h-${Date.now()}`, key: '', value: '' }]);
+  };
+
+  const updateEntry = (id: string, field: 'key' | 'value', val: string) => {
+    save(entries.map(e => e.id === id ? { ...e, [field]: val } : e));
+  };
+
+  const removeEntry = (id: string) => {
+    save(entries.filter(e => e.id !== id));
+  };
+
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-xs text-text-tertiary uppercase tracking-wider">{t.response.responseHeaders}</label>
+        <button onClick={addEntry} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
+          <Plus size={12} /> {t.response.addResponseHeader}
+        </button>
+      </div>
+      {entries.length > 0 && (
+        <div className="rounded border border-border-secondary bg-bg-surface/50 p-3 space-y-1">
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 text-[10px] text-text-muted uppercase tracking-wider mb-1">
+            <span>{t.response.responseHeaderKey}</span>
+            <span>{t.response.responseHeaderValue}</span>
+            <span className="w-6" />
+          </div>
+          {entries.map(entry => (
+            <div key={entry.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+              <HeaderInput entry={entry} field="key" placeholder="e.g. Content-Type" onCommit={updateEntry} />
+              <HeaderInput entry={entry} field="value" placeholder="e.g. application/json" onCommit={updateEntry} />
+              <button
+                onClick={() => removeEntry(entry.id)}
+                className="text-text-muted hover:text-method-delete w-6 h-6 flex items-center justify-center"
+              >
+                <X size={14} strokeWidth={2.5} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HeaderInput({ entry, field, placeholder, onCommit }: {
+  entry: HeaderEntry;
+  field: 'key' | 'value';
+  placeholder: string;
+  onCommit: (id: string, field: 'key' | 'value', val: string) => void;
+}) {
+  const [local, setLocal] = useState(entry[field]);
+
+  useEffect(() => { setLocal(entry[field]); }, [entry[field]]);
+
+  return (
+    <input
+      type="text"
+      value={local}
+      onChange={e => setLocal(e.target.value)}
+      onBlur={() => { if (local !== entry[field]) onCommit(entry.id, field, local); }}
+      placeholder={placeholder}
+      className="rounded border border-border-secondary bg-bg-input px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-primary font-mono"
+    />
   );
 }
 
