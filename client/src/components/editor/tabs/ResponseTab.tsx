@@ -291,40 +291,27 @@ function MatchRulesEditor({
   updateVariant: (id: string, data: Partial<ResponseVariant>) => Promise<void>;
 }) {
   const t = useTranslation();
-  const rules: MatchRules = variant.matchRules ?? { bodyRules: [], headerRules: [], combineWith: 'AND' };
-  const hasRules = rules.bodyRules.length > 0 || rules.headerRules.length > 0;
+  const rules: MatchRules = variant.matchRules ?? { bodyRules: [], headerRules: [], queryParamRules: [], pathParamRules: [], combineWith: 'AND' };
+  const totalRules = (rules.bodyRules?.length ?? 0) + (rules.headerRules?.length ?? 0) + (rules.queryParamRules?.length ?? 0) + (rules.pathParamRules?.length ?? 0);
+  const hasRules = totalRules > 0;
 
   const save = (next: MatchRules) => {
-    const isEmpty = next.bodyRules.length === 0 && next.headerRules.length === 0;
+    const isEmpty = (next.bodyRules?.length ?? 0) === 0 && (next.headerRules?.length ?? 0) === 0 && (next.queryParamRules?.length ?? 0) === 0 && (next.pathParamRules?.length ?? 0) === 0;
     updateVariant(variant.id, { matchRules: isEmpty ? null : next });
   };
 
-  const addBodyRule = () => {
-    save({ ...rules, bodyRules: [...rules.bodyRules, { field: '', operator: 'equals', value: '' }] });
+  const addRule = (key: keyof Pick<MatchRules, 'bodyRules' | 'headerRules' | 'queryParamRules' | 'pathParamRules'>) => {
+    save({ ...rules, [key]: [...(rules[key] ?? []), { field: '', operator: 'equals', value: '' }] });
   };
 
-  const addHeaderRule = () => {
-    save({ ...rules, headerRules: [...rules.headerRules, { field: '', operator: 'equals', value: '' }] });
-  };
-
-  const updateBodyRule = (idx: number, patch: Partial<MatchRule>) => {
-    const next = [...rules.bodyRules];
+  const updateRule = (key: keyof Pick<MatchRules, 'bodyRules' | 'headerRules' | 'queryParamRules' | 'pathParamRules'>, idx: number, patch: Partial<MatchRule>) => {
+    const next = [...(rules[key] ?? [])];
     next[idx] = { ...next[idx], ...patch };
-    save({ ...rules, bodyRules: next });
+    save({ ...rules, [key]: next });
   };
 
-  const updateHeaderRule = (idx: number, patch: Partial<MatchRule>) => {
-    const next = [...rules.headerRules];
-    next[idx] = { ...next[idx], ...patch };
-    save({ ...rules, headerRules: next });
-  };
-
-  const removeBodyRule = (idx: number) => {
-    save({ ...rules, bodyRules: rules.bodyRules.filter((_, i) => i !== idx) });
-  };
-
-  const removeHeaderRule = (idx: number) => {
-    save({ ...rules, headerRules: rules.headerRules.filter((_, i) => i !== idx) });
+  const removeRule = (key: keyof Pick<MatchRules, 'bodyRules' | 'headerRules' | 'queryParamRules' | 'pathParamRules'>, idx: number) => {
+    save({ ...rules, [key]: (rules[key] ?? []).filter((_, i) => i !== idx) });
   };
 
   const toggleCombine = () => {
@@ -339,16 +326,22 @@ function MatchRulesEditor({
           {t.response.matchConditions}
           {hasRules && (
             <span className="text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-full text-[10px] normal-case">
-              {rules.bodyRules.length + rules.headerRules.length}
+              {totalRules}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={addBodyRule} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
+          <button onClick={() => addRule('bodyRules')} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
             <Plus size={12} /> {t.response.addBody}
           </button>
-          <button onClick={addHeaderRule} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
+          <button onClick={() => addRule('headerRules')} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
             <Plus size={12} /> {t.response.addHeader}
+          </button>
+          <button onClick={() => addRule('queryParamRules')} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
+            <Plus size={12} /> {t.response.addQueryParam}
+          </button>
+          <button onClick={() => addRule('pathParamRules')} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
+            <Plus size={12} /> {t.response.addPathParam}
           </button>
         </div>
       </div>
@@ -360,7 +353,7 @@ function MatchRulesEditor({
           </p>
         )}
 
-        {hasRules && (rules.bodyRules.length + rules.headerRules.length) > 1 && (
+        {hasRules && totalRules > 1 && (
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs text-text-tertiary">{t.response.combine}</span>
             <button
@@ -377,7 +370,7 @@ function MatchRulesEditor({
           </div>
         )}
 
-        {rules.bodyRules.length > 0 && (
+        {(rules.bodyRules?.length ?? 0) > 0 && (
           <div>
             <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.response.bodyRules}</div>
             {rules.bodyRules.map((rule, idx) => (
@@ -385,14 +378,14 @@ function MatchRulesEditor({
                 key={idx}
                 rule={rule}
                 fieldPlaceholder="e.g. user.role"
-                onChange={patch => updateBodyRule(idx, patch)}
-                onRemove={() => removeBodyRule(idx)}
+                onChange={patch => updateRule('bodyRules', idx, patch)}
+                onRemove={() => removeRule('bodyRules', idx)}
               />
             ))}
           </div>
         )}
 
-        {rules.headerRules.length > 0 && (
+        {(rules.headerRules?.length ?? 0) > 0 && (
           <div>
             <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.response.headerRules}</div>
             {rules.headerRules.map((rule, idx) => (
@@ -400,8 +393,38 @@ function MatchRulesEditor({
                 key={idx}
                 rule={rule}
                 fieldPlaceholder="e.g. x-api-key"
-                onChange={patch => updateHeaderRule(idx, patch)}
-                onRemove={() => removeHeaderRule(idx)}
+                onChange={patch => updateRule('headerRules', idx, patch)}
+                onRemove={() => removeRule('headerRules', idx)}
+              />
+            ))}
+          </div>
+        )}
+
+        {(rules.queryParamRules?.length ?? 0) > 0 && (
+          <div>
+            <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.response.queryParamRules}</div>
+            {rules.queryParamRules.map((rule, idx) => (
+              <RuleRow
+                key={idx}
+                rule={rule}
+                fieldPlaceholder="e.g. page"
+                onChange={patch => updateRule('queryParamRules', idx, patch)}
+                onRemove={() => removeRule('queryParamRules', idx)}
+              />
+            ))}
+          </div>
+        )}
+
+        {(rules.pathParamRules?.length ?? 0) > 0 && (
+          <div>
+            <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.response.pathParamRules}</div>
+            {rules.pathParamRules.map((rule, idx) => (
+              <RuleRow
+                key={idx}
+                rule={rule}
+                fieldPlaceholder="e.g. id"
+                onChange={patch => updateRule('pathParamRules', idx, patch)}
+                onRemove={() => removeRule('pathParamRules', idx)}
               />
             ))}
           </div>

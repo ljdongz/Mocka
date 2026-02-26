@@ -71,7 +71,8 @@ export async function handleMockRequest(
 
   // 2. Conditional match rules: find first variant whose rules match the request
   if (!variant) {
-    variant = variants.find(v => v.matchRules && matchesRules(v.matchRules, body, headers));
+    const queryParams = parseQueryParams(url);
+    variant = variants.find(v => v.matchRules && matchesRules(v.matchRules, body, headers, queryParams, pathParams));
   }
 
   // 3. Fallback: active variant or first variant

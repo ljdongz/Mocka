@@ -7,6 +7,8 @@ export interface MatchRule {
 export interface MatchRules {
   bodyRules: MatchRule[];
   headerRules: MatchRule[];
+  queryParamRules: MatchRule[];
+  pathParamRules: MatchRule[];
   combineWith: 'AND' | 'OR';
 }
 
@@ -44,7 +46,13 @@ export function getNestedValue(obj: any, path: string): any {
 }
 
 /** Check if a variant's match rules are satisfied by the request */
-export function matchesRules(rules: MatchRules, body: any, headers: Record<string, string>): boolean {
+export function matchesRules(
+  rules: MatchRules,
+  body: any,
+  headers: Record<string, string>,
+  queryParams?: Record<string, string>,
+  pathParams?: Record<string, string>,
+): boolean {
   const results: boolean[] = [];
 
   for (const rule of rules.bodyRules ?? []) {
@@ -53,6 +61,14 @@ export function matchesRules(rules: MatchRules, body: any, headers: Record<strin
   }
   for (const rule of rules.headerRules ?? []) {
     const val = headers[rule.field.toLowerCase()];
+    results.push(evaluateRule(rule, val));
+  }
+  for (const rule of rules.queryParamRules ?? []) {
+    const val = queryParams?.[rule.field];
+    results.push(evaluateRule(rule, val));
+  }
+  for (const rule of rules.pathParamRules ?? []) {
+    const val = pathParams?.[rule.field];
     results.push(evaluateRule(rule, val));
   }
 

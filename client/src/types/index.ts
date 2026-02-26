@@ -43,6 +43,8 @@ export interface MatchRule {
 export interface MatchRules {
   bodyRules: MatchRule[];
   headerRules: MatchRule[];
+  queryParamRules: MatchRule[];
+  pathParamRules: MatchRule[];
   combineWith: 'AND' | 'OR';
 }
 
