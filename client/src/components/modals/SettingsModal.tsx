@@ -81,7 +81,7 @@ export function SettingsModal() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm text-text-tertiary mb-1.5">Default Response Delay (ms)</label>
+          <label className="block text-sm text-text-tertiary mb-1.5">Default Response Delay (s)</label>
           <input
             type="number" style={{ MozAppearance: 'textfield' }}
             value={delay}

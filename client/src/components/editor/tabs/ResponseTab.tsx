@@ -1,6 +1,7 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { Check, X, Plus, Trash2, Filter } from 'lucide-react';
 import { useEndpointStore } from '../../../stores/endpoint.store';
+import { useSettingsStore } from '../../../stores/settings.store';
 import { StatusCodeBadge } from '../../shared/StatusCodeBadge';
 import { CodeEditor } from '../../shared/CodeEditor';
 import { STATUS_CODES } from '../../../utils/http';
@@ -210,6 +211,7 @@ function VariantEditor({
   handleBodyChange: (body: string) => void;
   handleBeautify: () => void;
 }) {
+  const globalDelay = useSettingsStore(s => s.settings.responseDelay);
   const [description, setDescription] = useState(variant.description);
   const [delay, setDelay] = useState(String(variant.delay ?? ''));
   const [memo, setMemo] = useState(variant.memo);
@@ -237,9 +239,12 @@ function VariantEditor({
               const parsed = delay ? parseFloat(delay) : null;
               if (parsed !== (variant.delay ?? null)) updateVariant(variant.id, { delay: parsed });
             }}
-            placeholder="0"
+            placeholder={String(globalDelay || 0)}
             className="w-full rounded border border-border-secondary bg-bg-input px-2 py-1.5 text-sm text-text-primary outline-none focus:border-accent-primary font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
+          <p className="mt-1 text-xs text-text-muted">
+            {variant.delay != null ? '' : globalDelay ? `Global default: ${globalDelay}s` : 'No delay'}
+          </p>
         </div>
       </div>
 

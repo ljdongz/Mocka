@@ -1,6 +1,7 @@
 import { match } from './route-registry.js';
 import * as historyService from './history.service.js';
 import * as environmentService from './environment.service.js';
+import * as settingsService from './settings.service.js';
 import { resolveVariables } from '../utils/template-variables.js';
 import { resolveHelpers, parseQueryParams, parsePathSegments, type RequestContext } from '../utils/template-helpers.js';
 import { matchesRules } from '../models/response-variant.js';
@@ -88,8 +89,9 @@ export async function handleMockRequest(
     };
   }
 
-  // Apply delay: x-mock-response-delay header overrides variant delay (values in seconds)
-  const delaySec = mockResponseDelay ? parseFloat(mockResponseDelay) : (variant.delay ?? 0);
+  // Apply delay: header > variant delay > global default (all in seconds)
+  const globalDelay = settingsService.getAll().responseDelay ?? 0;
+  const delaySec = mockResponseDelay ? parseFloat(mockResponseDelay) : (variant.delay ?? globalDelay);
   if (delaySec > 0) {
     await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
   }
