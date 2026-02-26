@@ -4,12 +4,14 @@ import { Pencil, Check, X, FolderInput } from 'lucide-react';
 import { useEndpointStore } from '../../stores/endpoint.store';
 import { useCollectionStore } from '../../stores/collection.store';
 import { useUIStore } from '../../stores/ui.store';
+import { useTranslation } from '../../i18n';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
 import type { Endpoint } from '../../types';
 import { buildFullUrl } from '../../utils/url';
 
 export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
+  const t = useTranslation();
   const selectedId = useEndpointStore(s => s.selectedId);
   const select = useEndpointStore(s => s.select);
   const deleteEndpoint = useEndpointStore(s => s.deleteEndpoint);
@@ -97,14 +99,14 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
         <span
           onClick={saveEdit}
           className="text-text-muted hover:text-accent-primary cursor-pointer flex items-center"
-          title="Save"
+          title={t.common.save}
         >
           <Check size={14} strokeWidth={2.5} />
         </span>
         <span
           onClick={cancelEdit}
           className="text-text-muted hover:text-method-delete cursor-pointer flex items-center"
-          title="Cancel"
+          title={t.common.cancel}
         >
           <X size={14} strokeWidth={2.5} />
         </span>
@@ -134,7 +136,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
           'items-center justify-center text-text-muted hover:text-accent-primary cursor-pointer',
           showMoveMenu ? 'flex' : 'hidden group-hover:flex',
         )}
-        title="Edit Alias"
+        title={t.endpointItem.editAlias}
       >
         <Pencil size={13} strokeWidth={2.5} />
       </span>
@@ -144,7 +146,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
       )}>
         <span
           onClick={e => { e.stopPropagation(); setShowMoveMenu(!showMoveMenu); }}
-          title="Move to Collection"
+          title={t.endpointItem.moveToCollection}
           className="flex items-center"
         >
           <FolderInput size={13} strokeWidth={2.5} />
@@ -158,7 +160,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
                 !currentCollId ? 'text-accent-primary font-medium' : 'text-text-secondary',
               )}
             >
-              Uncollected
+              {t.endpointItem.uncollected}
             </div>
             {collections.map(c => (
               <div
@@ -181,7 +183,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
           'items-center justify-center text-text-muted hover:text-method-delete cursor-pointer',
           showMoveMenu ? 'flex' : 'hidden group-hover:flex',
         )}
-        title="Delete Endpoint"
+        title={t.endpointItem.deleteEndpoint}
       >
         <X size={14} strokeWidth={2.5} />
       </span>

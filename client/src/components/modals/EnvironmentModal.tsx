@@ -3,10 +3,12 @@ import { Plus, Trash2, Check } from 'lucide-react';
 import { useEnvironmentStore } from '../../stores/environment.store';
 import { useUIStore } from '../../stores/ui.store';
 import { ModalOverlay } from '../shared/ModalOverlay';
+import { useTranslation, fmt } from '../../i18n';
 import type { Environment } from '../../types';
 import clsx from 'clsx';
 
 export function EnvironmentModal() {
+  const t = useTranslation();
   const open = useUIStore(s => s.showEnvironments);
   const close = () => useUIStore.getState().setShowEnvironments(false);
   const { environments, fetch, create, update, setActive, remove } = useEnvironmentStore();
@@ -26,7 +28,7 @@ export function EnvironmentModal() {
   const selected = environments.find(e => e.id === selectedId);
 
   const handleCreate = async () => {
-    const name = newName.trim() || 'New Environment';
+    const name = newName.trim() || t.environment.newEnvironment;
     await create(name);
     setNewName('');
     const all = useEnvironmentStore.getState().environments;
@@ -46,7 +48,7 @@ export function EnvironmentModal() {
       <div className="w-[640px] max-h-[80vh] rounded-lg border border-border-secondary bg-bg-surface flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-secondary">
-          <h2 className="text-base font-semibold text-text-primary">Environments</h2>
+          <h2 className="text-base font-semibold text-text-primary">{t.environment.title}</h2>
           <button onClick={close} className="text-text-muted hover:text-text-secondary text-lg">&times;</button>
         </div>
 
@@ -78,7 +80,7 @@ export function EnvironmentModal() {
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleCreate()}
-                  placeholder="Name..."
+                  placeholder={t.environment.namePlaceholder}
                   className="flex-1 min-w-0 rounded border border-border-secondary bg-bg-input px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-primary"
                 />
                 <button onClick={handleCreate} className="text-accent-primary hover:text-accent-primary/80">
@@ -100,7 +102,7 @@ export function EnvironmentModal() {
               />
             ) : (
               <div className="flex items-center justify-center h-full text-sm text-text-muted">
-                Create an environment to get started.
+                {t.environment.createToStart}
               </div>
             )}
           </div>
@@ -121,6 +123,7 @@ function EnvironmentEditor({
   onSetActive: (id: string | null) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const t = useTranslation();
   const [name, setName] = useState(env.name);
   const [vars, setVars] = useState<{ key: string; value: string }[]>(() => {
     return Object.entries(env.variables).map(([key, value]) => ({ key, value }));
@@ -174,12 +177,12 @@ function EnvironmentEditor({
           )}
         >
           {env.isActive && <Check size={12} />}
-          {env.isActive ? 'Active' : 'Set Active'}
+          {env.isActive ? t.environment.active : t.environment.setActive}
         </button>
         <button
           onClick={() => onDelete(env.id)}
           className="text-text-muted hover:text-method-delete p-1.5"
-          title="Delete environment"
+          title={t.environment.deleteEnvironment}
         >
           <Trash2 size={14} />
         </button>
@@ -187,23 +190,23 @@ function EnvironmentEditor({
 
       {/* Variables table */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-text-tertiary uppercase tracking-wider">Variables</span>
+        <span className="text-xs text-text-tertiary uppercase tracking-wider">{t.environment.variables}</span>
         <button onClick={addVar} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
-          <Plus size={12} /> Add Variable
+          <Plus size={12} /> {t.environment.addVariable}
         </button>
       </div>
 
       <div className="rounded border border-border-secondary overflow-hidden">
         {/* Header */}
         <div className="flex bg-bg-hover text-xs text-text-muted uppercase tracking-wider">
-          <div className="flex-1 px-3 py-1.5 border-r border-border-secondary">Key</div>
-          <div className="flex-1 px-3 py-1.5">Value</div>
+          <div className="flex-1 px-3 py-1.5 border-r border-border-secondary">{t.environment.key}</div>
+          <div className="flex-1 px-3 py-1.5">{t.environment.value}</div>
           <div className="w-8" />
         </div>
 
         {vars.length === 0 ? (
           <div className="px-3 py-4 text-xs text-text-muted text-center">
-            No variables defined. Use <code className="bg-bg-hover px-1 rounded">{'{{key}}'}</code> in response bodies to reference them.
+            {t.environment.noVariables} {fmt(t.environment.noVariablesHint, '{{key}}')}
           </div>
         ) : (
           vars.map((v, idx) => (
@@ -236,8 +239,7 @@ function EnvironmentEditor({
       </div>
 
       <p className="mt-3 text-xs text-text-muted">
-        Use <code className="bg-bg-hover px-1 rounded">{'{{variableName}}'}</code> in response bodies and headers.
-        Environment variables are resolved before template helpers and dynamic variables.
+        {fmt(t.environment.variableUsageHint, '{{variableName}}')}
       </p>
     </div>
   );

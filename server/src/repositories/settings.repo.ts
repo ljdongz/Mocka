@@ -15,6 +15,7 @@ export function getAll(): Settings {
     autoSaveEndpoints: raw.autoSaveEndpoints !== 'false',
     historyToast: raw.historyToast !== 'false',
     theme: (raw.theme === 'light' ? 'light' : 'dark') as 'dark' | 'light',
+    language: (raw.language === 'ko' ? 'ko' : 'en') as 'en' | 'ko',
   };
 }
 
@@ -32,6 +33,7 @@ export function setAll(settings: Partial<Settings>): Settings {
     if (settings.autoSaveEndpoints !== undefined) update.run('auto_save_endpoints', String(settings.autoSaveEndpoints));
     if (settings.historyToast !== undefined) update.run('history_toast', String(settings.historyToast));
     if (settings.theme !== undefined) update.run('theme', settings.theme);
+    if (settings.language !== undefined) update.run('language', settings.language);
   });
   txn();
   return getAll();

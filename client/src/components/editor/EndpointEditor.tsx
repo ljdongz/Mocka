@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useEndpointStore } from '../../stores/endpoint.store';
 import { useUIStore } from '../../stores/ui.store';
 import { useSettingsStore } from '../../stores/settings.store';
+import { useTranslation } from '../../i18n';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { ParamsTab } from './tabs/ParamsTab';
 import { HeadersTab } from './tabs/HeadersTab';
@@ -10,23 +11,16 @@ import { ResponseTab } from './tabs/ResponseTab';
 import clsx from 'clsx';
 import type { HttpMethod } from '../../types';
 import { buildFullUrl, parseUrlWithParams } from '../../utils/url';
-import { validatePath } from '../../utils/validation';
 import { createQueryParam } from '../../utils/entity-factory';
 import { hasPathParams } from '../../utils/path-params';
 
-const TABS = ['Params', 'Headers', 'Body', 'Response'] as const;
+const TABS = ['params', 'headers', 'body', 'response'] as const;
 type Tab = (typeof TABS)[number];
-
-const TAB_MAP: Record<Tab, 'params' | 'headers' | 'body' | 'response'> = {
-  Params: 'params',
-  Headers: 'headers',
-  Body: 'body',
-  Response: 'response',
-};
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
 export function EndpointEditor() {
+  const t = useTranslation();
   const endpoints = useEndpointStore(s => s.endpoints);
   const selectedId = useEndpointStore(s => s.selectedId);
   const updateEndpoint = useEndpointStore(s => s.updateEndpoint);
@@ -42,6 +36,13 @@ export function EndpointEditor() {
   const methodDropdownRef = useRef<HTMLDivElement>(null);
 
   const endpoint = endpoints.find(e => e.id === selectedId);
+
+  const tabLabels: Record<Tab, string> = {
+    params: t.editor.params,
+    headers: t.editor.headers,
+    body: t.editor.body,
+    response: t.editor.response,
+  };
 
   useEffect(() => {
     setNameValue(endpoint?.name ?? '');
@@ -91,7 +92,7 @@ export function EndpointEditor() {
   if (!endpoint) {
     return (
       <div className="flex flex-1 items-center justify-center text-text-muted text-sm">
-        Select an endpoint to edit, or create a new one.
+        {t.editor.selectEndpoint}
       </div>
     );
   }
@@ -104,14 +105,13 @@ export function EndpointEditor() {
 
   const savePath = async () => {
     const trimmed = pathValue.trim();
-    const pathError = validatePath(trimmed);
-    if (pathError) {
-      setError(pathError);
+    if (!trimmed) {
+      setError(t.validation.pathRequired);
       return;
     }
     const { path: parsedPath, params } = parseUrlWithParams(trimmed);
     if (!parsedPath) {
-      setError('Path is required');
+      setError(t.validation.pathRequired);
       return;
     }
     const updates: any = {};
@@ -137,7 +137,7 @@ export function EndpointEditor() {
         await updateEndpoint(endpoint.id, updates);
         setError('');
       } catch (e: any) {
-        setError(e.message || 'Failed to update path');
+        setError(e.message || t.validation.pathRequired);
         return;
       }
     }
@@ -150,7 +150,7 @@ export function EndpointEditor() {
       try {
         await updateEndpoint(endpoint.id, { method });
       } catch (e: any) {
-        setError(e.message || 'Failed to update method');
+        setError(e.message);
       }
     }
   };
@@ -163,7 +163,7 @@ export function EndpointEditor() {
           <div
             onClick={() => setShowMethodDropdown(!showMethodDropdown)}
             className="cursor-pointer"
-            title="Click to change method"
+            title={t.editor.clickToChangeMethod}
           >
             <HttpMethodBadge method={endpoint.method} />
           </div>
@@ -201,7 +201,7 @@ export function EndpointEditor() {
           <span
             onClick={startEditPath}
             className="font-mono text-base text-text-primary cursor-pointer hover:text-accent-primary transition-colors"
-            title="Click to edit path"
+            title={t.editor.clickToEditPath}
           >
             {hasPathParams(endpoint.path)
               ? renderHighlightedPath(buildFullUrl(endpoint.path, endpoint.queryParams))
@@ -212,14 +212,14 @@ export function EndpointEditor() {
       </div>
       <div className="flex items-center gap-3 px-6 py-1.5 border-b border-border-primary">
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-[10px] text-text-muted uppercase tracking-wider">Alias</span>
+          <span className="text-[10px] text-text-muted uppercase tracking-wider">{t.editor.alias}</span>
           <input
             type="text"
             value={nameValue}
             onChange={e => setNameValue(e.target.value)}
             onBlur={() => { if (nameValue !== endpoint.name) updateEndpoint(endpoint.id, { name: nameValue }); }}
             onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-            placeholder="Enter alias..."
+            placeholder={t.editor.enterAlias}
             className="w-40 rounded border border-border-secondary bg-bg-input px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-primary placeholder:text-text-muted/50"
           />
         </div>
@@ -233,15 +233,15 @@ export function EndpointEditor() {
         {TABS.map(tab => (
           <button
             key={tab}
-            onClick={() => setDetailTab(TAB_MAP[tab])}
+            onClick={() => setDetailTab(tab)}
             className={clsx(
               'px-4 py-2.5 text-base transition-colors',
-              detailTab === TAB_MAP[tab]
+              detailTab === tab
                 ? 'border-b-2 border-accent-primary text-text-primary font-medium'
                 : 'text-text-tertiary hover:text-text-secondary',
             )}
           >
-            {tab}
+            {tabLabels[tab]}
           </button>
         ))}
       </div>

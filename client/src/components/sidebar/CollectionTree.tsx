@@ -20,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useCollectionStore } from '../../stores/collection.store';
 import { useEndpointStore } from '../../stores/endpoint.store';
 import { useUIStore } from '../../stores/ui.store';
+import { useTranslation } from '../../i18n';
 import { EndpointItem } from './EndpointItem';
 import { SortableEndpointItem } from './SortableEndpointItem';
 import type { Collection } from '../../types';
@@ -50,6 +51,7 @@ function SortableCollectionItem({
 }
 
 export function CollectionTree() {
+  const t = useTranslation();
   const collections = useCollectionStore(s => s.collections);
   const endpoints = useEndpointStore(s => s.endpoints);
   const toggleExpanded = useCollectionStore(s => s.toggleExpanded);
@@ -173,21 +175,21 @@ export function CollectionTree() {
                         <button
                           onClick={e => { e.stopPropagation(); setShowNewEndpoint(true, c.id); }}
                           className="text-text-muted hover:text-text-secondary flex items-center"
-                          title="Add Endpoint"
+                          title={t.sidebar.addEndpoint}
                         >
                           <Plus size={14} strokeWidth={2.5} />
                         </button>
                         <button
                           onClick={e => { e.stopPropagation(); startRename(c.id, c.name); }}
                           className="text-text-muted hover:text-text-secondary flex items-center"
-                          title="Rename"
+                          title={t.sidebar.rename}
                         >
                           <Pencil size={13} strokeWidth={2.5} />
                         </button>
                         <button
                           onClick={e => { e.stopPropagation(); removeCollection(c.id); }}
                           className="text-text-muted hover:text-method-delete flex items-center"
-                          title="Delete"
+                          title={t.common.delete}
                         >
                           <X size={14} strokeWidth={2.5} />
                         </button>
@@ -213,7 +215,7 @@ export function CollectionTree() {
         {uncollected.length > 0 && (
           <div>
             {collections.length > 0 && (
-              <div className="px-2 py-1 text-xs text-text-muted uppercase tracking-wider">Uncollected</div>
+              <div className="px-2 py-1 text-xs text-text-muted uppercase tracking-wider">{t.sidebar.uncollected}</div>
             )}
             {uncollected.map(ep => (
               <EndpointItem key={ep.id} endpoint={ep} />

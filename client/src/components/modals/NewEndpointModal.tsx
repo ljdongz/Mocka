@@ -5,8 +5,8 @@ import { useCollectionStore } from '../../stores/collection.store';
 import { useUIStore } from '../../stores/ui.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { ModalOverlay } from '../shared/ModalOverlay';
+import { useTranslation } from '../../i18n';
 import type { HttpMethod } from '../../types';
-import { validatePath } from '../../utils/validation';
 import clsx from 'clsx';
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
@@ -28,6 +28,7 @@ const METHOD_INACTIVE: Record<HttpMethod, string> = {
 };
 
 export function NewEndpointModal() {
+  const t = useTranslation();
   const open = useUIStore(s => s.showNewEndpoint);
   const close = () => useUIStore.getState().setShowNewEndpoint(false);
   const createEndpoint = useEndpointStore(s => s.createEndpoint);
@@ -55,8 +56,7 @@ export function NewEndpointModal() {
   }
 
   const handleSubmit = async () => {
-    const pathError = validatePath(path);
-    if (pathError) { setError(pathError); return; }
+    if (!path.trim()) { setError(t.validation.pathRequired); return; }
     try {
       await createEndpoint(method, path.trim(), name.trim() || undefined, collectionId || undefined);
       if (collectionId) {
@@ -69,7 +69,7 @@ export function NewEndpointModal() {
       setError('');
       close();
     } catch (e: any) {
-      setError(e.message || 'Failed to create endpoint');
+      setError(e.message || t.newEndpoint.failedToCreate);
     }
   };
 
@@ -77,14 +77,14 @@ export function NewEndpointModal() {
     <ModalOverlay open={open} onClose={close}>
       <div className="w-[480px] rounded-lg border border-border-secondary bg-bg-surface p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-semibold text-text-primary">New Endpoint</h2>
+          <h2 className="text-base font-semibold text-text-primary">{t.newEndpoint.title}</h2>
           <button onClick={close} className="text-text-muted hover:text-text-secondary flex items-center">
             <X size={18} strokeWidth={2.5} />
           </button>
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm text-text-tertiary mb-2">HTTP Method</label>
+          <label className="block text-sm text-text-tertiary mb-2">{t.newEndpoint.httpMethod}</label>
           <div className="flex gap-2">
             {METHODS.map(m => (
               <button
@@ -102,18 +102,18 @@ export function NewEndpointModal() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm text-text-tertiary mb-2">Alias (optional)</label>
+          <label className="block text-sm text-text-tertiary mb-2">{t.newEndpoint.aliasOptional}</label>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
             className="w-full rounded border border-border-secondary bg-bg-input px-3 py-2 text-sm text-text-primary outline-none focus:border-accent-primary"
-            placeholder="e.g. Get Users, Login"
+            placeholder={t.newEndpoint.aliasPlaceholder}
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm text-text-tertiary mb-2">Endpoint Path</label>
+          <label className="block text-sm text-text-tertiary mb-2">{t.newEndpoint.endpointPath}</label>
           <input
             type="text"
             value={path}
@@ -130,13 +130,13 @@ export function NewEndpointModal() {
 
         {collections.length > 0 && (
           <div className="mb-4">
-            <label className="block text-sm text-text-tertiary mb-2">Collection (optional)</label>
+            <label className="block text-sm text-text-tertiary mb-2">{t.newEndpoint.collectionOptional}</label>
             <select
               value={collectionId}
               onChange={e => setCollectionId(e.target.value)}
               className="w-full rounded border border-border-secondary bg-bg-input px-3 py-2 text-sm text-text-primary outline-none"
             >
-              <option value="">None</option>
+              <option value="">{t.common.none}</option>
               {collections.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -148,13 +148,13 @@ export function NewEndpointModal() {
 
         <div className="flex justify-end gap-3">
           <button onClick={close} className="rounded px-4 py-2 text-sm text-text-secondary hover:text-text-primary">
-            Cancel
+            {t.common.cancel}
           </button>
           <button
             onClick={handleSubmit}
             className="rounded bg-accent-primary px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
           >
-            Create
+            {t.common.create}
           </button>
         </div>
       </div>

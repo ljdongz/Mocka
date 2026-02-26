@@ -1,12 +1,9 @@
 import { Folder, History, Layers, ArrowUpDown, Settings, BookOpen } from 'lucide-react';
 import { useUIStore } from '../../stores/ui.store';
-
-const railItems = [
-  { id: 'collections' as const, icon: Folder, label: 'Collections' },
-  { id: 'history' as const, icon: History, label: 'History' },
-] as const;
+import { useTranslation } from '../../i18n';
 
 export function IconRail() {
+  const t = useTranslation();
   const showHistory = useUIStore(s => s.showHistory);
   const setShowHistory = useUIStore(s => s.setShowHistory);
   const showOnboarding = useUIStore(s => s.showOnboarding);
@@ -16,6 +13,11 @@ export function IconRail() {
   const setShowSettings = useUIStore(s => s.setShowSettings);
 
   const activePanel = showHistory ? 'history' : 'collections';
+
+  const railItems = [
+    { id: 'collections' as const, icon: Folder, label: t.sidebar.collections },
+    { id: 'history' as const, icon: History, label: t.sidebar.history },
+  ];
 
   const handleRailClick = (id: string) => {
     if (id === 'history') {
@@ -55,28 +57,28 @@ export function IconRail() {
               ? 'bg-bg-hover text-text-primary'
               : 'text-text-tertiary hover:bg-bg-hover hover:text-text-secondary'
           }`}
-          title="Guide"
+          title={t.sidebar.guide}
         >
           <BookOpen size={20} strokeWidth={1.8} />
         </button>
         <button
           onClick={() => setShowEnvironments(true)}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-hover hover:text-text-secondary"
-          title="Environments"
+          title={t.sidebar.environments}
         >
           <Layers size={20} strokeWidth={1.8} />
         </button>
         <button
           onClick={() => setShowImportExport(true)}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-hover hover:text-text-secondary"
-          title="Import / Export"
+          title={t.sidebar.importExport}
         >
           <ArrowUpDown size={20} strokeWidth={1.8} />
         </button>
         <button
           onClick={() => setShowSettings(true)}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-hover hover:text-text-secondary"
-          title="Settings"
+          title={t.sidebar.settings}
         >
           <Settings size={20} strokeWidth={1.8} />
         </button>

@@ -1,15 +1,17 @@
 import { Plus, FolderPlus } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
+import { useTranslation } from '../../i18n';
 import { CollectionTree } from './CollectionTree';
 
 export function Sidebar() {
+  const t = useTranslation();
   const serverStatus = useSettingsStore(s => s.serverStatus);
   const showHistory = useUIStore(s => s.showHistory);
   const setShowNewEndpoint = useUIStore(s => s.setShowNewEndpoint);
   const setShowNewCollection = useUIStore(s => s.setShowNewCollection);
 
-  const panelTitle = showHistory ? 'History' : 'Collections';
+  const panelTitle = showHistory ? t.sidebar.history : t.sidebar.collections;
 
   return (
     <div className="flex h-full flex-col bg-bg-sidebar">
@@ -28,7 +30,7 @@ export function Sidebar() {
             <button
               onClick={() => setShowNewCollection(true)}
               className="flex items-center rounded p-0.5 text-text-muted hover:bg-bg-hover hover:text-text-secondary"
-              title="New Collection"
+              title={t.sidebar.newCollection}
             >
               <FolderPlus size={14} strokeWidth={2} />
             </button>
@@ -48,7 +50,7 @@ export function Sidebar() {
           className="flex w-full items-center gap-1.5 rounded px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
         >
           <Plus size={14} strokeWidth={2} />
-          New Endpoint
+          {t.sidebar.newEndpoint}
         </button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useEndpointStore } from '../../../stores/endpoint.store';
 import { CodeEditor } from '../../shared/CodeEditor';
+import { useTranslation } from '../../../i18n';
 import { X } from 'lucide-react';
 import { formatJson } from '../../../utils/json';
 import { createFormDataField, type FormDataField } from '../../../utils/entity-factory';
@@ -41,6 +42,7 @@ function FormDataFieldInput({ field, prop, placeholder, onCommit }: {
 }
 
 function FormDataEditor({ endpoint }: { endpoint: Endpoint }) {
+  const t = useTranslation();
   const updateEndpoint = useEndpointStore(s => s.updateEndpoint);
   const fields = parseFormDataFields(endpoint.requestBodyRaw);
 
@@ -64,9 +66,9 @@ function FormDataEditor({ endpoint }: { endpoint: Endpoint }) {
     <div>
       <div className="mb-2 grid grid-cols-[auto_1fr_100px_1fr_auto] gap-2 text-sm text-text-tertiary">
         <div className="w-6" />
-        <div>Key</div>
-        <div>Type</div>
-        <div>Value</div>
+        <div>{t.body.key}</div>
+        <div>{t.body.type}</div>
+        <div>{t.body.value}</div>
         <div className="w-6" />
       </div>
       {fields.map(field => (
@@ -77,19 +79,19 @@ function FormDataEditor({ endpoint }: { endpoint: Endpoint }) {
             onChange={e => commitField(field.id, 'isEnabled', e.target.checked)}
             className="w-4 h-4 accent-accent-primary"
           />
-          <FormDataFieldInput field={field} prop="key" placeholder="Key" onCommit={commitField} />
+          <FormDataFieldInput field={field} prop="key" placeholder={t.body.key} onCommit={commitField} />
           <select
             value={field.type}
             onChange={e => commitField(field.id, 'type', e.target.value)}
             className="rounded border border-border-secondary bg-bg-input px-2 py-1.5 text-sm text-text-primary outline-none"
           >
-            <option value="text">Text</option>
-            <option value="file">File</option>
+            <option value="text">{t.body.text}</option>
+            <option value="file">{t.body.file}</option>
           </select>
           <FormDataFieldInput
             field={field}
             prop="value"
-            placeholder={field.type === 'file' ? 'filename.png' : 'Value'}
+            placeholder={field.type === 'file' ? 'filename.png' : t.body.value}
             onCommit={commitField}
           />
           <button
@@ -101,13 +103,14 @@ function FormDataEditor({ endpoint }: { endpoint: Endpoint }) {
         </div>
       ))}
       <button onClick={addField} className="mt-2 text-sm text-accent-primary hover:underline">
-        + Add Field
+        {t.body.addField}
       </button>
     </div>
   );
 }
 
 export function BodyTab({ endpoint }: { endpoint: Endpoint }) {
+  const t = useTranslation();
   const updateEndpoint = useEndpointStore(s => s.updateEndpoint);
   const isFormData = endpoint.requestBodyContentType === 'multipart/form-data';
 
@@ -142,20 +145,20 @@ export function BodyTab({ endpoint }: { endpoint: Endpoint }) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-base font-semibold text-text-primary">Request Body</h3>
+          <h3 className="text-base font-semibold text-text-primary">{t.body.title}</h3>
           <p className="text-xs text-text-tertiary mt-0.5">
-            Define the expected request body. This description is for documentation - it won't limit the requests this endpoint receives.
+            {t.body.description}
           </p>
         </div>
         {!isFormData && (
           <button onClick={beautify} className="text-sm text-accent-primary hover:underline">
-            Beautify JSON
+            {t.body.beautifyJson}
           </button>
         )}
       </div>
 
       <div className="mb-4 flex items-center gap-2">
-        <span className="text-sm text-text-tertiary">Content-Type</span>
+        <span className="text-sm text-text-tertiary">{t.body.contentType}</span>
         <select
           value={endpoint.requestBodyContentType}
           onChange={e => handleContentTypeChange(e.target.value)}

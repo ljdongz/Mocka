@@ -4,6 +4,7 @@ import { useEndpointStore } from '../../../stores/endpoint.store';
 import { useSettingsStore } from '../../../stores/settings.store';
 import { StatusCodeBadge } from '../../shared/StatusCodeBadge';
 import { CodeEditor } from '../../shared/CodeEditor';
+import { useTranslation, fmt } from '../../../i18n';
 import { STATUS_CODES } from '../../../utils/http';
 import { formatJson } from '../../../utils/json';
 import { validateStatusCode } from '../../../utils/validation';
@@ -11,6 +12,7 @@ import type { Endpoint, ResponseVariant, MatchRules, MatchRule } from '../../../
 import clsx from 'clsx';
 
 export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
+  const t = useTranslation();
   const setActiveVariant = useEndpointStore(s => s.setActiveVariant);
   const addVariant = useEndpointStore(s => s.addVariant);
   const updateVariant = useEndpointStore(s => s.updateVariant);
@@ -56,9 +58,9 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h3 className="text-base font-semibold text-text-primary">Mock Response</h3>
+          <h3 className="text-base font-semibold text-text-primary">{t.response.title}</h3>
           <p className="text-xs text-text-tertiary mt-0.5">
-            Define the mock responses. Set the active response variant to control what the endpoint returns.
+            {t.response.description}
           </p>
         </div>
         <button onClick={async () => {
@@ -66,13 +68,13 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
           const newVariant = ep.responseVariants?.[ep.responseVariants.length - 1];
           if (newVariant) setEditingVariantId(newVariant.id);
         }} className="text-sm text-accent-primary hover:underline">
-          + Add Response
+          {t.response.addResponse}
         </button>
       </div>
 
       {/* Variant list */}
       <div className="mb-4">
-        <div className="text-xs text-text-muted uppercase tracking-wider mb-2">Response Variants</div>
+        <div className="text-xs text-text-muted uppercase tracking-wider mb-2">{t.response.responseVariants}</div>
         {variants.map(v => (
           <div
             key={v.id}
@@ -97,7 +99,7 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
                   setStatusDropdownId(statusDropdownId === v.id ? null : v.id);
                 }}
                 className="hover:ring-1 hover:ring-accent-primary rounded transition-shadow"
-                title="Change status code"
+                title={t.response.changeStatusCode}
               >
                 <StatusCodeBadge code={v.statusCode} />
               </button>
@@ -125,7 +127,7 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
                             setCustomCodeInput('');
                           }
                         }}
-                        placeholder="Custom code (100-599)"
+                        placeholder={t.response.customCode}
                         autoFocus
                         className="flex-1 rounded border border-border-secondary bg-bg-input px-2 py-1 text-sm text-text-primary font-mono outline-none focus:border-accent-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
@@ -169,7 +171,7 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
             <span className="flex-1 text-sm text-text-secondary flex items-center gap-1.5">
               {v.description}
               {v.matchRules && (v.matchRules.bodyRules.length > 0 || v.matchRules.headerRules.length > 0) && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-full" title="Conditional match rules active">
+                <span className="inline-flex items-center gap-0.5 text-[10px] text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-full" title={t.response.matchConditions}>
                   <Filter size={10} /> {v.matchRules.bodyRules.length + v.matchRules.headerRules.length}
                 </span>
               )}
@@ -211,6 +213,7 @@ function VariantEditor({
   handleBodyChange: (body: string) => void;
   handleBeautify: () => void;
 }) {
+  const t = useTranslation();
   const globalDelay = useSettingsStore(s => s.settings.responseDelay);
   const [description, setDescription] = useState(variant.description);
   const [delay, setDelay] = useState(String(variant.delay ?? ''));
@@ -220,7 +223,7 @@ function VariantEditor({
     <div>
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
-          <label className="block text-xs text-text-tertiary mb-1">Description</label>
+          <label className="block text-xs text-text-tertiary mb-1">{t.response.descriptionLabel}</label>
           <input
             type="text"
             value={description}
@@ -230,7 +233,7 @@ function VariantEditor({
           />
         </div>
         <div>
-          <label className="block text-xs text-text-tertiary mb-1">Delay (s)</label>
+          <label className="block text-xs text-text-tertiary mb-1">{t.response.delay}</label>
           <input
             type="number"
             value={delay}
@@ -243,20 +246,20 @@ function VariantEditor({
             className="w-full rounded border border-border-secondary bg-bg-input px-2 py-1.5 text-sm text-text-primary outline-none focus:border-accent-primary font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
           <p className="mt-1 text-xs text-text-muted">
-            {variant.delay != null ? '' : globalDelay ? `Global default: ${globalDelay}s` : 'No delay'}
+            {variant.delay != null ? '' : globalDelay ? fmt(t.response.globalDefault, globalDelay) : t.response.noDelay}
           </p>
         </div>
       </div>
 
       <div className="mb-2">
-        <label className="block text-xs text-text-tertiary mb-1 uppercase tracking-wider">Memo</label>
+        <label className="block text-xs text-text-tertiary mb-1 uppercase tracking-wider">{t.response.memo}</label>
         <textarea
           value={memo}
           onChange={e => setMemo(e.target.value)}
           onBlur={() => { if (memo !== variant.memo) updateVariant(variant.id, { memo }); }}
           rows={2}
           className="w-full rounded border border-border-secondary bg-bg-input px-2 py-1.5 text-sm text-text-primary outline-none focus:border-accent-primary resize-none"
-          placeholder="Notes about this response variant..."
+          placeholder={t.response.memoPlaceholder}
         />
       </div>
 
@@ -264,9 +267,9 @@ function VariantEditor({
       <MatchRulesEditor variant={variant} updateVariant={updateVariant} />
 
       <div className="flex items-center justify-between mb-2">
-        <label className="text-xs text-text-tertiary uppercase tracking-wider">Response Body</label>
+        <label className="text-xs text-text-tertiary uppercase tracking-wider">{t.response.responseBody}</label>
         <button onClick={handleBeautify} className="text-sm text-accent-primary hover:underline">
-          Format JSON
+          {t.response.formatJson}
         </button>
       </div>
       <div className="rounded border border-border-secondary overflow-hidden">
@@ -280,14 +283,6 @@ function VariantEditor({
   );
 }
 
-const OPERATORS: { value: MatchRule['operator']; label: string }[] = [
-  { value: 'equals', label: 'Equals' },
-  { value: 'contains', label: 'Contains' },
-  { value: 'startsWith', label: 'Starts with' },
-  { value: 'endsWith', label: 'Ends with' },
-  { value: 'regex', label: 'Regex' },
-];
-
 function MatchRulesEditor({
   variant,
   updateVariant,
@@ -295,6 +290,7 @@ function MatchRulesEditor({
   variant: ResponseVariant;
   updateVariant: (id: string, data: Partial<ResponseVariant>) => Promise<void>;
 }) {
+  const t = useTranslation();
   const rules: MatchRules = variant.matchRules ?? { bodyRules: [], headerRules: [], combineWith: 'AND' };
   const hasRules = rules.bodyRules.length > 0 || rules.headerRules.length > 0;
 
@@ -340,7 +336,7 @@ function MatchRulesEditor({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 text-xs text-text-tertiary uppercase tracking-wider">
           <Filter size={12} />
-          Match Conditions
+          {t.response.matchConditions}
           {hasRules && (
             <span className="text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-full text-[10px] normal-case">
               {rules.bodyRules.length + rules.headerRules.length}
@@ -349,25 +345,24 @@ function MatchRulesEditor({
         </div>
         <div className="flex items-center gap-2">
           <button onClick={addBodyRule} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
-            <Plus size={12} /> Body
+            <Plus size={12} /> {t.response.addBody}
           </button>
           <button onClick={addHeaderRule} className="text-xs text-accent-primary hover:underline flex items-center gap-0.5">
-            <Plus size={12} /> Header
+            <Plus size={12} /> {t.response.addHeader}
           </button>
         </div>
       </div>
 
       <div className="rounded border border-border-secondary bg-bg-surface/50 p-3 space-y-2">
         {!hasRules && (
-          <p className="text-xs text-text-muted text-center py-2">
-            No conditions set — this variant acts as a fallback.
-            Add body or header conditions to enable conditional matching.
+          <p className="text-xs text-text-muted text-center py-2 whitespace-pre-line">
+            {t.response.noConditions}
           </p>
         )}
 
         {hasRules && (rules.bodyRules.length + rules.headerRules.length) > 1 && (
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-text-tertiary">Combine:</span>
+            <span className="text-xs text-text-tertiary">{t.response.combine}</span>
             <button
               onClick={toggleCombine}
               className={clsx(
@@ -384,7 +379,7 @@ function MatchRulesEditor({
 
         {rules.bodyRules.length > 0 && (
           <div>
-            <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Body Rules</div>
+            <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.response.bodyRules}</div>
             {rules.bodyRules.map((rule, idx) => (
               <RuleRow
                 key={idx}
@@ -399,7 +394,7 @@ function MatchRulesEditor({
 
         {rules.headerRules.length > 0 && (
           <div>
-            <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Header Rules</div>
+            <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.response.headerRules}</div>
             {rules.headerRules.map((rule, idx) => (
               <RuleRow
                 key={idx}
@@ -427,6 +422,16 @@ function RuleRow({
   onChange: (patch: Partial<MatchRule>) => void;
   onRemove: () => void;
 }) {
+  const t = useTranslation();
+
+  const OPERATORS: { value: MatchRule['operator']; label: string }[] = [
+    { value: 'equals', label: t.operators.equals },
+    { value: 'contains', label: t.operators.contains },
+    { value: 'startsWith', label: t.operators.startsWith },
+    { value: 'endsWith', label: t.operators.endsWith },
+    { value: 'regex', label: t.operators.regex },
+  ];
+
   return (
     <div className="flex items-center gap-1.5 mb-1">
       <input

@@ -1,4 +1,5 @@
 export type Theme = 'dark' | 'light';
+export type Language = 'en' | 'ko';
 
 export interface Settings {
   port: number;
@@ -6,6 +7,7 @@ export interface Settings {
   autoSaveEndpoints: boolean;
   historyToast: boolean;
   theme: Theme;
+  language: Language;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -14,4 +16,5 @@ export const DEFAULT_SETTINGS: Settings = {
   autoSaveEndpoints: true,
   historyToast: true,
   theme: 'dark',
+  language: 'en',
 };

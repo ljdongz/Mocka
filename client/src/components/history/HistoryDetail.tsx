@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
 import { CodeEditor } from '../shared/CodeEditor';
+import { useTranslation } from '../../i18n';
 import { formatJson } from '../../utils/json';
 import type { RequestRecord, HttpMethod } from '../../types';
 import clsx from 'clsx';
@@ -19,6 +20,7 @@ function parsePathParams(bodyOrParams: string): Record<string, string> | null {
 }
 
 export function HistoryDetail({ record, onClose }: { record: RequestRecord; onClose: () => void }) {
+  const t = useTranslation();
   const [tab, setTab] = useState<DetailTab>('response');
 
   const headers = (() => {
@@ -26,6 +28,12 @@ export function HistoryDetail({ record, onClose }: { record: RequestRecord; onCl
   })();
 
   const pathParams = parsePathParams(record.bodyOrParams);
+
+  const tabLabels: Record<DetailTab, string> = {
+    response: t.historyDetail.responseBody,
+    headers: t.historyDetail.requestHeaders,
+    body: t.historyDetail.requestBody,
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -57,16 +65,16 @@ export function HistoryDetail({ record, onClose }: { record: RequestRecord; onCl
       )}
 
       <div className="flex border-b border-border-primary">
-        {(['response', 'headers', 'body'] as DetailTab[]).map(t => (
+        {(['response', 'headers', 'body'] as DetailTab[]).map(tabKey => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tabKey}
+            onClick={() => setTab(tabKey)}
             className={clsx(
-              'px-3 py-2 text-sm capitalize',
-              tab === t ? 'border-b-2 border-accent-primary text-text-primary' : 'text-text-tertiary hover:text-text-secondary',
+              'px-3 py-2 text-sm',
+              tab === tabKey ? 'border-b-2 border-accent-primary text-text-primary' : 'text-text-tertiary hover:text-text-secondary',
             )}
           >
-            {t === 'body' ? 'Request Body' : t === 'headers' ? 'Request Headers' : 'Response Body'}
+            {tabLabels[tabKey]}
           </button>
         ))}
       </div>

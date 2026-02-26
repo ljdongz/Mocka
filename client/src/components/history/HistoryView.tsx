@@ -3,6 +3,7 @@ import { useHistoryStore } from '../../stores/history.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
 import { useResizable } from '../../hooks/useResizable';
+import { useTranslation } from '../../i18n';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
 import { HistoryDetail } from './HistoryDetail';
@@ -12,6 +13,7 @@ import clsx from 'clsx';
 const METHODS = ['', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
 export function HistoryView() {
+  const t = useTranslation();
   const records = useHistoryStore(s => s.records);
   const selectedRecord = useHistoryStore(s => s.selectedRecord);
   const selectRecord = useHistoryStore(s => s.selectRecord);
@@ -33,17 +35,17 @@ export function HistoryView() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border-primary px-6 py-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-base font-semibold text-text-primary">Request History</h2>
+          <h2 className="text-base font-semibold text-text-primary">{t.history.title}</h2>
           <span className={clsx('flex items-center gap-1.5 text-xs', serverStatus.running ? 'text-server-running' : 'text-server-stopped')}>
             <span className={clsx('h-1.5 w-1.5 rounded-full', serverStatus.running ? 'bg-server-running' : 'bg-server-stopped')} />
-            {serverStatus.running ? 'Server Running' : 'Server Stopped'}
+            {serverStatus.running ? t.history.serverRunning : t.history.serverStopped}
           </span>
         </div>
         <button
           onClick={clearAll}
           className="rounded px-3 py-1.5 text-sm text-method-delete bg-[#EF444418] hover:bg-[#EF444430]"
         >
-          Clear All
+          {t.history.clearAll}
         </button>
       </div>
 
@@ -51,7 +53,7 @@ export function HistoryView() {
       <div className="flex items-center gap-3 border-b border-border-primary px-6 py-2">
         <input
           type="text"
-          placeholder="Search Requests..."
+          placeholder={t.history.searchPlaceholder}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="flex-1 rounded border border-border-secondary bg-bg-input px-3 py-1.5 text-sm text-text-primary outline-none focus:border-accent-primary"
@@ -62,7 +64,7 @@ export function HistoryView() {
           className="rounded border border-border-secondary bg-bg-input px-2 py-1.5 text-sm text-text-primary outline-none"
         >
           {METHODS.map(m => (
-            <option key={m} value={m}>{m || 'All Methods'}</option>
+            <option key={m} value={m}>{m || t.history.allMethods}</option>
           ))}
         </select>
       </div>
@@ -74,10 +76,10 @@ export function HistoryView() {
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-bg-surface border-b border-border-primary">
               <tr className="text-left text-text-muted">
-                <th className="px-4 py-2 font-medium w-16">Time</th>
-                <th className="px-4 py-2 font-medium w-16">Method</th>
-                <th className="px-4 py-2 font-medium">Path</th>
-                <th className="px-4 py-2 font-medium w-16">Status</th>
+                <th className="px-4 py-2 font-medium w-16">{t.history.time}</th>
+                <th className="px-4 py-2 font-medium w-16">{t.history.method}</th>
+                <th className="px-4 py-2 font-medium">{t.history.path}</th>
+                <th className="px-4 py-2 font-medium w-16">{t.history.status}</th>
               </tr>
             </thead>
             <tbody>
@@ -91,7 +93,7 @@ export function HistoryView() {
                   )}
                 >
                   <td className="px-4 py-2 text-text-muted font-mono">
-                    {new Date(r.timestamp).toLocaleTimeString('en-US', { hour12: false })}
+                    {new Date(r.timestamp).toLocaleTimeString(t.locale, { hour12: false })}
                   </td>
                   <td className="px-4 py-2">
                     <HttpMethodBadge method={r.method as HttpMethod} />
@@ -106,7 +108,7 @@ export function HistoryView() {
           </table>
           {records.length === 0 && (
             <div className="flex items-center justify-center py-20 text-text-muted text-sm">
-              No requests recorded yet.
+              {t.history.noRecords}
             </div>
           )}
         </div>

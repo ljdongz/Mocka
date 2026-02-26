@@ -1,9 +1,11 @@
 import { useCallback } from 'react';
 import { useEndpointStore } from '../../../stores/endpoint.store';
 import { KeyValueTable } from '../../shared/KeyValueTable';
+import { useTranslation } from '../../../i18n';
 import type { Endpoint } from '../../../types';
 
 export function HeadersTab({ endpoint }: { endpoint: Endpoint }) {
+  const t = useTranslation();
   const updateEndpoint = useEndpointStore(s => s.updateEndpoint);
 
   const handleChange = useCallback((rows: any[]) => {
@@ -13,14 +15,14 @@ export function HeadersTab({ endpoint }: { endpoint: Endpoint }) {
   return (
     <div>
       <div className="mb-4">
-        <h3 className="text-base font-semibold text-text-primary">Request Headers</h3>
+        <h3 className="text-base font-semibold text-text-primary">{t.headers.title}</h3>
       </div>
       <KeyValueTable
         rows={endpoint.requestHeaders ?? []}
         onChange={handleChange}
-        keyLabel="Header"
-        valueLabel="Value"
-        addLabel="+ Add Header"
+        keyLabel={t.headers.header}
+        valueLabel={t.headers.value}
+        addLabel={t.headers.addHeader}
       />
     </div>
   );

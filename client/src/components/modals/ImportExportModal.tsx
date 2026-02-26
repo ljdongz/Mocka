@@ -4,11 +4,13 @@ import { useCollectionStore } from '../../stores/collection.store';
 import { useEndpointStore } from '../../stores/endpoint.store';
 import { importExportApi, type ConflictPolicy, type ExportData } from '../../api/import-export';
 import { ModalOverlay } from '../shared/ModalOverlay';
+import { useTranslation, fmt } from '../../i18n';
 import { Download, Upload } from 'lucide-react';
 
 type Tab = 'export' | 'import';
 
 export function ImportExportModal() {
+  const t = useTranslation();
   const open = useUIStore(s => s.showImportExport);
   const close = () => useUIStore.getState().setShowImportExport(false);
   const collections = useCollectionStore(s => s.collections);
@@ -23,6 +25,7 @@ export function ImportExportModal() {
   const [conflictPolicy, setConflictPolicy] = useState<ConflictPolicy>('skip');
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<string | null>(null);
+  const [isResultError, setIsResultError] = useState(false);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,7 +44,8 @@ export function ImportExportModal() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setImportResult(`Export failed: ${e.message}`);
+      setImportResult(`${t.importExport.exportFailed} ${e.message}`);
+      setIsResultError(true);
     } finally {
       setLoading(false);
     }
@@ -56,29 +60,34 @@ export function ImportExportModal() {
       const data: ExportData = JSON.parse(text);
 
       if (data.version !== 1 || !Array.isArray(data.endpoints)) {
-        setImportResult('Invalid file format. Please select a valid Mocka export file.');
+        setImportResult(t.importExport.invalidFormat);
+        setIsResultError(true);
         return;
       }
 
       const result = await importExportApi.importData(data, conflictPolicy);
 
       const parts: string[] = [];
-      if (result.created > 0) parts.push(`${result.created} created`);
-      if (result.skipped > 0) parts.push(`${result.skipped} skipped`);
-      if (result.overwritten > 0) parts.push(`${result.overwritten} overwritten`);
-      if (result.merged > 0) parts.push(`${result.merged} merged`);
-      if (result.collectionsCreated > 0) parts.push(`${result.collectionsCreated} collections created`);
-      if (result.collectionsSkipped > 0) parts.push(`${result.collectionsSkipped} collections skipped`);
-      setImportResult(`Import complete: ${parts.join(', ')}`);
+      if (result.created > 0) parts.push(fmt(t.importExport.countCreated, result.created));
+      if (result.skipped > 0) parts.push(fmt(t.importExport.countSkipped, result.skipped));
+      if (result.overwritten > 0) parts.push(fmt(t.importExport.countOverwritten, result.overwritten));
+      if (result.merged > 0) parts.push(fmt(t.importExport.countMerged, result.merged));
+      if (result.collectionsCreated > 0) parts.push(fmt(t.importExport.countCollectionsCreated, result.collectionsCreated));
+      if (result.collectionsSkipped > 0) parts.push(fmt(t.importExport.countCollectionsSkipped, result.collectionsSkipped));
+      let msg = `${t.importExport.importComplete} ${parts.join(', ')}`;
+      setIsResultError(false);
 
       if (result.errors.length > 0) {
-        setImportResult(prev => `${prev}\nErrors: ${result.errors.join(', ')}`);
+        msg += `\n${t.importExport.errors} ${result.errors.join(', ')}`;
+        setIsResultError(true);
       }
+      setImportResult(msg);
 
       // Refresh data
       await Promise.all([fetchEndpoints(), fetchCollections()]);
     } catch (e: any) {
-      setImportResult(`Import failed: ${e.message}`);
+      setImportResult(`${t.importExport.importFailed} ${e.message}`);
+      setIsResultError(true);
     } finally {
       setLoading(false);
     }
@@ -94,7 +103,7 @@ export function ImportExportModal() {
     <ModalOverlay open={open} onClose={close}>
       <div className="w-[480px] rounded-lg border border-border-secondary bg-bg-surface p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-text-primary">Import / Export</h2>
+          <h2 className="text-base font-semibold text-text-primary">{t.importExport.title}</h2>
           <button onClick={close} className="text-text-muted hover:text-text-secondary text-lg">&times;</button>
         </div>
 
@@ -104,13 +113,13 @@ export function ImportExportModal() {
             onClick={() => { setTab('export'); setImportResult(null); }}
             className={`flex items-center gap-1.5 px-4 py-2 text-sm ${tab === 'export' ? 'border-b-2 border-accent-primary text-text-primary' : 'text-text-tertiary hover:text-text-secondary'}`}
           >
-            <Download size={14} /> Export
+            <Download size={14} /> {t.importExport.export}
           </button>
           <button
             onClick={() => { setTab('import'); setImportResult(null); }}
             className={`flex items-center gap-1.5 px-4 py-2 text-sm ${tab === 'import' ? 'border-b-2 border-accent-primary text-text-primary' : 'text-text-tertiary hover:text-text-secondary'}`}
           >
-            <Upload size={14} /> Import
+            <Upload size={14} /> {t.importExport.import}
           </button>
         </div>
 
@@ -124,7 +133,7 @@ export function ImportExportModal() {
                   onChange={() => setExportAll(true)}
                   className="accent-accent-primary"
                 />
-                Export all endpoints & collections
+                {t.importExport.exportAll}
               </label>
               <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer mt-2">
                 <input
@@ -133,14 +142,14 @@ export function ImportExportModal() {
                   onChange={() => setExportAll(false)}
                   className="accent-accent-primary"
                 />
-                Export selected collections
+                {t.importExport.exportSelected}
               </label>
             </div>
 
             {!exportAll && (
               <div className="mb-4 max-h-[200px] overflow-y-auto border border-border-secondary rounded p-2 space-y-1">
                 {collections.length === 0 && (
-                  <p className="text-xs text-text-muted p-2">No collections available.</p>
+                  <p className="text-xs text-text-muted p-2">{t.importExport.noCollections}</p>
                 )}
                 {collections.map(c => (
                   <label key={c.id} className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer px-2 py-1 rounded hover:bg-bg-hover">
@@ -151,7 +160,7 @@ export function ImportExportModal() {
                       className="accent-accent-primary"
                     />
                     {c.name}
-                    <span className="text-text-muted text-xs ml-auto">{c.endpointIds.length} endpoints</span>
+                    <span className="text-text-muted text-xs ml-auto">{fmt(t.importExport.countEndpoints, c.endpointIds.length)}</span>
                   </label>
                 ))}
               </div>
@@ -162,7 +171,7 @@ export function ImportExportModal() {
               disabled={loading || (!exportAll && selectedCollections.length === 0)}
               className="w-full rounded bg-accent-primary px-4 py-2 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Exporting...' : 'Download JSON'}
+              {loading ? t.importExport.exporting : t.importExport.downloadJson}
             </button>
           </div>
         )}
@@ -170,7 +179,7 @@ export function ImportExportModal() {
         {tab === 'import' && (
           <div>
             <div className="mb-4">
-              <label className="block text-sm text-text-tertiary mb-1.5">Select JSON file</label>
+              <label className="block text-sm text-text-tertiary mb-1.5">{t.importExport.selectJsonFile}</label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -181,12 +190,12 @@ export function ImportExportModal() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm text-text-tertiary mb-1.5">Duplicate handling</label>
+              <label className="block text-sm text-text-tertiary mb-1.5">{t.importExport.duplicateHandling}</label>
               <div className="space-y-1.5">
                 {([
-                  ['skip', 'Skip', 'Keep existing, ignore duplicates'],
-                  ['overwrite', 'Overwrite', 'Replace existing with imported data'],
-                  ['merge', 'Merge', 'Keep existing, add new response variants'],
+                  ['skip', t.importExport.skip, t.importExport.skipDesc],
+                  ['overwrite', t.importExport.overwrite, t.importExport.overwriteDesc],
+                  ['merge', t.importExport.merge, t.importExport.mergeDesc],
                 ] as const).map(([value, label, desc]) => (
                   <label key={value} className="flex items-start gap-2 text-sm text-text-secondary cursor-pointer">
                     <input
@@ -211,13 +220,13 @@ export function ImportExportModal() {
               disabled={loading || !importFile}
               className="w-full rounded bg-accent-primary px-4 py-2 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Importing...' : 'Import'}
+              {loading ? t.importExport.importing : t.importExport.import}
             </button>
           </div>
         )}
 
         {importResult && (
-          <div className={`mt-4 rounded border p-3 text-sm whitespace-pre-wrap ${importResult.includes('failed') || importResult.includes('Invalid') ? 'border-red-500/30 bg-red-500/10 text-red-400' : 'border-green-500/30 bg-green-500/10 text-green-400'}`}>
+          <div className={`mt-4 rounded border p-3 text-sm whitespace-pre-wrap ${isResultError ? 'border-red-500/30 bg-red-500/10 text-red-400' : 'border-green-500/30 bg-green-500/10 text-green-400'}`}>
             {importResult}
           </div>
         )}

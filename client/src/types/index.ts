@@ -80,6 +80,7 @@ export interface RequestRecord {
 }
 
 export type Theme = 'dark' | 'light';
+export type Language = 'en' | 'ko';
 
 export interface Settings {
   port: number;
@@ -87,6 +88,7 @@ export interface Settings {
   autoSaveEndpoints: boolean;
   historyToast: boolean;
   theme: Theme;
+  language: Language;
 }
 
 export interface ServerStatus {

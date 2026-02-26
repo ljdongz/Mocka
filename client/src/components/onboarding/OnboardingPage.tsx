@@ -1,70 +1,78 @@
 import { Braces, SlidersHorizontal, Layers, Reply, Route, ArrowUpDown, X, Sparkles, Info, Check } from 'lucide-react';
 import { useUIStore } from '../../stores/ui.store';
 import { ModalOverlay } from '../shared/ModalOverlay';
-
-const features = [
-  {
-    icon: Braces,
-    iconColor: 'text-accent-primary',
-    iconBg: 'bg-accent-primary/10',
-    title: 'Dynamic Templates',
-    description: 'Use {{$randomUUID}}, {{$timestamp}} and 30+ built-in variables to generate dynamic response data on every request.',
-    preview: TemplatePreview,
-  },
-  {
-    icon: SlidersHorizontal,
-    iconColor: 'text-method-patch',
-    iconBg: 'bg-method-patch/10',
-    title: 'Conditional Match Rules',
-    description: 'Define body and header conditions to automatically select the right response variant based on incoming request data.',
-    preview: MatchRulesPreview,
-  },
-  {
-    icon: Layers,
-    iconColor: 'text-method-get',
-    iconBg: 'bg-method-get/10',
-    title: 'Environment Variables',
-    description: 'Create multiple environments with key-value variables. Switch between dev, staging, and production configs instantly.',
-    preview: EnvironmentPreview,
-  },
-  {
-    icon: Reply,
-    iconColor: 'text-method-post',
-    iconBg: 'bg-method-post/10',
-    title: 'Request Context Helpers',
-    description: "Echo back request data with {{$body 'field'}}, {{$headers 'key'}}, {{$queryParams 'q'}} and {{$pathParams 'id'}} helpers.",
-    preview: RequestHelpersPreview,
-  },
-  {
-    icon: Route,
-    iconColor: 'text-method-put',
-    iconBg: 'bg-accent-primary/10',
-    title: 'Path Parameters',
-    description: 'Support :param and {param} syntax for dynamic URL segments. Automatically matched and extracted from incoming requests.',
-    preview: PathParamsPreview,
-  },
-  {
-    icon: ArrowUpDown,
-    iconColor: 'text-method-delete',
-    iconBg: 'bg-method-delete/10',
-    title: 'Import & Export',
-    description: 'Share mock configurations with your team. Export collections as JSON and import them into any Mocka instance seamlessly.',
-    preview: ImportExportPreview,
-  },
-];
+import { useTranslation } from '../../i18n';
 
 export function OnboardingPage() {
+  const t = useTranslation();
   const showOnboarding = useUIStore(s => s.showOnboarding);
   const setShowOnboarding = useUIStore(s => s.setShowOnboarding);
 
   const handleClose = () => setShowOnboarding(false);
+
+  const features = [
+    {
+      key: 'dynamicTemplates',
+      icon: Braces,
+      iconColor: 'text-accent-primary',
+      iconBg: 'bg-accent-primary/10',
+      title: t.onboarding.dynamicTemplates,
+      description: t.onboarding.dynamicTemplatesDesc,
+      preview: TemplatePreview,
+    },
+    {
+      key: 'conditionalMatchRules',
+      icon: SlidersHorizontal,
+      iconColor: 'text-method-patch',
+      iconBg: 'bg-method-patch/10',
+      title: t.onboarding.conditionalMatchRules,
+      description: t.onboarding.conditionalMatchRulesDesc,
+      preview: MatchRulesPreview,
+    },
+    {
+      key: 'environmentVariables',
+      icon: Layers,
+      iconColor: 'text-method-get',
+      iconBg: 'bg-method-get/10',
+      title: t.onboarding.environmentVariables,
+      description: t.onboarding.environmentVariablesDesc,
+      preview: EnvironmentPreview,
+    },
+    {
+      key: 'requestContextHelpers',
+      icon: Reply,
+      iconColor: 'text-method-post',
+      iconBg: 'bg-method-post/10',
+      title: t.onboarding.requestContextHelpers,
+      description: t.onboarding.requestContextHelpersDesc,
+      preview: RequestHelpersPreview,
+    },
+    {
+      key: 'pathParameters',
+      icon: Route,
+      iconColor: 'text-method-put',
+      iconBg: 'bg-accent-primary/10',
+      title: t.onboarding.pathParameters,
+      description: t.onboarding.pathParametersDesc,
+      preview: PathParamsPreview,
+    },
+    {
+      key: 'importExport',
+      icon: ArrowUpDown,
+      iconColor: 'text-method-delete',
+      iconBg: 'bg-method-delete/10',
+      title: t.onboarding.importExportTitle,
+      description: t.onboarding.importExportDesc,
+      preview: ImportExportPreview,
+    },
+  ];
 
   return (
     <ModalOverlay open={showOnboarding} onClose={handleClose}>
       <div className="flex max-h-[80vh] w-[1100px] flex-col rounded-2xl border border-border-secondary bg-bg-page shadow-xl">
         {/* Fixed top bar */}
         <div className="flex flex-shrink-0 items-center justify-between rounded-t-2xl border-b border-border-primary bg-bg-page px-6 py-3">
-          <span className="text-sm font-semibold text-text-primary">Feature Guide</span>
+          <span className="text-sm font-semibold text-text-primary">{t.onboarding.featureGuide}</span>
           <button
             onClick={handleClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-hover hover:text-text-primary"
@@ -79,14 +87,13 @@ export function OnboardingPage() {
           <div className="flex flex-col items-center gap-3 px-12 pt-8 pb-6">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-primary px-4 py-1.5 text-xs font-semibold text-white">
               <Sparkles size={14} />
-              Welcome to Mocka
+              {t.onboarding.welcomeTo}
             </span>
             <h1 className="text-2xl font-bold text-text-primary">
-              Build Mock APIs in Seconds
+              {t.onboarding.buildMockApis}
             </h1>
             <p className="max-w-xl text-center text-sm leading-relaxed text-text-tertiary">
-              Mocka helps you create, manage, and serve mock API endpoints with dynamic responses,
-              conditional logic, and environment variables — all from a beautiful interface.
+              {t.onboarding.welcomeDescription}
             </p>
           </div>
 
@@ -94,17 +101,19 @@ export function OnboardingPage() {
           <div className="grid grid-cols-3 gap-4 px-12 pb-10">
             {features.map((f) => (
               <div
-                key={f.title}
-                className="flex flex-col gap-3 rounded-xl border border-border-secondary bg-bg-surface p-5"
+                key={f.key}
+                className="flex flex-col rounded-xl border border-border-secondary bg-bg-surface p-5"
               >
                 {/* Preview */}
-                <div className="overflow-hidden rounded-lg border border-border-primary bg-bg-page">
-                  <f.preview />
+                <div className="mb-3 flex h-[140px] items-center overflow-hidden rounded-lg border border-border-primary bg-bg-page">
+                  <div className="w-full">
+                    <f.preview />
+                  </div>
                 </div>
 
                 {/* Icon + Title */}
-                <div className="flex items-center gap-2.5">
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${f.iconBg}`}>
+                <div className="mb-3 flex items-center gap-2.5">
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${f.iconBg}`}>
                     <f.icon size={16} className={f.iconColor} />
                   </div>
                   <span className="text-sm font-semibold text-text-primary">{f.title}</span>
@@ -156,13 +165,14 @@ function TemplatePreview() {
 }
 
 function MatchRulesPreview() {
+  const t = useTranslation();
   return (
     <div className="flex flex-col gap-1.5 p-3">
       <div className="flex items-center justify-between">
-        <span className="text-[9px] font-semibold tracking-wider text-text-tertiary">MATCH CONDITIONS</span>
+        <span className="text-[9px] font-semibold tracking-wider text-text-tertiary uppercase">{t.onboarding.previewMatchConditions}</span>
         <span className="rounded-full bg-method-patch/10 px-2 py-0.5 text-[9px] font-bold text-method-patch">AND</span>
       </div>
-      <span className="text-[8px] font-semibold tracking-wider text-text-muted">BODY RULES</span>
+      <span className="text-[8px] font-semibold tracking-wider text-text-muted uppercase">{t.onboarding.previewBodyRules}</span>
       {[
         { field: 'user.role', op: 'equals', value: 'admin' },
         { field: 'status', op: 'contains', value: 'active' },
@@ -178,6 +188,7 @@ function MatchRulesPreview() {
 }
 
 function EnvironmentPreview() {
+  const t = useTranslation();
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-3 py-2">
@@ -186,13 +197,13 @@ function EnvironmentPreview() {
           <span className="text-[10px] font-semibold text-text-primary">Production</span>
         </div>
         <span className="flex items-center gap-1 rounded-full bg-server-running/10 px-2 py-0.5 text-[8px] font-semibold text-server-running">
-          <Check size={8} /> Active
+          <Check size={8} /> {t.onboarding.previewActive}
         </span>
       </div>
       <div className="border-t border-border-secondary">
         <div className="flex bg-bg-surface text-[8px] font-semibold tracking-wider text-text-muted">
-          <span className="flex-1 border-r border-border-secondary px-3 py-1">KEY</span>
-          <span className="flex-1 px-3 py-1">VALUE</span>
+          <span className="flex-1 border-r border-border-secondary px-3 py-1">{t.onboarding.previewKey}</span>
+          <span className="flex-1 px-3 py-1">{t.onboarding.previewValue}</span>
         </div>
         {[
           ['baseUrl', 'https://api.prod.io'],
@@ -210,9 +221,10 @@ function EnvironmentPreview() {
 }
 
 function RequestHelpersPreview() {
+  const t = useTranslation();
   return (
     <div className="flex flex-col gap-1 p-3">
-      <span className="text-[8px] font-semibold tracking-wider text-text-muted">RESPONSE BODY</span>
+      <span className="text-[8px] font-semibold tracking-wider text-text-muted uppercase">{t.onboarding.previewResponseBody}</span>
       <CodeLine pairs={[
         ['"echo"', 'text-code-key'], [':', 'text-text-muted'], ['"{{$body \'user.name\'}}"', 'text-code-string'],
       ]} />
@@ -230,32 +242,33 @@ function RequestHelpersPreview() {
 }
 
 function PathParamsPreview() {
+  const t = useTranslation();
   return (
     <div className="flex flex-col gap-2 p-3">
-      <span className="text-[8px] font-semibold tracking-wider text-text-muted">ENDPOINT PATH</span>
+      <span className="text-[8px] font-semibold tracking-wider text-text-muted uppercase">{t.onboarding.previewEndpointPath}</span>
       <div className="flex items-center rounded border border-border-secondary bg-bg-input px-2.5 py-1.5">
         <span className="font-mono text-[10px] text-text-secondary">/api/users/</span>
         <span className="rounded bg-accent-primary/10 px-1 font-mono text-[10px] font-semibold text-accent-primary">:id</span>
         <span className="font-mono text-[10px] text-text-secondary">/posts</span>
       </div>
       <div className="flex items-center rounded border border-border-secondary bg-bg-input px-2.5 py-1.5">
-        <span className="font-mono text-[10px] text-text-secondary">/api/teams/</span>
-        <span className="rounded bg-accent-primary/10 px-1 font-mono text-[10px] font-semibold text-accent-primary">{'{teamId}'}</span>
-        <span className="font-mono text-[10px] text-text-secondary">/members/</span>
-        <span className="rounded bg-accent-primary/10 px-1 font-mono text-[10px] font-semibold text-accent-primary">{'{memberId}'}</span>
+        <span className="font-mono text-[10px] text-text-secondary">/api/orders/</span>
+        <span className="rounded bg-accent-primary/10 px-1 font-mono text-[10px] font-semibold text-accent-primary">{'{orderId}'}</span>
+        <span className="font-mono text-[10px] text-text-secondary">/items</span>
       </div>
       <div className="flex items-center gap-1">
         <Info size={10} className="text-text-muted" />
-        <span className="text-[9px] text-text-muted">Both :param and {'{param}'} syntax supported</span>
+        <span className="text-[9px] text-text-muted">{t.onboarding.previewBothSyntax}</span>
       </div>
     </div>
   );
 }
 
 function ImportExportPreview() {
+  const t = useTranslation();
   return (
     <div className="flex flex-col gap-1.5 p-3">
-      <span className="text-[8px] font-semibold tracking-wider text-text-muted">EXPORT PREVIEW</span>
+      <span className="text-[8px] font-semibold tracking-wider text-text-muted uppercase">{t.onboarding.previewExportPreview}</span>
       <div className="flex flex-col gap-0.5">
         <span className="font-mono text-[9px] text-text-muted">{'{'}</span>
         <CodeLine pairs={[[' "version"', 'text-code-key'], [':', 'text-text-muted'], ['"1.0"', 'text-code-string']]} />
@@ -264,10 +277,10 @@ function ImportExportPreview() {
       </div>
       <div className="flex justify-end gap-1.5 pt-0.5">
         <span className="flex items-center gap-1 rounded border border-border-secondary bg-bg-input px-2.5 py-1 text-[9px] font-medium text-text-secondary">
-          Import
+          {t.onboarding.previewImport}
         </span>
         <span className="flex items-center gap-1 rounded bg-accent-primary px-2.5 py-1 text-[9px] font-medium text-white">
-          Export
+          {t.onboarding.previewExport}
         </span>
       </div>
     </div>
