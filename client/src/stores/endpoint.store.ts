@@ -14,7 +14,7 @@ interface EndpointStore {
   deleteEndpoint: (id: string) => Promise<void>;
   toggleEnabled: (id: string) => Promise<void>;
   setActiveVariant: (id: string, variantId: string | null) => Promise<void>;
-  addVariant: (endpointId: string) => Promise<void>;
+  addVariant: (endpointId: string) => Promise<Endpoint>;
   updateVariant: (variantId: string, data: Partial<ResponseVariant>) => Promise<void>;
   deleteVariant: (variantId: string) => Promise<void>;
   replaceEndpoint: (ep: Endpoint) => void;
@@ -76,6 +76,7 @@ export const useEndpointStore = create<EndpointStore>((set, get) => ({
   addVariant: async (endpointId) => {
     const ep = await endpointsApi.addVariant(endpointId);
     set(s => ({ endpoints: s.endpoints.map(e => e.id === endpointId ? ep : e) }));
+    return ep;
   },
 
   updateVariant: async (variantId, data) => {

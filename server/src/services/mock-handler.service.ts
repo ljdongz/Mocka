@@ -88,10 +88,10 @@ export async function handleMockRequest(
     };
   }
 
-  // Apply delay: x-mock-response-delay header overrides variant delay
-  const delay = mockResponseDelay ? parseInt(mockResponseDelay, 10) : (variant.delay ?? 0);
-  if (delay > 0) {
-    await new Promise(resolve => setTimeout(resolve, delay));
+  // Apply delay: x-mock-response-delay header overrides variant delay (values in seconds)
+  const delaySec = mockResponseDelay ? parseFloat(mockResponseDelay) : (variant.delay ?? 0);
+  if (delaySec > 0) {
+    await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
   }
 
   // Parse response headers

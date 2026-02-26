@@ -60,7 +60,11 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
             Define the mock responses. Set the active response variant to control what the endpoint returns.
           </p>
         </div>
-        <button onClick={() => addVariant(endpoint.id)} className="text-sm text-accent-primary hover:underline">
+        <button onClick={async () => {
+          const ep = await addVariant(endpoint.id);
+          const newVariant = ep.responseVariants?.[ep.responseVariants.length - 1];
+          if (newVariant) setEditingVariantId(newVariant.id);
+        }} className="text-sm text-accent-primary hover:underline">
           + Add Response
         </button>
       </div>
@@ -224,7 +228,7 @@ function VariantEditor({
           />
         </div>
         <div>
-          <label className="block text-xs text-text-tertiary mb-1">Delay (ms)</label>
+          <label className="block text-xs text-text-tertiary mb-1">Delay (s)</label>
           <input
             type="number"
             value={delay}

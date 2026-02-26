@@ -6,10 +6,8 @@ import { useCollectionStore } from '../../stores/collection.store';
 import { useUIStore } from '../../stores/ui.store';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
-import type { Endpoint, HttpMethod } from '../../types';
+import type { Endpoint } from '../../types';
 import { buildFullUrl } from '../../utils/url';
-
-const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
 export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
   const selectedId = useEndpointStore(s => s.selectedId);
@@ -24,13 +22,10 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const moveRef = useRef<HTMLDivElement>(null);
 
-  // Inline editing state
+  // Inline alias editing state
   const [isEditing, setIsEditing] = useState(false);
-  const [editMethod, setEditMethod] = useState<HttpMethod>(endpoint.method);
-  const [editPath, setEditPath] = useState(endpoint.path);
-  const [showMethodMenu, setShowMethodMenu] = useState(false);
-  const methodMenuRef = useRef<HTMLDivElement>(null);
-  const pathInputRef = useRef<HTMLInputElement>(null);
+  const [editName, setEditName] = useState(endpoint.name ?? '');
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const activeVariant = endpoint.responseVariants?.find(v => v.id === endpoint.activeVariantId)
     ?? endpoint.responseVariants?.[0];
@@ -50,27 +45,23 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
 
   const startEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setEditMethod(endpoint.method);
-    setEditPath(endpoint.path);
+    setEditName(endpoint.name ?? '');
     setIsEditing(true);
-    setTimeout(() => pathInputRef.current?.focus(), 0);
+    setTimeout(() => nameInputRef.current?.focus(), 0);
   };
 
   const saveEdit = async () => {
-    const trimmed = editPath.trim();
-    if (!trimmed) { cancelEdit(); return; }
-    if (editMethod !== endpoint.method || trimmed !== endpoint.path) {
+    const trimmed = editName.trim();
+    if (trimmed !== (endpoint.name ?? '')) {
       try {
-        await updateEndpoint(endpoint.id, { method: editMethod, path: trimmed });
+        await updateEndpoint(endpoint.id, { name: trimmed });
       } catch { /* ignore */ }
     }
     setIsEditing(false);
-    setShowMethodMenu(false);
   };
 
   const cancelEdit = () => {
     setIsEditing(false);
-    setShowMethodMenu(false);
   };
 
   useEffect(() => {
@@ -84,56 +75,24 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showMoveMenu]);
 
-  useEffect(() => {
-    if (!showMethodMenu) return;
-    const handleClick = (e: MouseEvent) => {
-      if (methodMenuRef.current && !methodMenuRef.current.contains(e.target as Node)) {
-        setShowMethodMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [showMethodMenu]);
-
   if (isEditing) {
     return (
       <div
         onClick={e => e.stopPropagation()}
         className="relative flex w-full items-center gap-1.5 rounded px-2 py-1.5 bg-bg-hover"
       >
-        <div ref={methodMenuRef} className="relative">
-          <div
-            onClick={() => setShowMethodMenu(!showMethodMenu)}
-            className="cursor-pointer"
-          >
-            <HttpMethodBadge method={editMethod} />
-          </div>
-          {showMethodMenu && (
-            <div className="absolute left-0 top-full mt-1 z-50 rounded border border-border-secondary bg-bg-surface py-1 shadow-lg">
-              {METHODS.map(m => (
-                <div
-                  key={m}
-                  onClick={() => { setEditMethod(m); setShowMethodMenu(false); }}
-                  className={clsx(
-                    'px-3 py-1 text-xs font-mono font-bold cursor-pointer hover:bg-bg-hover whitespace-nowrap',
-                    m === editMethod ? 'text-accent-primary' : 'text-text-secondary',
-                  )}
-                >
-                  {m}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <HttpMethodBadge method={endpoint.method} />
         <input
-          ref={pathInputRef}
-          value={editPath}
-          onChange={e => setEditPath(e.target.value)}
+          ref={nameInputRef}
+          value={editName}
+          onChange={e => setEditName(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter') saveEdit();
             if (e.key === 'Escape') cancelEdit();
           }}
-          className="flex-1 min-w-0 rounded border border-border-secondary bg-bg-input px-1.5 py-0.5 text-xs text-text-primary font-mono outline-none focus:border-accent-primary"
+          onBlur={saveEdit}
+          placeholder={endpoint.path}
+          className="flex-1 min-w-0 rounded border border-border-secondary bg-bg-input px-1.5 py-0.5 text-xs text-text-primary outline-none focus:border-accent-primary"
         />
         <span
           onClick={saveEdit}
@@ -175,7 +134,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
           'items-center justify-center text-text-muted hover:text-accent-primary cursor-pointer',
           showMoveMenu ? 'flex' : 'hidden group-hover:flex',
         )}
-        title="Edit Endpoint"
+        title="Edit Alias"
       >
         <Pencil size={13} strokeWidth={2.5} />
       </span>
