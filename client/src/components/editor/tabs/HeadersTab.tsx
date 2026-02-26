@@ -16,6 +16,9 @@ export function HeadersTab({ endpoint }: { endpoint: Endpoint }) {
     <div>
       <div className="mb-4">
         <h3 className="text-base font-semibold text-text-primary">{t.headers.title}</h3>
+        <p className="text-xs text-text-tertiary mt-0.5">
+          {t.headers.description}
+        </p>
       </div>
       <KeyValueTable
         rows={endpoint.requestHeaders ?? []}

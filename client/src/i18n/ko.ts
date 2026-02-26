@@ -169,7 +169,7 @@ const ko: Translations = {
 
   body: {
     title: 'Request Body',
-    description: '예상되는 Request Body를 정의하세요. 이 설명은 문서화 용도이며 \u2014 이 Endpoint가 수신하는 Request를 제한하지 않습니다.',
+    description: '예상되는 Request Body를 정의하세요. 문서화 용도로, 이 Endpoint가 수신하는 Request를 제한하지 않습니다.',
     beautifyJson: 'JSON Beautify',
     contentType: 'Content-Type',
     key: 'Key',
@@ -182,6 +182,7 @@ const ko: Translations = {
 
   headers: {
     title: 'Request Headers',
+    description: '예상되는 Request Header를 정의하세요. 문서화 용도로, Mock Server는 어떤 Header가 전송되든 응답합니다.',
     header: 'Header',
     value: 'Value',
     addHeader: '+ Header 추가',

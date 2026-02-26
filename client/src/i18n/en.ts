@@ -180,6 +180,7 @@ const en = {
 
   headers: {
     title: 'Request Headers',
+    description: "Define the expected request headers. This is for documentation only — the mock server will respond regardless of the headers sent.",
     header: 'Header',
     value: 'Value',
     addHeader: '+ Add Header',
