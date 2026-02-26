@@ -29,11 +29,6 @@ export function IconRail() {
     <div className="flex h-full w-12 flex-col items-center justify-between border-r border-border-primary bg-bg-sidebar py-3">
       {/* Top section - nav icons */}
       <div className="flex flex-col items-center gap-1">
-        {/* Logo */}
-        <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-accent-primary">
-          <span className="text-sm font-bold text-white">M</span>
-        </div>
-
         {/* Panel toggle icons */}
         {railItems.map(({ id, icon: Icon, label }) => (
           <button

@@ -14,6 +14,7 @@ export function getAll(): Settings {
     responseDelay: parseInt(raw.responseDelay, 10) || 0,
     autoSaveEndpoints: raw.autoSaveEndpoints !== 'false',
     historyToast: raw.historyToast !== 'false',
+    theme: (raw.theme === 'light' ? 'light' : 'dark') as 'dark' | 'light',
   };
 }
 
@@ -30,6 +31,7 @@ export function setAll(settings: Partial<Settings>): Settings {
     if (settings.responseDelay !== undefined) update.run('response_delay', String(settings.responseDelay));
     if (settings.autoSaveEndpoints !== undefined) update.run('auto_save_endpoints', String(settings.autoSaveEndpoints));
     if (settings.historyToast !== undefined) update.run('history_toast', String(settings.historyToast));
+    if (settings.theme !== undefined) update.run('theme', settings.theme);
   });
   txn();
   return getAll();

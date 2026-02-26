@@ -14,9 +14,16 @@ export function Sidebar() {
   return (
     <div className="flex h-full flex-col bg-bg-sidebar">
       {/* Header */}
-      <div className="flex flex-col gap-1 px-3 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-text-primary">{panelTitle}</span>
+      <div className="flex flex-col px-3 pt-3 pb-2">
+        <span className="text-sm font-bold text-text-primary tracking-tight">Mocka</span>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className={`h-1.5 w-1.5 rounded-full ${serverStatus.running ? 'bg-server-running' : 'bg-server-stopped'}`} />
+          <span className="text-[11px] text-text-tertiary font-mono">
+            {serverStatus.localIp}:{serverStatus.port}
+          </span>
+        </div>
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{panelTitle}</span>
           {!showHistory && (
             <button
               onClick={() => setShowNewCollection(true)}
@@ -26,12 +33,6 @@ export function Sidebar() {
               <FolderPlus size={14} strokeWidth={2} />
             </button>
           )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className={`h-1.5 w-1.5 rounded-full ${serverStatus.running ? 'bg-server-running' : 'bg-server-stopped'}`} />
-          <span className="text-[10px] text-text-tertiary font-mono">
-            {serverStatus.localIp}:{serverStatus.port}
-          </span>
         </div>
       </div>
 

@@ -4,8 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mocka</title>
+    <script>
+      (function() {
+        var t = localStorage.getItem('mocka-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
     <style>
       body { margin: 0; background: #0C0C0C; }
+      html[data-theme="light"] body { background: #FAFBFC; }
     </style>
   </head>
   <body>

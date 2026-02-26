@@ -1,5 +1,6 @@
 import Editor, { type Monaco } from '@monaco-editor/react';
 import { useRef } from 'react';
+import { useSettingsStore } from '../../stores/settings.store';
 
 const TEMPLATE_VARIABLES = [
   { name: '$randomUUID', description: 'Random UUID v4' },
@@ -102,6 +103,7 @@ interface Props {
 }
 
 export function CodeEditor({ value, onChange, language = 'json', readOnly = false, height = '300px' }: Props) {
+  const theme = useSettingsStore(s => s.settings.theme);
   const monacoRef = useRef<Monaco | null>(null);
 
   const handleBeforeMount = (monaco: Monaco) => {
@@ -113,7 +115,7 @@ export function CodeEditor({ value, onChange, language = 'json', readOnly = fals
     <Editor
       height={height}
       language={language}
-      theme="vs-dark"
+      theme={theme === 'light' ? 'light' : 'vs-dark'}
       value={value}
       onChange={(val) => onChange?.(val ?? '')}
       beforeMount={handleBeforeMount}
