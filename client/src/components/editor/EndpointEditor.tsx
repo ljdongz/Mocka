@@ -36,11 +36,16 @@ export function EndpointEditor() {
 
   const [editingPath, setEditingPath] = useState(false);
   const [pathValue, setPathValue] = useState('');
+  const [nameValue, setNameValue] = useState('');
   const [showMethodDropdown, setShowMethodDropdown] = useState(false);
   const [error, setError] = useState('');
   const methodDropdownRef = useRef<HTMLDivElement>(null);
 
   const endpoint = endpoints.find(e => e.id === selectedId);
+
+  useEffect(() => {
+    setNameValue(endpoint?.name ?? '');
+  }, [endpoint?.id, endpoint?.name]);
 
   useEffect(() => {
     if (!showMethodDropdown) return;
@@ -205,8 +210,20 @@ export function EndpointEditor() {
         )}
         {error && <span className="text-xs text-method-delete">{error}</span>}
       </div>
-      <div className="px-6 py-1.5 border-b border-border-primary">
-        <span className="text-xs text-text-muted font-mono">
+      <div className="flex items-center gap-3 px-6 py-1.5 border-b border-border-primary">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[10px] text-text-muted uppercase tracking-wider">Alias</span>
+          <input
+            type="text"
+            value={nameValue}
+            onChange={e => setNameValue(e.target.value)}
+            onBlur={() => { if (nameValue !== endpoint.name) updateEndpoint(endpoint.id, { name: nameValue }); }}
+            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+            placeholder="Enter alias..."
+            className="w-40 rounded border border-border-secondary bg-bg-input px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-primary placeholder:text-text-muted/50"
+          />
+        </div>
+        <span className="text-xs text-text-muted font-mono truncate">
           {`http://${serverStatus.localIp}:${serverStatus.port}${buildFullUrl(endpoint.path, endpoint.queryParams)}`}
         </span>
       </div>

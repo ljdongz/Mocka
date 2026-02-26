@@ -4,6 +4,7 @@ export interface Endpoint {
   id: string;
   method: HttpMethod;
   path: string;
+  name: string;
   activeVariantId: string | null;
   isEnabled: boolean;
   requestBodyContentType: string;
@@ -78,11 +79,14 @@ export interface RequestRecord {
   timestamp: string;
 }
 
+export type Theme = 'dark' | 'light';
+
 export interface Settings {
   port: number;
   responseDelay: number;
   autoSaveEndpoints: boolean;
   historyToast: boolean;
+  theme: Theme;
 }
 
 export interface ServerStatus {

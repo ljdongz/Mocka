@@ -15,7 +15,7 @@ export function getById(id: string): Endpoint | null {
   return endpointRepo.findById(id);
 }
 
-export function create(data: { method: HttpMethod; path: string; collectionId?: string }): Endpoint {
+export function create(data: { method: HttpMethod; path: string; name?: string; collectionId?: string }): Endpoint {
   const id = uuid();
   const variantId = uuid();
 
@@ -23,6 +23,7 @@ export function create(data: { method: HttpMethod; path: string; collectionId?: 
     id,
     method: data.method,
     path: data.path,
+    name: data.name ?? '',
     activeVariantId: variantId,
     isEnabled: true,
     requestBodyContentType: 'application/json',

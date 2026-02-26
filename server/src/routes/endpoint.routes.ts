@@ -14,11 +14,12 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post('/api/endpoints', async (req, reply) => {
-    const body = req.body as { method: string; path: string; collectionId?: string };
+    const body = req.body as { method: string; path: string; name?: string; collectionId?: string };
     try {
       const ep = endpointService.create({
         method: body.method as any,
         path: body.path,
+        name: body.name,
         collectionId: body.collectionId,
       });
       reply.code(201);

@@ -163,8 +163,8 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
       )}
     >
       <HttpMethodBadge method={endpoint.method} />
-      <span className="flex-1 truncate text-sm text-text-secondary font-mono">
-        {buildFullUrl(endpoint.path, endpoint.queryParams)}
+      <span className={clsx('flex-1 truncate text-sm text-text-secondary', !endpoint.name && 'font-mono')}>
+        {endpoint.name || buildFullUrl(endpoint.path, endpoint.queryParams)}
       </span>
       {activeVariant && (
         <StatusCodeBadge code={activeVariant.statusCode} className={clsx(showMoveMenu ? 'hidden' : 'group-hover:hidden')} />

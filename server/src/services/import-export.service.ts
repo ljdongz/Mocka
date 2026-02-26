@@ -18,6 +18,7 @@ export interface ExportData {
 interface ExportEndpoint {
   method: string;
   path: string;
+  name: string;
   isEnabled: boolean;
   requestBodyContentType: string;
   requestBodyRaw: string;
@@ -86,6 +87,7 @@ export function exportData(collectionIds?: string[]): ExportData {
     return {
       method: ep.method,
       path: ep.path,
+      name: ep.name,
       isEnabled: ep.isEnabled,
       requestBodyContentType: ep.requestBodyContentType,
       requestBodyRaw: ep.requestBodyRaw,
@@ -277,6 +279,7 @@ function createEndpointFromImport(importEp: ExportEndpoint): string {
     id: endpointId,
     method: importEp.method as any,
     path: importEp.path,
+    name: importEp.name ?? '',
     activeVariantId,
     isEnabled: importEp.isEnabled,
     requestBodyContentType: importEp.requestBodyContentType || 'application/json',

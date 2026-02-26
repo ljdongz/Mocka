@@ -7,6 +7,7 @@ function rowToEndpoint(row: any): Endpoint {
     id: row.id,
     method: row.method,
     path: row.path,
+    name: row.name ?? '',
     activeVariantId: row.active_variant_id,
     isEnabled: !!row.is_enabled,
     requestBodyContentType: row.request_body_content_type,
@@ -64,9 +65,9 @@ export function findById(id: string): Endpoint | null {
 export function create(ep: Endpoint): Endpoint {
   const db = getDb();
   db.prepare(`
-    INSERT INTO endpoints (id, method, path, active_variant_id, is_enabled, request_body_content_type, request_body_raw)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(ep.id, ep.method, ep.path, ep.activeVariantId, ep.isEnabled ? 1 : 0, ep.requestBodyContentType, ep.requestBodyRaw);
+    INSERT INTO endpoints (id, method, path, name, active_variant_id, is_enabled, request_body_content_type, request_body_raw)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(ep.id, ep.method, ep.path, ep.name ?? '', ep.activeVariantId, ep.isEnabled ? 1 : 0, ep.requestBodyContentType, ep.requestBodyRaw);
   return findById(ep.id)!;
 }
 
@@ -77,16 +78,17 @@ export function update(id: string, data: Partial<Endpoint>): Endpoint | null {
 
   const method = data.method ?? existing.method;
   const path = data.path ?? existing.path;
+  const name = data.name !== undefined ? data.name : existing.name;
   const activeVariantId = data.activeVariantId !== undefined ? data.activeVariantId : existing.activeVariantId;
   const isEnabled = data.isEnabled !== undefined ? data.isEnabled : existing.isEnabled;
   const contentType = data.requestBodyContentType ?? existing.requestBodyContentType;
   const bodyRaw = data.requestBodyRaw ?? existing.requestBodyRaw;
 
   db.prepare(`
-    UPDATE endpoints SET method=?, path=?, active_variant_id=?, is_enabled=?,
+    UPDATE endpoints SET method=?, path=?, name=?, active_variant_id=?, is_enabled=?,
     request_body_content_type=?, request_body_raw=?, updated_at=datetime('now')
     WHERE id=?
-  `).run(method, path, activeVariantId, isEnabled ? 1 : 0, contentType, bodyRaw, id);
+  `).run(method, path, name, activeVariantId, isEnabled ? 1 : 0, contentType, bodyRaw, id);
 
   // Sync query params
   if (data.queryParams) {

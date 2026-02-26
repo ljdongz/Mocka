@@ -4,7 +4,7 @@ import type { Endpoint, HttpMethod, ResponseVariant } from '../types';
 export const endpointsApi = {
   getAll: () => api.get<Endpoint[]>('/api/endpoints'),
   getById: (id: string) => api.get<Endpoint>(`/api/endpoints/${id}`),
-  create: (data: { method: HttpMethod; path: string; collectionId?: string }) => api.post<Endpoint>('/api/endpoints', data),
+  create: (data: { method: HttpMethod; path: string; name?: string; collectionId?: string }) => api.post<Endpoint>('/api/endpoints', data),
   update: (id: string, data: Partial<Endpoint>) => api.put<Endpoint>(`/api/endpoints/${id}`, data),
   delete: (id: string) => api.delete(`/api/endpoints/${id}`),
   toggle: (id: string) => api.patch<Endpoint>(`/api/endpoints/${id}/toggle`),

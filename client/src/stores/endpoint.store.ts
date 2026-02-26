@@ -9,7 +9,7 @@ interface EndpointStore {
   selected: () => Endpoint | undefined;
   fetch: () => Promise<void>;
   select: (id: string | null) => void;
-  createEndpoint: (method: HttpMethod, path: string, collectionId?: string) => Promise<Endpoint>;
+  createEndpoint: (method: HttpMethod, path: string, name?: string, collectionId?: string) => Promise<Endpoint>;
   updateEndpoint: (id: string, data: Partial<Endpoint>) => Promise<void>;
   deleteEndpoint: (id: string) => Promise<void>;
   toggleEnabled: (id: string) => Promise<void>;
@@ -36,8 +36,8 @@ export const useEndpointStore = create<EndpointStore>((set, get) => ({
 
   select: (id) => set({ selectedId: id }),
 
-  createEndpoint: async (method, path, collectionId) => {
-    const ep = await endpointsApi.create({ method, path, collectionId });
+  createEndpoint: async (method, path, name, collectionId) => {
+    const ep = await endpointsApi.create({ method, path, name: name || undefined, collectionId });
     set(s => {
       const exists = s.endpoints.some(e => e.id === ep.id);
       return {

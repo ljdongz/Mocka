@@ -5,6 +5,7 @@ export interface Endpoint {
   id: string;
   method: HttpMethod;
   path: string;
+  name: string;
   activeVariantId: string | null;
   isEnabled: boolean;
   requestBodyContentType: string;

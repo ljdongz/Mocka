@@ -40,6 +40,7 @@ export function NewEndpointModal() {
 
   const [method, setMethod] = useState<HttpMethod>('GET');
   const [path, setPath] = useState('');
+  const [name, setName] = useState('');
   const [collectionId, setCollectionId] = useState('');
   const [error, setError] = useState('');
   const [initialized, setInitialized] = useState(false);
@@ -57,11 +58,12 @@ export function NewEndpointModal() {
     const pathError = validatePath(path);
     if (pathError) { setError(pathError); return; }
     try {
-      await createEndpoint(method, path.trim(), collectionId || undefined);
+      await createEndpoint(method, path.trim(), name.trim() || undefined, collectionId || undefined);
       if (collectionId) {
         await fetchCollections();
       }
       setPath('');
+      setName('');
       setMethod('GET');
       setCollectionId('');
       setError('');
@@ -97,6 +99,17 @@ export function NewEndpointModal() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm text-text-tertiary mb-2">Alias (optional)</label>
+          <input
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            className="w-full rounded border border-border-secondary bg-bg-input px-3 py-2 text-sm text-text-primary outline-none focus:border-accent-primary"
+            placeholder="e.g. Get Users, Login"
+          />
         </div>
 
         <div className="mb-4">

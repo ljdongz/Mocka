@@ -8,6 +8,7 @@ export function initSchema(): void {
       id TEXT PRIMARY KEY,
       method TEXT NOT NULL CHECK(method IN ('GET','POST','PUT','DELETE','PATCH')),
       path TEXT NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
       active_variant_id TEXT,
       is_enabled INTEGER NOT NULL DEFAULT 1,
       request_body_content_type TEXT DEFAULT 'application/json',
@@ -92,11 +93,18 @@ export function initSchema(): void {
     INSERT OR IGNORE INTO settings VALUES ('response_delay', '0');
     INSERT OR IGNORE INTO settings VALUES ('auto_save_endpoints', 'true');
     INSERT OR IGNORE INTO settings VALUES ('history_toast', 'true');
+    INSERT OR IGNORE INTO settings VALUES ('theme', 'dark');
   `);
 
   // Migration: add match_rules column if missing (for existing databases)
-  const cols = db.prepare("PRAGMA table_info(response_variants)").all() as { name: string }[];
-  if (!cols.some(c => c.name === 'match_rules')) {
+  const variantCols = db.prepare("PRAGMA table_info(response_variants)").all() as { name: string }[];
+  if (!variantCols.some(c => c.name === 'match_rules')) {
     db.exec("ALTER TABLE response_variants ADD COLUMN match_rules TEXT");
+  }
+
+  // Migration: add name column if missing (for existing databases)
+  const endpointCols = db.prepare("PRAGMA table_info(endpoints)").all() as { name: string }[];
+  if (!endpointCols.some(c => c.name === 'name')) {
+    db.exec("ALTER TABLE endpoints ADD COLUMN name TEXT NOT NULL DEFAULT ''");
   }
 }
