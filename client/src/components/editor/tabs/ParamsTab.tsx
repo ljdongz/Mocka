@@ -1,8 +1,10 @@
 import { useCallback } from 'react';
+import { Plus } from 'lucide-react';
 import { useEndpointStore } from '../../../stores/endpoint.store';
 import { KeyValueTable } from '../../shared/KeyValueTable';
 import { useTranslation } from '../../../i18n';
 import { extractPathParams } from '../../../utils/path-params';
+import { createKeyValueRow } from '../../../utils/entity-factory';
 import type { Endpoint } from '../../../types';
 
 export function ParamsTab({ endpoint }: { endpoint: Endpoint }) {
@@ -45,7 +47,15 @@ export function ParamsTab({ endpoint }: { endpoint: Endpoint }) {
 
       {/* Query Parameters */}
       <div className="mb-4">
-        <h3 className="text-base font-semibold text-text-primary">{t.params.queryParameters}</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold text-text-primary">{t.params.queryParameters}</h3>
+          <button
+            onClick={() => handleChange([...(endpoint.queryParams ?? []), createKeyValueRow((endpoint.queryParams ?? []).length)])}
+            className="text-xs text-accent-primary hover:underline flex items-center gap-0.5"
+          >
+            <Plus size={12} /> {t.params.addParam}
+          </button>
+        </div>
         <p className="text-xs text-text-tertiary mt-0.5">
           {t.params.queryParamsDesc}
         </p>
@@ -55,7 +65,6 @@ export function ParamsTab({ endpoint }: { endpoint: Endpoint }) {
         onChange={handleChange}
         keyLabel={t.params.parameter}
         valueLabel={t.params.example}
-        addLabel={t.params.addParam}
       />
     </div>
   );

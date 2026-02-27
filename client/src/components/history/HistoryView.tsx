@@ -12,6 +12,16 @@ import clsx from 'clsx';
 
 const METHODS = ['', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
+function formatHistoryTime(timestamp: string): string {
+  const d = new Date(timestamp);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${mm}.${dd} ${hh}:${min}:${ss}`;
+}
+
 export function HistoryView() {
   const t = useTranslation();
   const records = useHistoryStore(s => s.records);
@@ -93,7 +103,7 @@ export function HistoryView() {
                   )}
                 >
                   <td className="px-4 py-2 text-text-muted font-mono">
-                    {new Date(r.timestamp).toLocaleTimeString(t.locale, { hour12: false })}
+                    {formatHistoryTime(r.timestamp)}
                   </td>
                   <td className="px-4 py-2">
                     <HttpMethodBadge method={r.method as HttpMethod} />

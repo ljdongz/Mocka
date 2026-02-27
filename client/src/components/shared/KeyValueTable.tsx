@@ -15,7 +15,6 @@ interface Props {
   onChange: (rows: Row[]) => void;
   keyLabel?: string;
   valueLabel?: string;
-  addLabel?: string;
 }
 
 function RowInput({ row, field, placeholder, onCommit }: {
@@ -40,17 +39,13 @@ function RowInput({ row, field, placeholder, onCommit }: {
   );
 }
 
-export function KeyValueTable({ rows, onChange, keyLabel = 'Parameter', valueLabel = 'Value', addLabel = '+ Add Param' }: Props) {
+export function KeyValueTable({ rows, onChange, keyLabel = 'Parameter', valueLabel = 'Value' }: Props) {
   const commitRow = useCallback((id: string, field: keyof Row, val: any) => {
     onChange(rows.map(r => r.id === id ? { ...r, [field]: val } : r));
   }, [rows, onChange]);
 
   const removeRow = useCallback((id: string) => {
     onChange(rows.filter(r => r.id !== id));
-  }, [rows, onChange]);
-
-  const addRow = useCallback(() => {
-    onChange([...rows, createKeyValueRow(rows.length)]);
   }, [rows, onChange]);
 
   return (
@@ -81,9 +76,6 @@ export function KeyValueTable({ rows, onChange, keyLabel = 'Parameter', valueLab
           </button>
         </div>
       ))}
-      <button onClick={addRow} className="mt-2 text-sm text-accent-primary hover:underline">
-        {addLabel}
-      </button>
     </div>
   );
 }

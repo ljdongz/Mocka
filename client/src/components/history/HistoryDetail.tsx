@@ -9,6 +9,18 @@ import clsx from 'clsx';
 
 type DetailTab = 'response' | 'headers' | 'body';
 
+function formatDetailTime(timestamp: string): string {
+  const d = new Date(timestamp);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  const ms = String(d.getMilliseconds()).padStart(3, '0');
+  return `${yyyy}.${mm}.${dd} ${hh}:${min}:${ss}.${ms}`;
+}
+
 function parsePathParams(bodyOrParams: string): Record<string, string> | null {
   try {
     const parsed = JSON.parse(bodyOrParams);
@@ -45,8 +57,9 @@ export function HistoryDetail({ record, onClose }: { record: RequestRecord; onCl
         <button onClick={onClose} className="text-text-muted hover:text-text-secondary text-xl leading-none px-1">&times;</button>
       </div>
 
-      <div className="px-4 py-2 text-sm text-text-tertiary font-mono border-b border-border-primary break-all">
-        {record.path}
+      <div className="px-4 py-2 border-b border-border-primary">
+        <div className="text-sm text-text-tertiary font-mono break-all">{record.path}</div>
+        <div className="text-xs text-text-muted font-mono mt-1">{formatDetailTime(record.timestamp)}</div>
       </div>
 
       {/* Path Parameters badge */}
