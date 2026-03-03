@@ -25,17 +25,21 @@ The application runs two servers: an **Admin API** (default port 3000) that serv
 ## Features
 
 - **Fully Local & Self-Hosted** — Runs entirely on your machine with no cloud dependency, no account required, and no rate limits. Works offline and serves mock responses over your local network, so real devices (iOS, Android) on the same Wi-Fi can call the mock API directly
-- **Mock Endpoint Management** — Create endpoints with any HTTP method (GET, POST, PUT, DELETE, PATCH)
+- **Mock Endpoint Management** — Create endpoints with any HTTP method (GET, POST, PUT, DELETE, PATCH). Give each endpoint an alias for easy identification and describe request bodies with multiple content types including `multipart/form-data`
 - **Path Parameter Matching** — Define dynamic routes with `:param` or `{param}` syntax (e.g. `/users/:id`). Exact paths take priority over patterns, and captured values are shown in the request log
 - **Instant Response Switching** — Define multiple response variants per endpoint (success, error, empty, etc.) and switch between them with a single click — no redeployment or restart needed
 - **Dynamic Template Variables** — Generate realistic mock data with 30+ built-in variables like `{{$randomUUID}}`, `{{$randomEmail}}`, `{{$isoTimestamp}}`, and more. Values are regenerated on every request
 - **Request Context Helpers** — Echo back request data in responses using `{{$body 'field'}}`, `{{$headers 'key'}}`, `{{$queryParams 'q'}}`, and `{{$pathParams 'id'}}` helpers with dot-notation for nested fields
-- **Conditional Match Rules** — Automatically select the right response variant based on incoming request body or headers. Define rules with operators (equals, contains, startsWith, endsWith, regex) and combine them with AND/OR logic
+- **Conditional Match Rules** — Automatically select the right response variant based on incoming request body, headers, query params, or path params. Define rules with operators (equals, contains, startsWith, endsWith, regex) and combine them with AND/OR logic
 - **Environment Variables** — Create multiple environments (dev, staging, production) with key-value variables. Reference them in response bodies and headers via `{{variableName}}` syntax and switch the active environment instantly
 - **Mock Response Headers** — Override variant selection per-request using `x-mock-response-code`, `x-mock-response-name`, or `x-mock-response-delay` headers
+- **Custom Response Headers** — Define custom HTTP headers per response variant. Environment variables in header values are resolved at request time
 - **Import / Export** — Export all endpoints, response variants, and collections as a JSON file and import them back with conflict resolution (skip, overwrite, or merge duplicates)
+- **Drag & Drop Ordering** — Reorder collections and endpoints within collections by dragging
 - **Real-time Request Logging** — Monitor incoming requests via WebSocket in real time
-- **Response Delay** — Simulate network latency with configurable delays
+- **Response Delay** — Simulate network latency with configurable delays in seconds. Priority: `x-mock-response-delay` header > variant delay > global default
+- **Multi-language UI** — Switch between English and Korean in settings
+- **Light / Dark Theme** — Toggle between light and dark themes
 - **SQLite Persistence** — All configurations are stored in a local SQLite database
 
 ## Architecture
@@ -81,7 +85,7 @@ The Admin API manages endpoint configurations and serves the frontend, while the
 ### Quick Start
 
 ```bash
-git clone https://github.com/your-username/mocka.git
+git clone https://github.com/ljdongz/Mocka.git
 cd mocka
 npm install                   # Install dependencies
 npm run build && npm start    # Build and start the server
@@ -147,7 +151,7 @@ curl http://localhost:8080/api/users \
 
 curl http://localhost:8080/api/users \
   -H "x-mock-response-name: error" \
-  -H "x-mock-response-delay: 2000"
+  -H "x-mock-response-delay: 2"
 ```
 
 5. **Use template variables** in response bodies for dynamic data:
@@ -187,6 +191,7 @@ mocka/
 │   │   ├── api/            # API client functions
 │   │   ├── components/     # React components
 │   │   ├── hooks/          # Custom hooks
+│   │   ├── i18n/           # Translations (en, ko)
 │   │   ├── stores/         # Zustand stores
 │   │   ├── types/          # TypeScript types
 │   │   └── utils/          # Utility functions
