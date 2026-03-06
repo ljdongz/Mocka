@@ -3,6 +3,7 @@ import { reload } from './services/route-registry.js';
 import { createAdminServer } from './admin-server.js';
 import { createMockServer } from './mock-server.js';
 import * as settingsService from './services/settings.service.js';
+import * as endpointService from './services/endpoint.service.js';
 import { emit } from './services/domain-events.js';
 import { getLocalIp, checkPort } from './utils/network.js';
 import { closeDb } from './db/connection.js';
@@ -13,7 +14,7 @@ const MOCK_PORT_OVERRIDE = process.env.MOCK_PORT ? parseInt(process.env.MOCK_POR
 async function main() {
   // Initialize DB
   initSchema();
-  reload();
+  reload(endpointService.getAll());
 
   const settings = settingsService.getAll();
   const mockPort = MOCK_PORT_OVERRIDE ?? (settings.port || 8080);

@@ -263,7 +263,7 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
     }
   });
 
-  routeRegistry.reload();
+  routeRegistry.reload(endpointRepo.findAll());
   emit('import:completed', result);
 
   return result;

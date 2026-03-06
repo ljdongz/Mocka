@@ -9,12 +9,26 @@ const DB_PATH = join(DB_DIR, 'mocka.db');
 
 let db: Database.Database;
 
+/** Initialize the database with an optional custom path (e.g. ':memory:' for tests) */
+export function initDb(path?: string): Database.Database {
+  if (db) {
+    try { db.close(); } catch { /* ignore */ }
+  }
+  if (path && path !== ':memory:') {
+    mkdirSync(dirname(path), { recursive: true });
+  }
+  if (!path) {
+    mkdirSync(DB_DIR, { recursive: true });
+  }
+  db = new Database(path ?? DB_PATH);
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  return db;
+}
+
 export function getDb(): Database.Database {
   if (!db) {
-    mkdirSync(DB_DIR, { recursive: true });
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
+    return initDb();
   }
   return db;
 }

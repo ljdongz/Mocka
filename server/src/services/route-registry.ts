@@ -1,5 +1,5 @@
 import type { Endpoint } from '../models/endpoint.js';
-import * as endpointRepo from '../repositories/endpoint.repo.js';
+import { normalizePath, hasParams, compilePattern, buildKey } from '../models/route-path.js';
 
 // Exact match registry: key = "METHOD /path"
 const registry = new Map<string, Endpoint>();
@@ -20,53 +20,11 @@ export interface MatchResult {
   pathParams: Record<string, string>;
 }
 
-/** Strip trailing slashes (keep root "/") */
-function normalizePath(p: string): string {
-  return p.length > 1 ? p.replace(/\/+$/, '') : p;
-}
+export { buildKey };
 
-/** Check if a path contains parameter segments (:param or {param}) */
-function hasParams(path: string): boolean {
-  return /(?::[a-zA-Z_]\w*|\{[a-zA-Z_]\w*\})/.test(path);
-}
-
-/** Convert a path pattern to a regex and extract param names */
-function compilePattern(path: string): { regex: RegExp; paramNames: string[]; literalCount: number } {
-  const paramNames: string[] = [];
-  let literalCount = 0;
-  const segments = normalizePath(path).split('/');
-
-  const regexStr = segments
-    .map(segment => {
-      // Match :paramName
-      const colonMatch = segment.match(/^:([a-zA-Z_]\w*)$/);
-      if (colonMatch) {
-        paramNames.push(colonMatch[1]);
-        return '([^/]+)';
-      }
-      // Match {paramName}
-      const braceMatch = segment.match(/^\{([a-zA-Z_]\w*)\}$/);
-      if (braceMatch) {
-        paramNames.push(braceMatch[1]);
-        return '([^/]+)';
-      }
-      // Literal segment — escape regex special chars
-      literalCount++;
-      return segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    })
-    .join('/');
-
-  return { regex: new RegExp(`^${regexStr}$`), paramNames, literalCount };
-}
-
-export function buildKey(method: string, path: string): string {
-  return `${method.toUpperCase()} ${normalizePath(path)}`;
-}
-
-export function reload(): void {
+export function reload(endpoints: Endpoint[]): void {
   registry.clear();
   patternRoutes.length = 0;
-  const endpoints = endpointRepo.findAll();
   for (const ep of endpoints) {
     if (ep.isEnabled) {
       addInternal(ep);

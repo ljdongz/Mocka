@@ -20,5 +20,5 @@ export function record(data: Omit<RequestRecord, 'id' | 'timestamp'>): RequestRe
 
 export function clearAll(): void {
   recordRepo.clearAll();
-  emit('history:cleared');
+  emit('history:cleared', null);
 }

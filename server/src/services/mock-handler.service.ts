@@ -4,14 +4,67 @@ import * as environmentService from './environment.service.js';
 import * as settingsService from './settings.service.js';
 import { resolveVariables } from '../utils/template-variables.js';
 import { resolveHelpers, parseQueryParams, parsePathSegments, type RequestContext } from '../utils/template-helpers.js';
-import { matchesRules } from '../models/response-variant.js';
+import { matchesRules, type ResponseVariant } from '../models/response-variant.js';
 
 /** Replace {{envVarName}} placeholders (non-$ prefixed) with environment variable values */
-function resolveEnvVariables(template: string, envVars: Record<string, string>): string {
+export function resolveEnvVariables(template: string, envVars: Record<string, string>): string {
   if (Object.keys(envVars).length === 0) return template;
   return template.replace(/\{\{\s*([a-zA-Z_]\w*)\s*\}\}/g, (fullMatch, varName: string) => {
     return varName in envVars ? envVars[varName] : fullMatch;
   });
+}
+
+/** Select the best matching ResponseVariant for a request */
+export function resolveVariant(
+  variants: ResponseVariant[],
+  activeVariantId: string | undefined,
+  headers: Record<string, string>,
+  body: any,
+  queryParams: Record<string, string>,
+  pathParams: Record<string, string>,
+): ResponseVariant | undefined {
+  if (variants.length === 0) return undefined;
+
+  // 1. x-mock-response-code header
+  const mockResponseCode = headers['x-mock-response-code'];
+  if (mockResponseCode) {
+    const code = parseInt(mockResponseCode, 10);
+    const found = variants.find(v => v.statusCode === code);
+    if (found) return found;
+  }
+
+  // 2. x-mock-response-name header
+  const mockResponseName = headers['x-mock-response-name'];
+  if (mockResponseName) {
+    const name = mockResponseName.toLowerCase();
+    const found = variants.find(v => v.description.toLowerCase() === name);
+    if (found) return found;
+  }
+
+  // 3. Conditional match rules
+  const ruleMatch = variants.find(v => v.matchRules && matchesRules(v.matchRules, body, headers, queryParams, pathParams));
+  if (ruleMatch) return ruleMatch;
+
+  // 4. Active variant or first variant
+  return variants.find(v => v.id === activeVariantId) ?? variants[0];
+}
+
+/** Resolve template body: env vars → helpers → dynamic variables */
+export function resolveResponseBody(
+  template: string,
+  envVars: Record<string, string>,
+  requestContext: RequestContext,
+): string {
+  return resolveVariables(resolveHelpers(resolveEnvVariables(template, envVars), requestContext));
+}
+
+/** Build the body string used for history recording (merges pathParams if present) */
+export function buildRecordBody(body: any, pathParams: Record<string, string>): string {
+  if (Object.keys(pathParams).length === 0) {
+    return JSON.stringify(body ?? {});
+  }
+  const safeBody = (typeof body === 'object' && body !== null && !Array.isArray(body)) ? body : { _body: body };
+  return JSON.stringify({ ...safeBody, _pathParams: pathParams });
 }
 
 export interface MockResponse {
@@ -40,57 +93,21 @@ export async function handleMockRequest(
       requestHeaders: JSON.stringify(headers),
       responseBody: JSON.stringify({ error: message }),
     });
-    return {
-      statusCode: 404,
-      body: JSON.stringify({ error: message }),
-      headers: {},
-      delay: 0,
-    };
+    return { statusCode: 404, body: JSON.stringify({ error: message }), headers: {}, delay: 0 };
   }
 
   const { endpoint, pathParams } = result;
-
-  // Find variant: x-mock-response-* headers take priority over active variant
+  const queryParams = parseQueryParams(url);
   const variants = endpoint.responseVariants ?? [];
-  const mockResponseCode = headers['x-mock-response-code'];
-  const mockResponseName = headers['x-mock-response-name'];
-  const mockResponseDelay = headers['x-mock-response-delay'];
 
-  let variant = undefined;
-
-  // 1. x-mock-response-* headers take highest priority
-  if (mockResponseCode) {
-    const code = parseInt(mockResponseCode, 10);
-    variant = variants.find(v => v.statusCode === code);
-  }
-
-  if (!variant && mockResponseName) {
-    const name = mockResponseName.toLowerCase();
-    variant = variants.find(v => v.description.toLowerCase() === name);
-  }
-
-  // 2. Conditional match rules: find first variant whose rules match the request
-  if (!variant) {
-    const queryParams = parseQueryParams(url);
-    variant = variants.find(v => v.matchRules && matchesRules(v.matchRules, body, headers, queryParams, pathParams));
-  }
-
-  // 3. Fallback: active variant or first variant
-  if (!variant) {
-    variant = variants.find(v => v.id === endpoint.activeVariantId)
-      ?? variants[0];
-  }
+  const variant = resolveVariant(variants, endpoint.activeVariantId ?? undefined, headers, body, queryParams, pathParams);
 
   if (!variant) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'No response variant configured' }),
-      headers: {},
-      delay: 0,
-    };
+    return { statusCode: 500, body: JSON.stringify({ error: 'No response variant configured' }), headers: {}, delay: 0 };
   }
 
   // Apply delay: header > variant delay > global default (all in seconds)
+  const mockResponseDelay = headers['x-mock-response-delay'];
   const globalDelay = settingsService.getAll().responseDelay ?? 0;
   const delaySec = mockResponseDelay ? parseFloat(mockResponseDelay) : (variant.delay ?? globalDelay);
   if (delaySec > 0) {
@@ -103,40 +120,27 @@ export async function handleMockRequest(
     responseHeaders = JSON.parse(variant.headers);
   } catch { /* ignore invalid headers */ }
 
-  // Build request info with path params (safely handle non-object bodies)
-  const hasPathParams = Object.keys(pathParams).length > 0;
-  let recordBody: string;
-  if (hasPathParams) {
-    const safeBody = (typeof body === 'object' && body !== null && !Array.isArray(body)) ? body : { _body: body };
-    recordBody = JSON.stringify({ ...safeBody, _pathParams: pathParams });
-  } else {
-    recordBody = JSON.stringify(body ?? {});
-  }
-
-  // Build request context for template helpers
+  const envVars = environmentService.getActiveVariables();
   const requestContext: RequestContext = {
     body: typeof body === 'object' ? body : {},
-    queryParams: parseQueryParams(url),
+    queryParams,
     pathSegments: parsePathSegments(url),
     headers,
     pathParams,
   };
 
-  // Resolve: env variables → template helpers (request data) → dynamic variables (random data)
-  const envVars = environmentService.getActiveVariables();
-  const resolvedBody = resolveVariables(resolveHelpers(resolveEnvVariables(variant.body, envVars), requestContext));
+  const resolvedBody = resolveResponseBody(variant.body, envVars, requestContext);
 
   // Also resolve env variables in response headers
   for (const [key, val] of Object.entries(responseHeaders)) {
     responseHeaders[key] = resolveEnvVariables(val, envVars);
   }
 
-  // Record request
   historyService.record({
     method,
     path: url,
     statusCode: variant.statusCode,
-    bodyOrParams: recordBody,
+    bodyOrParams: buildRecordBody(body, pathParams),
     requestHeaders: JSON.stringify(headers),
     responseBody: resolvedBody,
   });
