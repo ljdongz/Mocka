@@ -5,7 +5,9 @@ import * as routeRegistry from './route-registry.js';
 import * as collectionService from './collection.service.js';
 import { emit } from './domain-events.js';
 import type { Endpoint } from '../models/endpoint.js';
+import { resolveActiveVariantAfterRemoval } from '../models/endpoint.js';
 import type { HttpMethod } from '../models/http-method.js';
+import { normalizePath } from '../models/route-path.js';
 
 export function getAll(): Endpoint[] {
   return endpointRepo.findAll();
@@ -22,7 +24,7 @@ export function create(data: { method: HttpMethod; path: string; name?: string; 
   const ep = endpointRepo.create({
     id,
     method: data.method,
-    path: data.path,
+    path: normalizePath(data.path),
     name: data.name ?? '',
     activeVariantId: variantId,
     isEnabled: true,
@@ -146,7 +148,8 @@ export function removeVariant(variantId: string): boolean {
     if (ep) {
       if (ep.activeVariantId === variantId) {
         const remaining = variantRepo.findByEndpointId(variant.endpointId);
-        endpointRepo.setActiveVariant(variant.endpointId, remaining[0]?.id ?? null);
+        const newActiveId = resolveActiveVariantAfterRemoval(ep.activeVariantId, variantId, remaining);
+        endpointRepo.setActiveVariant(variant.endpointId, newActiveId);
       }
       routeRegistry.update(endpointRepo.findById(variant.endpointId)!);
     }

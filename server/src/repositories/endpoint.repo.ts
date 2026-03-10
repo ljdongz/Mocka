@@ -1,6 +1,7 @@
 import { getDb } from '../db/connection.js';
 import type { Endpoint, QueryParam, RequestHeader } from '../models/endpoint.js';
 import { rowToVariant } from './variant.repo.js';
+import { normalizePath } from '../models/route-path.js';
 
 function rowToEndpoint(row: any): Endpoint {
   return {
@@ -77,7 +78,7 @@ export function update(id: string, data: Partial<Endpoint>): Endpoint | null {
   if (!existing) return null;
 
   const method = data.method ?? existing.method;
-  const path = data.path ?? existing.path;
+  const path = normalizePath(data.path ?? existing.path);
   const name = data.name !== undefined ? data.name : existing.name;
   const activeVariantId = data.activeVariantId !== undefined ? data.activeVariantId : existing.activeVariantId;
   const isEnabled = data.isEnabled !== undefined ? data.isEnabled : existing.isEnabled;

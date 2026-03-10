@@ -107,4 +107,65 @@ export function initSchema(): void {
   if (!endpointCols.some(c => c.name === 'name')) {
     db.exec("ALTER TABLE endpoints ADD COLUMN name TEXT NOT NULL DEFAULT ''");
   }
+
+  // Migration: normalize trailing slashes in existing endpoint paths
+  const trailingSlashRows = db.prepare(
+    "SELECT id, method, path, created_at FROM endpoints WHERE length(path) > 1 AND path LIKE '%/'"
+  ).all() as { id: string; method: string; path: string; created_at: string }[];
+
+  if (trailingSlashRows.length > 0) {
+    console.log(`[Mocka] Normalizing ${trailingSlashRows.length} endpoint path(s) with trailing slashes...`);
+
+    for (const ep of trailingSlashRows) {
+      const normalized = ep.path.replace(/\/+$/, '');
+
+      // Check for UNIQUE conflict: does the normalized path already exist for the same method?
+      const conflict = db.prepare(
+        "SELECT id, created_at FROM endpoints WHERE method = ? AND path = ? AND id != ?"
+      ).get(ep.method, normalized, ep.id) as { id: string; created_at: string } | undefined;
+
+      if (conflict) {
+        // Merge strategy: keep earlier endpoint, move variants & collection links from later one
+        const keepId = conflict.created_at <= ep.created_at ? conflict.id : ep.id;
+        const removeId = keepId === conflict.id ? ep.id : conflict.id;
+
+        console.log(`[Mocka]   Merging duplicate ${ep.method} ${normalized}: keeping ${keepId}, merging from ${removeId}`);
+
+        // Move response variants from removeId to keepId
+        db.prepare("UPDATE response_variants SET endpoint_id = ? WHERE endpoint_id = ?").run(keepId, removeId);
+
+        // Relink collection_endpoints from removeId to keepId (skip if already linked)
+        const orphanedLinks = db.prepare(
+          "SELECT collection_id, sort_order FROM collection_endpoints WHERE endpoint_id = ?"
+        ).all(removeId) as { collection_id: string; sort_order: number }[];
+
+        for (const link of orphanedLinks) {
+          const alreadyLinked = db.prepare(
+            "SELECT 1 FROM collection_endpoints WHERE collection_id = ? AND endpoint_id = ?"
+          ).get(link.collection_id, keepId);
+          if (!alreadyLinked) {
+            db.prepare(
+              "INSERT INTO collection_endpoints (collection_id, endpoint_id, sort_order) VALUES (?, ?, ?)"
+            ).run(link.collection_id, keepId, link.sort_order);
+          }
+        }
+
+        // Delete orphaned collection links and the duplicate endpoint
+        db.prepare("DELETE FROM collection_endpoints WHERE endpoint_id = ?").run(removeId);
+        db.prepare("DELETE FROM query_params WHERE endpoint_id = ?").run(removeId);
+        db.prepare("DELETE FROM request_headers WHERE endpoint_id = ?").run(removeId);
+        db.prepare("DELETE FROM endpoints WHERE id = ?").run(removeId);
+
+        // Ensure the kept endpoint has the normalized path
+        if (keepId === ep.id) {
+          db.prepare("UPDATE endpoints SET path = ? WHERE id = ?").run(normalized, keepId);
+        }
+      } else {
+        // No conflict: simply normalize
+        db.prepare("UPDATE endpoints SET path = ? WHERE id = ?").run(normalized, ep.id);
+      }
+    }
+
+    console.log(`[Mocka] Path normalization complete.`);
+  }
 }

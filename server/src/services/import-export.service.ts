@@ -7,6 +7,8 @@ import * as routeRegistry from './route-registry.js';
 import { emit } from './domain-events.js';
 import type { Endpoint } from '../models/endpoint.js';
 import type { Collection } from '../models/collection.js';
+import { HTTP_METHODS, type HttpMethod } from '../models/http-method.js';
+import { normalizePath } from '../models/route-path.js';
 
 export interface ExportData {
   version: 1;
@@ -127,8 +129,6 @@ export function exportData(collectionIds?: string[]): ExportData {
   };
 }
 
-const VALID_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']);
-
 /** Import data with conflict resolution (wrapped in a transaction) */
 export function importData(data: ExportData, conflictPolicy: ConflictPolicy): ImportResult {
   const result: ImportResult = {
@@ -149,14 +149,14 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
 
       // Validate method
       const method = importEp.method?.toUpperCase();
-      if (!VALID_METHODS.has(method)) {
+      if (!HTTP_METHODS.includes(method as any)) {
         result.errors.push(`Endpoint ${importEp.method} ${importEp.path}: invalid method`);
         continue;
       }
       importEp.method = method;
 
       try {
-        const existing = endpointRepo.findByMethodAndPath(importEp.method, importEp.path);
+        const existing = endpointRepo.findByMethodAndPath(importEp.method, normalizePath(importEp.path));
 
         if (existing) {
           switch (conflictPolicy) {
@@ -277,8 +277,8 @@ function createEndpointFromImport(importEp: ExportEndpoint): string {
 
   endpointRepo.create({
     id: endpointId,
-    method: importEp.method as any,
-    path: importEp.path,
+    method: importEp.method as HttpMethod,
+    path: normalizePath(importEp.path),
     name: importEp.name ?? '',
     activeVariantId,
     isEnabled: importEp.isEnabled,

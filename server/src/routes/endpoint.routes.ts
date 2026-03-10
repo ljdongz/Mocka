@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import * as endpointService from '../services/endpoint.service.js';
+import { HTTP_METHODS, type HttpMethod } from '../models/http-method.js';
 
 export async function endpointRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/endpoints', async () => {
@@ -15,9 +16,14 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
 
   app.post('/api/endpoints', async (req, reply) => {
     const body = req.body as { method: string; path: string; name?: string; collectionId?: string };
+    const method = body.method?.toUpperCase();
+    if (!HTTP_METHODS.includes(method as any)) {
+      reply.code(400);
+      return { error: `Invalid HTTP method: ${body.method}` };
+    }
     try {
       const ep = endpointService.create({
-        method: body.method as any,
+        method: method as HttpMethod,
         path: body.path,
         name: body.name,
         collectionId: body.collectionId,
@@ -27,7 +33,7 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
     } catch (e: any) {
       reply.code(400);
       const msg = e.message?.includes('UNIQUE constraint')
-        ? `Endpoint ${body.method} ${body.path} already exists`
+        ? `Endpoint ${method} ${body.path} already exists`
         : 'Failed to create endpoint';
       return { error: msg };
     }
