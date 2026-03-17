@@ -193,7 +193,7 @@ const ko: Translations = {
     description: '예상되는 Request Header를 정의하세요. 문서화 용도로, Mock Server는 어떤 Header가 전송되든 응답합니다.',
     header: 'Header',
     value: 'Value',
-    addHeader: '+ Header 추가',
+    addHeader: 'Header 추가',
   },
 
   params: {
@@ -205,7 +205,7 @@ const ko: Translations = {
     queryParameters: 'Query Parameters',
     queryParamsDesc: '허용할 Query Parameter Key를 정의하세요. Mock Server는 Path만으로 매칭합니다 \u2014 어떤 Parameter Value이든 동일한 Response를 받습니다.',
     example: 'Example',
-    addParam: '+ Parameter 추가',
+    addParam: 'Parameter 추가',
   },
 
   validation: {

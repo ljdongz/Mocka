@@ -191,7 +191,7 @@ const en = {
     description: "Define the expected request headers. This is for documentation only — the mock server will respond regardless of the headers sent.",
     header: 'Header',
     value: 'Value',
-    addHeader: '+ Add Header',
+    addHeader: 'Add Header',
   },
 
   params: {
@@ -203,7 +203,7 @@ const en = {
     queryParameters: 'Query Parameters',
     queryParamsDesc: 'Define accepted query parameter keys. The mock server matches by path only - any parameter values will receive the same response.',
     example: 'Example',
-    addParam: '+ Add Param',
+    addParam: 'Add Param',
   },
 
   validation: {
