@@ -89,7 +89,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
           value={editName}
           onChange={e => setEditName(e.target.value)}
           onKeyDown={e => {
-            if (e.key === 'Enter') saveEdit();
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) saveEdit();
             if (e.key === 'Escape') cancelEdit();
           }}
           onBlur={saveEdit}

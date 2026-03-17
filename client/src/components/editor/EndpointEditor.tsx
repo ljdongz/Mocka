@@ -218,7 +218,7 @@ export function EndpointEditor() {
             value={nameValue}
             onChange={e => setNameValue(e.target.value)}
             onBlur={() => { if (nameValue !== endpoint.name) updateEndpoint(endpoint.id, { name: nameValue }); }}
-            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) e.currentTarget.blur(); }}
             placeholder={t.editor.enterAlias}
             className="w-40 rounded border border-border-secondary bg-bg-input px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-primary placeholder:text-text-muted/50"
           />
