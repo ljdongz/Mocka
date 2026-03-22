@@ -8,6 +8,7 @@ data/
 .DS_Store
 *.pen
 .omc
+.omx
 .playwright-mcp
 _learning-guides/
 ROADMAP.md
