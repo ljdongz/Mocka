@@ -10,7 +10,7 @@ import { HistoryDetail } from './HistoryDetail';
 import type { HttpMethod } from '../../types';
 import clsx from 'clsx';
 
-const METHODS = ['', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+const METHODS = ['', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'WS'];
 
 function formatHistoryTime(timestamp: string): string {
   const d = new Date(timestamp);
@@ -106,11 +106,16 @@ export function HistoryView() {
                     {formatHistoryTime(r.timestamp)}
                   </td>
                   <td className="px-4 py-2">
-                    <HttpMethodBadge method={r.method as HttpMethod} />
+                    {r.method === 'WS'
+                      ? <span className="inline-flex items-center rounded px-2 py-0.5 font-mono text-xs font-bold bg-accent-primary/15 text-accent-primary">WS</span>
+                      : r.method
+                        ? <HttpMethodBadge method={r.method as HttpMethod} />
+                        : null
+                    }
                   </td>
                   <td className="px-4 py-2 text-text-secondary font-mono truncate max-w-[400px]">{r.path}</td>
                   <td className="px-4 py-2">
-                    <StatusCodeBadge code={r.statusCode} />
+                    {r.statusCode != null ? <StatusCodeBadge code={r.statusCode} /> : null}
                   </td>
                 </tr>
               ))}

@@ -72,13 +72,40 @@ export interface Collection {
 
 export interface RequestRecord {
   id: string;
-  method: string;
+  method: string | null;
   path: string;
-  statusCode: number;
+  statusCode: number | null;
   bodyOrParams: string;
   requestHeaders: string;
   responseBody: string;
   timestamp: string;
+}
+
+export type WsFrameTrigger = 'message' | 'connect';
+
+export interface WsResponseFrame {
+  id: string;
+  wsEndpointId: string;
+  trigger: WsFrameTrigger;
+  label: string;
+  messageBody: string;
+  delay: number | null;
+  intervalMin: number | null;
+  intervalMax: number | null;
+  memo: string;
+  sortOrder: number;
+  matchRules: MatchRules | null;
+}
+
+export interface WsEndpoint {
+  id: string;
+  path: string;
+  name: string;
+  isEnabled: boolean;
+  activeFrameId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  responseFrames?: WsResponseFrame[];
 }
 
 export type Theme = 'dark' | 'light';

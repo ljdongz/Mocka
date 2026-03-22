@@ -4,6 +4,7 @@ import { Pencil, Check, X, FolderInput } from 'lucide-react';
 import { useEndpointStore } from '../../stores/endpoint.store';
 import { useCollectionStore } from '../../stores/collection.store';
 import { useUIStore } from '../../stores/ui.store';
+import { useWsEndpointStore } from '../../stores/ws-endpoint.store';
 import { useTranslation } from '../../i18n';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
@@ -17,6 +18,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
   const deleteEndpoint = useEndpointStore(s => s.deleteEndpoint);
   const updateEndpoint = useEndpointStore(s => s.updateEndpoint);
   const setShowHistory = useUIStore(s => s.setShowHistory);
+  const selectWs = useWsEndpointStore(s => s.select);
   const collections = useCollectionStore(s => s.collections);
   const moveEndpoint = useCollectionStore(s => s.moveEndpoint);
   const removeEndpointFromCollection = useCollectionStore(s => s.removeEndpointFromCollection);
@@ -116,7 +118,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
 
   return (
     <div
-      onClick={() => { select(endpoint.id); setShowHistory(false); }}
+      onClick={() => { select(endpoint.id); selectWs(null); setShowHistory(false); }}
       className={clsx(
         'group relative flex w-full items-center gap-2 rounded px-2 py-1.5 text-left cursor-pointer',
         isSelected ? 'bg-bg-hover' : 'hover:bg-bg-hover',

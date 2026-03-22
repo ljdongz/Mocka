@@ -2,7 +2,7 @@
 
 # Mocka
 
-**A cross-platform, web-based HTTP mock server**
+**A cross-platform, web-based HTTP & WebSocket mock server**
 
 [한국어](docs/README.ko.md)
 
@@ -18,7 +18,7 @@
 
 ## Introduction
 
-Mocka is a web-based HTTP mock server that lets you create, manage, and serve mock API endpoints from your browser. Define endpoints with custom methods, paths, status codes, headers, and response bodies — then point your client applications at the mock server to receive the configured responses.
+Mocka is a web-based mock server that lets you create, manage, and serve mock HTTP and WebSocket endpoints from your browser. Define HTTP endpoints with custom methods, paths, status codes, headers, and response bodies, or create WebSocket endpoints with configurable response frames — then point your client applications at the mock server to receive the configured responses.
 
 The application runs two servers: an **Admin API** (default port 3000) that serves the management UI and REST API, and a **Mock Server** (default port 8080) that dynamically handles incoming requests based on your configured endpoints. All data is persisted in a local SQLite database, so your mock configurations survive restarts.
 
@@ -32,6 +32,7 @@ The application runs two servers: an **Admin API** (default port 3000) that serv
 - **Environments** — Manage variables across dev/staging/production. Reference via `{{variableName}}` in responses and switch instantly
 - **Import / Export** — Export and import endpoints as JSON with conflict resolution (skip, overwrite, merge)
 - **Real-time Logging** — Monitor incoming requests via WebSocket in real time
+- **WebSocket Mock** — Define WebSocket endpoints with response frames. Auto-send on connect, reply on message, or send periodically at random intervals — with the same template engine and conditional matching as HTTP
 - **Response Delay** — Simulate latency per-variant or globally. Override per-request via `x-mock-response-delay` header
 
 ## Architecture
@@ -46,7 +47,7 @@ The application runs two servers: an **Admin API** (default port 3000) that serv
 ┌──────────────────────┐       ┌──────────────────────┐
 │  Admin API (:3000)   │       │  Mock Server (:8080)  │
 │  - Endpoint CRUD     │       │  - Serves mock        │
-│  - Collection mgmt   │       │    responses           │
+│  - Collection mgmt   │       │    responses (HTTP/WS) │
 │  - Settings          │       │  - Logs requests       │
 │  - Static files      │       │                        │
 └──────────┬───────────┘       └────────────────────────┘

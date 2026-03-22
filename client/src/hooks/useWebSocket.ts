@@ -4,6 +4,7 @@ import { useEndpointStore } from '../stores/endpoint.store';
 import { useCollectionStore } from '../stores/collection.store';
 import { useHistoryStore } from '../stores/history.store';
 import { useSettingsStore } from '../stores/settings.store';
+import { useWsEndpointStore } from '../stores/ws-endpoint.store';
 import { useToastStore } from '../components/shared/Toast';
 
 export function useWebSocket() {
@@ -14,6 +15,8 @@ export function useWebSocket() {
   const fetchCollections = useCollectionStore(s => s.fetch);
   const addRecord = useHistoryStore(s => s.addRecord);
   const setServerStatus = useSettingsStore(s => s.setServerStatus);
+  const replaceWsEndpoint = useWsEndpointStore(s => s.replaceEndpoint);
+  const removeWsEndpoint = useWsEndpointStore(s => s.removeEndpointFromList);
 
   useEffect(() => {
     const unsub = onMessage((event, data) => {
@@ -37,7 +40,7 @@ export function useWebSocket() {
           break;
         case 'history:new':
           addRecord(data);
-          if (useSettingsStore.getState().settings.historyToast) {
+          if (useSettingsStore.getState().settings.historyToast && data.method && data.statusCode != null) {
             useToastStore.getState().addToast({
               method: data.method,
               path: data.path,
@@ -51,8 +54,24 @@ export function useWebSocket() {
         case 'server:status':
           setServerStatus(data);
           break;
+        case 'ws-endpoint:created':
+        case 'ws-endpoint:updated':
+        case 'ws-frame:updated':
+          if (data.wsEndpointId) {
+            // frame update — refresh parent endpoint
+            useWsEndpointStore.getState().fetch();
+          } else {
+            replaceWsEndpoint(data);
+          }
+          break;
+        case 'ws-endpoint:deleted':
+          removeWsEndpoint(data.id);
+          break;
+        case 'ws-frame:deleted':
+          useWsEndpointStore.getState().fetch();
+          break;
       }
     });
     return unsub;
-  }, [replaceEndpoint, removeEndpoint, replaceCollection, removeCollection, fetchCollections, addRecord, setServerStatus]);
+  }, [replaceEndpoint, removeEndpoint, replaceCollection, removeCollection, fetchCollections, addRecord, setServerStatus, replaceWsEndpoint, removeWsEndpoint]);
 }

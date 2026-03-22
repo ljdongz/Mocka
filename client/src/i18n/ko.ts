@@ -36,6 +36,8 @@ const ko: Translations = {
     settings: '설정',
     addEndpoint: 'Endpoint 추가',
     rename: '이름 변경',
+    wsEndpoints: 'WebSocket',
+    newWsEndpoint: '새 WS Endpoint',
   },
 
   editor: {
@@ -219,6 +221,26 @@ const ko: Translations = {
     startsWith: 'Starts with',
     endsWith: 'Ends with',
     regex: 'Regex',
+  },
+
+  wsEditor: {
+    selectEndpoint: '편집할 WebSocket Endpoint를 선택하거나 새로 생성하세요.',
+    title: 'Mock WebSocket Response',
+    description: 'Mock Response Frame을 정의하세요. Active Frame을 설정하여 클라이언트 연결 시 Endpoint가 전송할 내용을 제어합니다.',
+    addFrame: '+ Frame 추가',
+    responseFrames: 'Response Frames',
+    frameLabel: 'Label',
+    unnamedFrame: '이름 없는 Frame',
+    messageBody: 'Message Body',
+    trigger: 'Trigger',
+    triggerMessage: '메시지 수신 시',
+    triggerConnect: '연결 시 자동 전송',
+    intervalMin: '반복 최소 주기 (초)',
+    intervalMax: '반복 최대 주기 (초)',
+    intervalHelp: '설정된 범위 내 랜덤 간격으로 반복 전송합니다.',
+    newWsEndpoint: '새 WS Endpoint',
+    wsEndpointPath: 'WebSocket Path',
+    failedToCreate: 'WebSocket Endpoint 생성에 실패했습니다',
   },
 
   onboarding: {

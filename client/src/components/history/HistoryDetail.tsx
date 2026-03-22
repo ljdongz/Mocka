@@ -51,8 +51,11 @@ export function HistoryDetail({ record, onClose }: { record: RequestRecord; onCl
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between border-b border-border-primary px-4 py-3">
         <div className="flex items-center gap-2">
-          <HttpMethodBadge method={record.method as HttpMethod} />
-          <StatusCodeBadge code={record.statusCode} />
+          {record.method
+            ? <HttpMethodBadge method={record.method as HttpMethod} />
+            : <span className="inline-flex items-center rounded px-2 py-0.5 font-mono text-xs font-bold bg-accent-primary/15 text-accent-primary">WS</span>
+          }
+          {record.statusCode != null && <StatusCodeBadge code={record.statusCode} />}
         </div>
         <button onClick={onClose} className="text-text-muted hover:text-text-secondary text-xl leading-none px-1">&times;</button>
       </div>

@@ -1,8 +1,10 @@
 import { Plus, FolderPlus } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
+import { useWsEndpointStore } from '../../stores/ws-endpoint.store';
 import { useTranslation } from '../../i18n';
 import { CollectionTree } from './CollectionTree';
+import { WsEndpointItem } from './WsEndpointItem';
 
 export function Sidebar() {
   const t = useTranslation();
@@ -10,6 +12,8 @@ export function Sidebar() {
   const showHistory = useUIStore(s => s.showHistory);
   const setShowNewEndpoint = useUIStore(s => s.setShowNewEndpoint);
   const setShowNewCollection = useUIStore(s => s.setShowNewCollection);
+  const setShowNewWsEndpoint = useUIStore(s => s.setShowNewWsEndpoint);
+  const wsEndpoints = useWsEndpointStore(s => s.endpoints);
 
   const panelTitle = showHistory ? t.sidebar.history : t.sidebar.collections;
 
@@ -41,16 +45,33 @@ export function Sidebar() {
       {/* Collection tree */}
       <div className="flex-1 overflow-y-auto px-2">
         <CollectionTree />
+
+        {/* WebSocket endpoints section */}
+        {!showHistory && wsEndpoints.length > 0 && (
+          <div className="mt-2">
+            <div className="px-2 py-1 text-xs text-text-muted uppercase tracking-wider">{t.sidebar.wsEndpoints}</div>
+            {wsEndpoints.map(ep => (
+              <WsEndpointItem key={ep.id} endpoint={ep} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
-      <div className="border-t border-border-primary p-2">
+      <div className="border-t border-border-primary p-2 flex flex-col gap-1">
         <button
           onClick={() => setShowNewEndpoint(true)}
           className="flex w-full items-center gap-1.5 rounded px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
         >
           <Plus size={14} strokeWidth={2} />
           {t.sidebar.newEndpoint}
+        </button>
+        <button
+          onClick={() => setShowNewWsEndpoint(true)}
+          className="flex w-full items-center gap-1.5 rounded px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover"
+        >
+          <Plus size={14} strokeWidth={2} />
+          {t.sidebar.newWsEndpoint}
         </button>
       </div>
     </div>

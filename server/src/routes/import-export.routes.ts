@@ -18,9 +18,9 @@ export async function importExportRoutes(app: FastifyInstance): Promise<void> {
       conflictPolicy: ConflictPolicy;
     };
 
-    if (!data || data.version !== 1) {
+    if (!data || (data.version !== 1 && data.version !== 2)) {
       reply.code(400);
-      return { error: 'Invalid or unsupported export format. Expected version 1.' };
+      return { error: 'Invalid or unsupported export format. Expected version 1 or 2.' };
     }
 
     if (!Array.isArray(data.endpoints)) {

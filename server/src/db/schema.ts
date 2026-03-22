@@ -66,13 +66,38 @@ export function initSchema(): void {
 
     CREATE TABLE IF NOT EXISTS request_records (
       id TEXT PRIMARY KEY,
+      protocol TEXT NOT NULL DEFAULT 'http',
       method TEXT NOT NULL,
       path TEXT NOT NULL,
-      status_code INTEGER NOT NULL,
+      status_code INTEGER NOT NULL DEFAULT 0,
       body_or_params TEXT NOT NULL DEFAULT '',
       request_headers TEXT NOT NULL DEFAULT '{}',
       response_body TEXT NOT NULL DEFAULT '',
       timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ws_endpoints (
+      id TEXT PRIMARY KEY,
+      path TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL DEFAULT '',
+      is_enabled INTEGER NOT NULL DEFAULT 1,
+      active_frame_id TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS ws_response_frames (
+      id TEXT PRIMARY KEY,
+      ws_endpoint_id TEXT NOT NULL REFERENCES ws_endpoints(id) ON DELETE CASCADE,
+      trigger TEXT NOT NULL DEFAULT 'message' CHECK(trigger IN ('message','connect')),
+      label TEXT NOT NULL DEFAULT 'Response',
+      message_body TEXT NOT NULL DEFAULT '',
+      delay REAL,
+      interval_min REAL,
+      interval_max REAL,
+      memo TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      match_rules TEXT
     );
 
     CREATE TABLE IF NOT EXISTS environments (
@@ -95,6 +120,25 @@ export function initSchema(): void {
     INSERT OR IGNORE INTO settings VALUES ('history_toast', 'true');
     INSERT OR IGNORE INTO settings VALUES ('theme', 'dark');
   `);
+
+  // Migration: add protocol column to request_records if missing (for existing databases)
+  const recordCols = db.prepare("PRAGMA table_info(request_records)").all() as { name: string }[];
+  if (!recordCols.some(c => c.name === 'protocol')) {
+    db.exec("ALTER TABLE request_records ADD COLUMN protocol TEXT NOT NULL DEFAULT 'http'");
+  }
+
+  // Migration: add trigger column to ws_response_frames if missing (for existing databases)
+  const frameCols = db.prepare("PRAGMA table_info(ws_response_frames)").all() as { name: string }[];
+  if (frameCols.length > 0 && !frameCols.some(c => c.name === 'trigger')) {
+    db.exec("ALTER TABLE ws_response_frames ADD COLUMN trigger TEXT NOT NULL DEFAULT 'message'");
+  }
+
+  // Migration: add interval_min/interval_max columns to ws_response_frames if missing
+  const frameCols2 = db.prepare("PRAGMA table_info(ws_response_frames)").all() as { name: string }[];
+  if (frameCols2.length > 0 && !frameCols2.some(c => c.name === 'interval_min')) {
+    db.exec("ALTER TABLE ws_response_frames ADD COLUMN interval_min REAL");
+    db.exec("ALTER TABLE ws_response_frames ADD COLUMN interval_max REAL");
+  }
 
   // Migration: add match_rules column if missing (for existing databases)
   const variantCols = db.prepare("PRAGMA table_info(response_variants)").all() as { name: string }[];

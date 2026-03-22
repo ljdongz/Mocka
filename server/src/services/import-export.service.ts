@@ -3,19 +3,51 @@ import { withTransaction } from '../db/connection.js';
 import * as endpointRepo from '../repositories/endpoint.repo.js';
 import * as variantRepo from '../repositories/variant.repo.js';
 import * as collectionRepo from '../repositories/collection.repo.js';
+import * as wsEndpointRepo from '../repositories/ws-endpoint.repo.js';
 import * as routeRegistry from './route-registry.js';
 import { emit } from './domain-events.js';
 import type { Endpoint } from '../models/endpoint.js';
 import type { Collection } from '../models/collection.js';
+import type { MatchRules } from '../models/response-variant.js';
 import { HTTP_METHODS, type HttpMethod } from '../models/http-method.js';
 import { normalizePath } from '../models/route-path.js';
 
-export interface ExportData {
+interface ExportDataV1 {
   version: 1;
   exportedAt: string;
   endpoints: ExportEndpoint[];
   collections: ExportCollection[];
 }
+
+interface ExportWsFrame {
+  trigger?: 'message' | 'connect';
+  label: string;
+  messageBody: string;
+  delay: number | null;
+  intervalMin: number | null;
+  intervalMax: number | null;
+  memo: string;
+  sortOrder: number;
+  matchRules: MatchRules | null;
+}
+
+interface ExportWsEndpoint {
+  path: string;
+  name: string;
+  isEnabled: boolean;
+  frames: ExportWsFrame[];
+  activeFrameIndex: number;
+}
+
+interface ExportDataV2 {
+  version: 2;
+  exportedAt: string;
+  endpoints: ExportEndpoint[];
+  collections: ExportCollection[];
+  wsEndpoints: ExportWsEndpoint[];
+}
+
+export type ExportData = ExportDataV1 | ExportDataV2;
 
 interface ExportEndpoint {
   method: string;
@@ -121,11 +153,35 @@ export function exportData(collectionIds?: string[]): ExportData {
       .filter((idx): idx is number => idx !== undefined),
   }));
 
+  const allWsEndpoints = wsEndpointRepo.findAll();
+  const exportWsEndpoints: ExportWsEndpoint[] = allWsEndpoints.map(wsEp => {
+    const frames = wsEp.responseFrames ?? [];
+    const activeFrameIndex = frames.findIndex(f => f.id === wsEp.activeFrameId);
+    return {
+      path: wsEp.path,
+      name: wsEp.name,
+      isEnabled: wsEp.isEnabled,
+      frames: frames.map(f => ({
+        trigger: f.trigger,
+        label: f.label,
+        messageBody: f.messageBody,
+        delay: f.delay,
+        intervalMin: f.intervalMin ?? null,
+        intervalMax: f.intervalMax ?? null,
+        memo: f.memo,
+        sortOrder: f.sortOrder,
+        matchRules: f.matchRules ?? null,
+      })),
+      activeFrameIndex: activeFrameIndex >= 0 ? activeFrameIndex : 0,
+    };
+  });
+
   return {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     endpoints: exportEndpoints,
     collections: exportCollections,
+    wsEndpoints: exportWsEndpoints,
   };
 }
 
@@ -261,12 +317,102 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
         result.errors.push(`Collection ${importCol.name}: ${e.message}`);
       }
     }
+    // Import WS endpoints (v2 only)
+    if (data.version === 2 && Array.isArray(data.wsEndpoints)) {
+      for (const importWsEp of data.wsEndpoints) {
+        try {
+          const normalizedPath = normalizePath(importWsEp.path);
+          const existing = wsEndpointRepo.findByPath(normalizedPath);
+
+          if (existing) {
+            switch (conflictPolicy) {
+              case 'skip':
+                result.skipped++;
+                continue;
+
+              case 'overwrite': {
+                wsEndpointRepo.remove(existing.id);
+                createWsEndpointFromImport(importWsEp);
+                result.overwritten++;
+                break;
+              }
+
+              case 'merge': {
+                const existingFrames = wsEndpointRepo.findFramesByEndpointId(existing.id);
+                const existingLabels = new Set(existingFrames.map(f => f.label));
+                let nextSort = existingFrames.length;
+                for (const f of importWsEp.frames ?? []) {
+                  if (!existingLabels.has(f.label)) {
+                    wsEndpointRepo.createFrame({
+                      id: uuid(),
+                      wsEndpointId: existing.id,
+                      trigger: f.trigger ?? 'message',
+                      label: f.label,
+                      messageBody: f.messageBody,
+                      delay: f.delay,
+                      intervalMin: f.intervalMin ?? null,
+                      intervalMax: f.intervalMax ?? null,
+                      memo: f.memo,
+                      sortOrder: nextSort++,
+                      matchRules: f.matchRules ?? null,
+                    });
+                  }
+                }
+                result.merged++;
+                break;
+              }
+            }
+          } else {
+            createWsEndpointFromImport(importWsEp);
+            result.created++;
+          }
+        } catch (e: any) {
+          result.errors.push(`WS endpoint ${importWsEp.path}: ${e.message}`);
+        }
+      }
+    }
   });
 
   routeRegistry.reload(endpointRepo.findAll());
   emit('import:completed', result);
 
   return result;
+}
+
+function createWsEndpointFromImport(importWsEp: ExportWsEndpoint): string {
+  const endpointId = uuid();
+  const frames = importWsEp.frames ?? [];
+  const frameIds: string[] = frames.map(() => uuid());
+  const activeFrameId = frameIds[importWsEp.activeFrameIndex] ?? frameIds[0] ?? null;
+
+  wsEndpointRepo.create({
+    id: endpointId,
+    path: normalizePath(importWsEp.path),
+    name: importWsEp.name ?? '',
+    isEnabled: importWsEp.isEnabled,
+    activeFrameId,
+    createdAt: '',
+    updatedAt: '',
+  });
+
+  for (let j = 0; j < frames.length; j++) {
+    const f = frames[j];
+    wsEndpointRepo.createFrame({
+      id: frameIds[j],
+      wsEndpointId: endpointId,
+      trigger: f.trigger ?? 'message',
+      label: f.label,
+      messageBody: f.messageBody,
+      delay: f.delay,
+      intervalMin: f.intervalMin ?? null,
+      intervalMax: f.intervalMax ?? null,
+      memo: f.memo ?? '',
+      sortOrder: f.sortOrder,
+      matchRules: f.matchRules ?? null,
+    });
+  }
+
+  return endpointId;
 }
 
 function createEndpointFromImport(importEp: ExportEndpoint): string {

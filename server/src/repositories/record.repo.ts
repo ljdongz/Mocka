@@ -2,7 +2,9 @@ import { getDb } from '../db/connection.js';
 import type { RequestRecord } from '../models/request-record.js';
 
 function rowToRecord(row: any): RequestRecord {
+  const protocol = row.protocol === 'ws' ? 'ws' : 'http';
   return {
+    protocol,
     id: row.id,
     method: row.method,
     path: row.path,
@@ -11,14 +13,18 @@ function rowToRecord(row: any): RequestRecord {
     requestHeaders: row.request_headers,
     responseBody: row.response_body,
     timestamp: row.timestamp,
-  };
+  } as RequestRecord;
 }
 
-export function findAll(opts: { method?: string; search?: string; limit?: number; offset?: number } = {}): RequestRecord[] {
+export function findAll(opts: { method?: string; search?: string; limit?: number; offset?: number; protocol?: string } = {}): RequestRecord[] {
   const db = getDb();
   const conditions: string[] = [];
   const params: any[] = [];
 
+  if (opts.protocol) {
+    conditions.push('protocol = ?');
+    params.push(opts.protocol);
+  }
   if (opts.method) {
     conditions.push('method = ?');
     params.push(opts.method);
@@ -40,9 +46,9 @@ export function findAll(opts: { method?: string; search?: string; limit?: number
 export function create(record: RequestRecord): RequestRecord {
   const db = getDb();
   db.prepare(`
-    INSERT INTO request_records (id, method, path, status_code, body_or_params, request_headers, response_body)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(record.id, record.method, record.path, record.statusCode, record.bodyOrParams, record.requestHeaders, record.responseBody);
+    INSERT INTO request_records (id, protocol, method, path, status_code, body_or_params, request_headers, response_body)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(record.id, record.protocol, record.method, record.path, record.statusCode, record.bodyOrParams, record.requestHeaders, record.responseBody);
   return record;
 }
 
