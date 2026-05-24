@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { endpointsApi } from '../api/endpoints';
-import type { Endpoint, HttpMethod, ResponseVariant, QueryParam, RequestHeader } from '../types';
+import type { Endpoint, HttpMethod, ResponseVariant, QueryParam, RequestHeader, SequencePreset } from '../types';
 
 interface EndpointStore {
   endpoints: Endpoint[];
@@ -18,6 +18,11 @@ interface EndpointStore {
   updateVariant: (variantId: string, data: Partial<ResponseVariant>) => Promise<void>;
   deleteVariant: (variantId: string) => Promise<void>;
   resetSequence: (id: string) => Promise<void>;
+  createPreset: (endpointId: string, data?: { name?: string; mode?: string }) => Promise<SequencePreset>;
+  updatePreset: (presetId: string, data: Partial<SequencePreset>) => Promise<void>;
+  deletePreset: (presetId: string) => Promise<void>;
+  setActivePreset: (endpointId: string, presetId: string | null) => Promise<void>;
+  addPresetVariant: (presetId: string) => Promise<Endpoint>;
   replaceEndpoint: (ep: Endpoint) => void;
   removeEndpointFromList: (id: string) => void;
 }
@@ -101,6 +106,42 @@ export const useEndpointStore = create<EndpointStore>((set, get) => ({
 
   resetSequence: async (id) => {
     await endpointsApi.resetSequence(id);
+  },
+
+  createPreset: async (endpointId, data) => {
+    const preset = await endpointsApi.createPreset(endpointId, data);
+    await endpointsApi.setActivePreset(endpointId, preset.id);
+    const updated = await endpointsApi.getById(endpointId);
+    set(s => ({ endpoints: s.endpoints.map(e => e.id === endpointId ? updated : e) }));
+    return preset;
+  },
+
+  updatePreset: async (presetId, data) => {
+    const preset = await endpointsApi.updatePreset(presetId, data);
+    if (preset) {
+      const updated = await endpointsApi.getById(preset.endpointId);
+      set(s => ({ endpoints: s.endpoints.map(e => e.id === preset.endpointId ? updated : e) }));
+    }
+  },
+
+  deletePreset: async (presetId) => {
+    const ep = get().endpoints.find(e => e.sequencePresets?.some(p => p.id === presetId));
+    await endpointsApi.deletePreset(presetId);
+    if (ep) {
+      const updated = await endpointsApi.getById(ep.id);
+      set(s => ({ endpoints: s.endpoints.map(e => e.id === ep.id ? updated : e) }));
+    }
+  },
+
+  setActivePreset: async (endpointId, presetId) => {
+    const ep = await endpointsApi.setActivePreset(endpointId, presetId);
+    set(s => ({ endpoints: s.endpoints.map(e => e.id === endpointId ? ep : e) }));
+  },
+
+  addPresetVariant: async (presetId) => {
+    const ep = await endpointsApi.addPresetVariant(presetId);
+    set(s => ({ endpoints: s.endpoints.map(e => e.id === ep.id ? ep : e) }));
+    return ep;
   },
 
   replaceEndpoint: (ep) => {

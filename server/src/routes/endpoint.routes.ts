@@ -113,4 +113,53 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
     endpointService.resetAllSequences();
     return { success: true };
   });
+
+  // Presets
+  app.get('/api/endpoints/:id/presets', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const ep = endpointService.getById(id);
+    if (!ep) { reply.code(404); return { error: 'Not found' }; }
+    return endpointService.getPresets(id);
+  });
+
+  app.post('/api/endpoints/:id/presets', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const data = req.body as { name?: string; mode?: 'sequential' | 'loop' };
+    const preset = endpointService.createPreset(id, data);
+    if (!preset) { reply.code(404); return { error: 'Not found' }; }
+    reply.code(201);
+    return preset;
+  });
+
+  app.put('/api/presets/:id', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const data = req.body as { name?: string; mode?: 'sequential' | 'loop' };
+    const preset = endpointService.updatePreset(id, data);
+    if (!preset) { reply.code(404); return { error: 'Not found' }; }
+    return preset;
+  });
+
+  app.delete('/api/presets/:id', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const ok = endpointService.removePreset(id);
+    if (!ok) { reply.code(404); return { error: 'Not found' }; }
+    return { success: true };
+  });
+
+  app.patch('/api/endpoints/:id/active-preset', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { presetId } = req.body as { presetId: string | null };
+    const ep = endpointService.setActivePreset(id, presetId);
+    if (!ep) { reply.code(404); return { error: 'Not found' }; }
+    return ep;
+  });
+
+  app.post('/api/presets/:id/variants', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const data = req.body as { statusCode?: number; description?: string };
+    const ep = endpointService.addPresetVariant(id, data);
+    if (!ep) { reply.code(404); return { error: 'Not found' }; }
+    reply.code(201);
+    return ep;
+  });
 }

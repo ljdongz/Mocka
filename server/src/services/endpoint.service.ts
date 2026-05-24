@@ -1,12 +1,15 @@
 import { v4 as uuid } from 'uuid';
 import * as endpointRepo from '../repositories/endpoint.repo.js';
 import * as variantRepo from '../repositories/variant.repo.js';
+import * as presetRepo from '../repositories/preset.repo.js';
 import * as routeRegistry from './route-registry.js';
 import * as collectionService from './collection.service.js';
 import * as sequenceCounter from './sequence-counter.service.js';
 import { emit } from './domain-events.js';
 import type { Endpoint } from '../models/endpoint.js';
 import { resolveActiveVariantAfterRemoval } from '../models/endpoint.js';
+import type { SequencePreset } from '../models/sequence-preset.js';
+import { resolveActivePresetAfterRemoval } from '../models/sequence-preset.js';
 import type { HttpMethod } from '../models/http-method.js';
 import { normalizePath } from '../models/route-path.js';
 
@@ -28,6 +31,7 @@ export function create(data: { method: HttpMethod; path: string; name?: string; 
     path: normalizePath(data.path),
     name: data.name ?? '',
     activeVariantId: variantId,
+    activePresetId: null,
     sequenceMode: 'off',
     isEnabled: true,
     requestBodyContentType: 'application/json',
@@ -48,6 +52,7 @@ export function create(data: { method: HttpMethod; path: string; name?: string; 
     sortOrder: 0,
     matchRules: null,
     variantGroup: 'standard',
+    presetId: null,
   });
 
   const full = endpointRepo.findById(id)!;
@@ -74,8 +79,8 @@ export function update(id: string, data: Partial<Endpoint>): Endpoint | null {
     routeRegistry.remove(existing.method, existing.path);
   }
 
-  if (data.sequenceMode && data.sequenceMode !== 'off' && data.sequenceMode !== existing.sequenceMode) {
-    sequenceCounter.reset(id);
+  if (data.sequenceMode === 'on' && existing.sequenceMode === 'off' && existing.activePresetId) {
+    sequenceCounter.reset(existing.activePresetId);
   }
 
   const ep = endpointRepo.update(id, data);
@@ -115,11 +120,14 @@ export function setActiveVariant(id: string, variantId: string | null): Endpoint
   return ep;
 }
 
-export function addVariant(endpointId: string, data?: Partial<{ statusCode: number; description: string; variantGroup: 'standard' | 'sequence' }>): Endpoint | null {
+export function addVariant(endpointId: string, data?: Partial<{ statusCode: number; description: string; variantGroup: 'standard' | 'sequence'; presetId: string }>): Endpoint | null {
   const ep = endpointRepo.findById(endpointId);
   if (!ep) return null;
   const group = data?.variantGroup ?? 'standard';
-  const existing = variantRepo.findByEndpointId(endpointId, group);
+  const presetId = data?.presetId ?? null;
+  const existing = presetId
+    ? variantRepo.findByPresetId(presetId)
+    : variantRepo.findByEndpointId(endpointId, group);
   variantRepo.create({
     id: uuid(),
     endpointId,
@@ -132,6 +140,7 @@ export function addVariant(endpointId: string, data?: Partial<{ statusCode: numb
     sortOrder: existing.length,
     matchRules: null,
     variantGroup: group,
+    presetId,
   });
   const updated = endpointRepo.findById(endpointId)!;
   routeRegistry.update(updated);
@@ -168,10 +177,11 @@ export function removeVariant(variantId: string): boolean {
   return result;
 }
 
-export function resetSequence(id: string): boolean {
+export function resetSequence(id: string, presetId?: string): boolean {
   const ep = endpointRepo.findById(id);
   if (!ep) return false;
-  sequenceCounter.reset(id);
+  const key = presetId ?? ep.activePresetId ?? id;
+  sequenceCounter.reset(key);
   return true;
 }
 
@@ -179,8 +189,120 @@ export function resetAllSequences(): void {
   sequenceCounter.resetAll();
 }
 
-export function getSequenceState(id: string): { index: number; mode: string } | null {
+export function getSequenceState(id: string): { index: number; mode: string; presetId: string | null } | null {
   const ep = endpointRepo.findById(id);
   if (!ep) return null;
-  return { index: sequenceCounter.peek(id), mode: ep.sequenceMode };
+  const preset = ep.sequencePresets?.find(p => p.id === ep.activePresetId);
+  const key = ep.activePresetId ?? id;
+  return { index: sequenceCounter.peek(key), mode: preset?.mode ?? ep.sequenceMode, presetId: ep.activePresetId };
+}
+
+// ── Preset CRUD ──
+
+export function getPresets(endpointId: string): SequencePreset[] {
+  return presetRepo.findByEndpointId(endpointId);
+}
+
+export function createPreset(endpointId: string, data?: Partial<{ name: string; mode: 'sequential' | 'loop' }>): SequencePreset | null {
+  const ep = endpointRepo.findById(endpointId);
+  if (!ep) return null;
+  const existing = presetRepo.findByEndpointId(endpointId);
+  const preset = presetRepo.create({
+    id: uuid(),
+    endpointId,
+    name: data?.name ?? 'New Preset',
+    mode: data?.mode ?? 'sequential',
+    sortOrder: existing.length,
+    createdAt: '',
+  });
+  variantRepo.create({
+    id: uuid(),
+    endpointId,
+    statusCode: 200,
+    description: 'Success',
+    body: '{}',
+    headers: '{}',
+    delay: null,
+    memo: '',
+    sortOrder: 0,
+    matchRules: null,
+    variantGroup: 'sequence',
+    presetId: preset.id,
+  });
+  if (existing.length === 0) {
+    endpointRepo.setActivePreset(endpointId, preset.id);
+  }
+  const updated = endpointRepo.findById(endpointId)!;
+  routeRegistry.update(updated);
+  emit('endpoint:updated', updated);
+  return preset;
+}
+
+export function updatePreset(presetId: string, data: Partial<{ name: string; mode: 'sequential' | 'loop' }>): SequencePreset | null {
+  const preset = presetRepo.update(presetId, data);
+  if (preset) {
+    const ep = endpointRepo.findById(preset.endpointId);
+    if (ep) {
+      routeRegistry.update(ep);
+      emit('endpoint:updated', ep);
+    }
+  }
+  return preset;
+}
+
+export function removePreset(presetId: string): boolean {
+  const preset = presetRepo.findById(presetId);
+  if (!preset) return false;
+  const ok = presetRepo.remove(presetId);
+  if (ok) {
+    sequenceCounter.cleanup(presetId);
+    const ep = endpointRepo.findById(preset.endpointId);
+    if (ep) {
+      if (ep.activePresetId === presetId) {
+        const remaining = presetRepo.findByEndpointId(preset.endpointId);
+        const newActiveId = resolveActivePresetAfterRemoval(ep.activePresetId, presetId, remaining);
+        endpointRepo.setActivePreset(preset.endpointId, newActiveId);
+        if (!newActiveId) {
+          endpointRepo.update(preset.endpointId, { sequenceMode: 'off' });
+        }
+      }
+      const updated = endpointRepo.findById(preset.endpointId)!;
+      routeRegistry.update(updated);
+      emit('endpoint:updated', updated);
+    }
+  }
+  return ok;
+}
+
+export function setActivePreset(endpointId: string, presetId: string | null): Endpoint | null {
+  const ep = endpointRepo.setActivePreset(endpointId, presetId);
+  if (ep) {
+    routeRegistry.update(ep);
+    emit('endpoint:updated', ep);
+  }
+  return ep;
+}
+
+export function addPresetVariant(presetId: string, data?: Partial<{ statusCode: number; description: string }>): Endpoint | null {
+  const preset = presetRepo.findById(presetId);
+  if (!preset) return null;
+  const existing = variantRepo.findByPresetId(presetId);
+  variantRepo.create({
+    id: uuid(),
+    endpointId: preset.endpointId,
+    statusCode: data?.statusCode ?? 200,
+    description: data?.description ?? 'New Response',
+    body: '{}',
+    headers: '{}',
+    delay: null,
+    memo: '',
+    sortOrder: existing.length,
+    matchRules: null,
+    variantGroup: 'sequence',
+    presetId,
+  });
+  const updated = endpointRepo.findById(preset.endpointId)!;
+  routeRegistry.update(updated);
+  emit('endpoint:updated', updated);
+  return updated;
 }

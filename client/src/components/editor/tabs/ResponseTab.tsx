@@ -19,11 +19,20 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
   const deleteVariant = useEndpointStore(s => s.deleteVariant);
   const updateEndpoint = useEndpointStore(s => s.updateEndpoint);
   const resetSequence = useEndpointStore(s => s.resetSequence);
-  const isSequence = endpoint.sequenceMode !== 'off';
+  const createPreset = useEndpointStore(s => s.createPreset);
+  const updatePreset = useEndpointStore(s => s.updatePreset);
+  const deletePreset = useEndpointStore(s => s.deletePreset);
+  const setActivePreset = useEndpointStore(s => s.setActivePreset);
+  const addPresetVariant = useEndpointStore(s => s.addPresetVariant);
+  const isSequence = endpoint.sequenceMode === 'on';
 
   const allVariants = endpoint.responseVariants ?? [];
-  const currentGroup = isSequence ? 'sequence' : 'standard';
-  const variants = allVariants.filter(v => v.variantGroup === currentGroup);
+  const presets = endpoint.sequencePresets ?? [];
+  const activePreset = presets.find(p => p.id === endpoint.activePresetId) ?? presets[0];
+
+  const variants = isSequence && activePreset
+    ? allVariants.filter(v => v.presetId === activePreset.id)
+    : allVariants.filter(v => v.variantGroup === 'standard');
   const activeVariant = variants.find(v => v.id === endpoint.activeVariantId) ?? variants[0];
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null);
@@ -75,26 +84,33 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
               {t.response.resetSequence}
             </button>
           )}
-          <button onClick={async () => {
-            const ep = await addVariant(endpoint.id, currentGroup);
-            const newVariant = ep.responseVariants?.filter(v => v.variantGroup === currentGroup).at(-1);
-            if (newVariant) {
-              setEditingVariantId(newVariant.id);
-              if (!isSequence) setActiveVariant(endpoint.id, newVariant.id);
-            }
-          }} className="text-sm text-accent-primary hover:underline">
-            {t.response.addResponse}
-          </button>
+          {!isSequence && (
+            <button onClick={async () => {
+              const ep = await addVariant(endpoint.id);
+              const newVariant = ep.responseVariants?.filter(v => v.variantGroup === 'standard').at(-1);
+              if (newVariant) {
+                setEditingVariantId(newVariant.id);
+                setActiveVariant(endpoint.id, newVariant.id);
+              }
+            }} className="text-sm text-accent-primary hover:underline">
+              {t.response.addResponse}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Sequence mode selector */}
+      {/* Mode selector: Standard | Sequence */}
       <div className="flex items-center gap-1 mb-3">
         <span className="text-xs text-text-muted mr-2">{t.response.responseMode}</span>
-        {(['off', 'sequential', 'loop'] as const).map(mode => (
+        {(['off', 'on'] as const).map(mode => (
           <button
             key={mode}
-            onClick={() => updateEndpoint(endpoint.id, { sequenceMode: mode })}
+            onClick={async () => {
+              if (mode === 'on' && presets.length === 0) {
+                await createPreset(endpoint.id, { name: 'Default' });
+              }
+              updateEndpoint(endpoint.id, { sequenceMode: mode });
+            }}
             className={clsx(
               'text-xs px-3 py-1 rounded-full border transition-colors',
               endpoint.sequenceMode === mode
@@ -102,19 +118,109 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
                 : 'border-border-primary text-text-secondary hover:border-accent-primary',
             )}
           >
-            {mode === 'off' ? t.response.modeStandard : mode === 'sequential' ? t.response.modeSequential : t.response.modeLoop}
+            {mode === 'off' ? t.response.modeStandard : t.response.modeSequence}
           </button>
         ))}
       </div>
+
+      {/* Preset list (only in Sequence mode) */}
       {isSequence && (
-        <p className="text-xs text-text-tertiary mb-3">
-          {endpoint.sequenceMode === 'sequential' ? t.response.sequentialDescription : t.response.loopDescription}
-        </p>
+        <div className="mb-3">
+          <div className="text-xs text-text-muted uppercase tracking-wider mb-2">{t.response.presetLabel}</div>
+          {presets.map(p => (
+            <div
+              key={p.id}
+              className={clsx(
+                'flex items-center gap-3 rounded px-3 py-2 mb-1 cursor-pointer',
+                p.id === activePreset?.id ? 'bg-bg-hover' : 'hover:bg-bg-hover',
+              )}
+              onClick={() => setActivePreset(endpoint.id, p.id)}
+            >
+              <input
+                type="radio"
+                name={`preset-${endpoint.id}`}
+                checked={p.id === endpoint.activePresetId}
+                onChange={() => setActivePreset(endpoint.id, p.id)}
+                onClick={e => e.stopPropagation()}
+                className="accent-accent-primary"
+              />
+              <input
+                type="text"
+                defaultValue={p.name}
+                key={`name-${p.id}`}
+                onClick={e => e.stopPropagation()}
+                onBlur={e => {
+                  const name = e.target.value.trim();
+                  if (name && name !== p.name) updatePreset(p.id, { name });
+                }}
+                onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                placeholder={t.response.presetNamePlaceholder}
+                className="text-sm bg-transparent border-none outline-none text-text-primary flex-1 min-w-0"
+              />
+              <span className={clsx(
+                'text-[10px] px-1.5 py-0.5 rounded-full border',
+                p.mode === 'sequential'
+                  ? 'border-accent-primary/30 text-accent-primary'
+                  : 'border-purple-400/30 text-purple-400',
+              )}>
+                {p.mode === 'sequential' ? t.response.modeSequential : t.response.modeLoop}
+              </span>
+              {presets.length > 1 && (
+                <button
+                  onClick={e => { e.stopPropagation(); deletePreset(p.id); }}
+                  className="text-text-muted hover:text-method-delete flex items-center"
+                >
+                  <X size={14} strokeWidth={2.5} />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={() => createPreset(endpoint.id)}
+            className="text-xs text-accent-primary hover:underline mt-1 ml-3"
+          >
+            {t.response.newPreset}
+          </button>
+
+          {/* Active preset controls */}
+          {activePreset && (
+            <div className="flex items-center gap-2 mt-3 mb-2">
+              {(['sequential', 'loop'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => updatePreset(activePreset.id, { mode })}
+                  className={clsx(
+                    'text-xs px-3 py-1 rounded-full border transition-colors',
+                    activePreset.mode === mode
+                      ? 'bg-accent-primary text-white border-accent-primary'
+                      : 'border-border-primary text-text-secondary hover:border-accent-primary',
+                  )}
+                >
+                  {mode === 'sequential' ? t.response.modeSequential : t.response.modeLoop}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-text-tertiary">
+            {activePreset?.mode === 'sequential' ? t.response.sequentialDescription : t.response.loopDescription}
+          </p>
+        </div>
       )}
 
       {/* Variant list */}
       <div className="mb-4">
-        <div className="text-xs text-text-muted uppercase tracking-wider mb-2">{t.response.responseVariants}</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs text-text-muted uppercase tracking-wider">{t.response.responseVariants}</div>
+          {isSequence && activePreset && (
+            <button onClick={async () => {
+              const ep = await addPresetVariant(activePreset.id);
+              const newVariant = ep.responseVariants?.filter(v => v.presetId === activePreset.id).at(-1);
+              if (newVariant) setEditingVariantId(newVariant.id);
+            }} className="text-sm text-accent-primary hover:underline">
+              {t.response.addResponse}
+            </button>
+          )}
+        </div>
         {variants.map((v, idx) => (
           <div
             key={v.id}
@@ -223,7 +329,7 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
                 ) : null;
               })()}
             </span>
-            {variants.length > 1 && (
+            {(isSequence || variants.length > 1) && (
               <button
                 onClick={e => { e.stopPropagation(); deleteVariant(v.id); }}
                 className="text-text-muted hover:text-method-delete flex items-center"

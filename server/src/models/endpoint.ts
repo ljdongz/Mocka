@@ -1,5 +1,6 @@
 import type { HttpMethod } from './http-method.js';
 import type { ResponseVariant } from './response-variant.js';
+import type { SequencePreset } from './sequence-preset.js';
 
 /**
  * Determine the next active variant ID after a variant is removed.
@@ -23,7 +24,8 @@ export interface Endpoint {
   path: string;
   name: string;
   activeVariantId: string | null;
-  sequenceMode: 'off' | 'sequential' | 'loop';
+  activePresetId: string | null;
+  sequenceMode: 'off' | 'on';
   isEnabled: boolean;
   requestBodyContentType: string;
   requestBodyRaw: string;
@@ -32,6 +34,7 @@ export interface Endpoint {
   queryParams?: QueryParam[];
   requestHeaders?: RequestHeader[];
   responseVariants?: ResponseVariant[];
+  sequencePresets?: SequencePreset[];
 }
 
 export interface QueryParam {

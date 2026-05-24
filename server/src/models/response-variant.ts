@@ -24,6 +24,7 @@ export interface ResponseVariant {
   sortOrder: number;
   matchRules: MatchRules | null;
   variantGroup: 'standard' | 'sequence';
+  presetId: string | null;
 }
 
 /** Check if a single match rule passes against a value */

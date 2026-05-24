@@ -2,6 +2,7 @@ import { v4 as uuid } from 'uuid';
 import { withTransaction } from '../db/connection.js';
 import * as endpointRepo from '../repositories/endpoint.repo.js';
 import * as variantRepo from '../repositories/variant.repo.js';
+import * as presetRepo from '../repositories/preset.repo.js';
 import * as collectionRepo from '../repositories/collection.repo.js';
 import * as wsEndpointRepo from '../repositories/ws-endpoint.repo.js';
 import * as routeRegistry from './route-registry.js';
@@ -47,7 +48,22 @@ interface ExportDataV2 {
   wsEndpoints: ExportWsEndpoint[];
 }
 
-export type ExportData = ExportDataV1 | ExportDataV2;
+interface ExportPreset {
+  name: string;
+  mode: 'sequential' | 'loop';
+  sortOrder: number;
+  variants: ExportVariant[];
+}
+
+interface ExportDataV3 {
+  version: 3;
+  exportedAt: string;
+  endpoints: ExportEndpoint[];
+  collections: ExportCollection[];
+  wsEndpoints: ExportWsEndpoint[];
+}
+
+export type ExportData = ExportDataV1 | ExportDataV2 | ExportDataV3;
 
 interface ExportEndpoint {
   method: string;
@@ -60,7 +76,9 @@ interface ExportEndpoint {
   requestHeaders: { key: string; value: string; isEnabled: boolean; sortOrder: number }[];
   responseVariants: ExportVariant[];
   activeVariantIndex: number;
-  sequenceMode?: 'off' | 'sequential' | 'loop';
+  sequenceMode?: 'off' | 'on' | 'sequential' | 'loop';
+  sequencePresets?: ExportPreset[];
+  activePresetIndex?: number;
 }
 
 interface ExportVariant {
@@ -133,7 +151,7 @@ export function exportData(collectionIds?: string[]): ExportData {
       requestHeaders: (ep.requestHeaders ?? []).map(h => ({
         key: h.key, value: h.value, isEnabled: h.isEnabled, sortOrder: h.sortOrder,
       })),
-      responseVariants: (ep.responseVariants ?? []).map(v => ({
+      responseVariants: (ep.responseVariants ?? []).filter(v => v.variantGroup === 'standard').map(v => ({
         statusCode: v.statusCode,
         description: v.description,
         body: v.body,
@@ -142,10 +160,27 @@ export function exportData(collectionIds?: string[]): ExportData {
         memo: v.memo,
         sortOrder: v.sortOrder,
         matchRules: v.matchRules ?? null,
-        variantGroup: v.variantGroup ?? 'standard',
+        variantGroup: 'standard' as const,
       })),
       activeVariantIndex: activeVariantIndex >= 0 ? activeVariantIndex : 0,
       sequenceMode: ep.sequenceMode ?? 'off',
+      sequencePresets: (ep.sequencePresets ?? []).map(preset => ({
+        name: preset.name,
+        mode: preset.mode,
+        sortOrder: preset.sortOrder,
+        variants: (ep.responseVariants ?? []).filter(v => v.presetId === preset.id).map(v => ({
+          statusCode: v.statusCode,
+          description: v.description,
+          body: v.body,
+          headers: v.headers,
+          delay: v.delay,
+          memo: v.memo,
+          sortOrder: v.sortOrder,
+          matchRules: v.matchRules ?? null,
+          variantGroup: 'sequence' as const,
+        })),
+      })),
+      activePresetIndex: ep.sequencePresets?.findIndex(p => p.id === ep.activePresetId) ?? -1,
     };
   });
 
@@ -181,7 +216,7 @@ export function exportData(collectionIds?: string[]): ExportData {
   });
 
   return {
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     endpoints: exportEndpoints,
     collections: exportCollections,
@@ -263,6 +298,7 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
                     sortOrder: nextSort++,
                     matchRules: v.matchRules ?? null,
                     variantGroup: v.variantGroup ?? 'standard',
+                    presetId: null,
                   });
                 }
               }
@@ -432,13 +468,14 @@ function createEndpointFromImport(importEp: ExportEndpoint): string {
     path: normalizePath(importEp.path),
     name: importEp.name ?? '',
     activeVariantId,
-    sequenceMode: importEp.sequenceMode ?? 'off',
+    activePresetId: null,
+    sequenceMode: (importEp.sequenceMode === 'sequential' || importEp.sequenceMode === 'loop') ? 'on' : (importEp.sequenceMode ?? 'off'),
     isEnabled: importEp.isEnabled,
     requestBodyContentType: importEp.requestBodyContentType || 'application/json',
     requestBodyRaw: importEp.requestBodyRaw || '',
     createdAt: '',
     updatedAt: '',
-  });
+  } as any);
 
   for (let j = 0; j < variants.length; j++) {
     const v = variants[j];
@@ -454,6 +491,7 @@ function createEndpointFromImport(importEp: ExportEndpoint): string {
       sortOrder: v.sortOrder,
       matchRules: v.matchRules ?? null,
       variantGroup: v.variantGroup ?? 'standard',
+      presetId: null,
     });
   }
 
@@ -466,6 +504,47 @@ function createEndpointFromImport(importEp: ExportEndpoint): string {
     endpointId,
     (importEp.requestHeaders ?? []).map(h => ({ id: uuid(), ...h })),
   );
+
+  // Import presets (v3+) or synthesize from old sequence variants (v1/v2)
+  const presets = importEp.sequencePresets ?? [];
+  if (presets.length > 0) {
+    let activePresetId: string | null = null;
+    presets.forEach((preset, pIdx) => {
+      const presetId = uuid();
+      if (pIdx === (importEp.activePresetIndex ?? 0)) activePresetId = presetId;
+      presetRepo.create({
+        id: presetId, endpointId, name: preset.name, mode: preset.mode, sortOrder: preset.sortOrder, createdAt: '',
+      });
+      for (const v of preset.variants ?? []) {
+        variantRepo.create({
+          id: uuid(), endpointId, statusCode: v.statusCode, description: v.description,
+          body: v.body, headers: v.headers, delay: v.delay, memo: v.memo ?? '',
+          sortOrder: v.sortOrder, matchRules: v.matchRules ?? null, variantGroup: 'sequence', presetId,
+        });
+      }
+    });
+    if (activePresetId) {
+      endpointRepo.update(endpointId, { activePresetId, sequenceMode: 'on' } as any);
+    }
+  } else {
+    // v1/v2: synthesize preset from old sequence variants
+    const seqVariants = variants.filter((_, j) => (importEp.responseVariants ?? [])[j]?.variantGroup === 'sequence');
+    if (seqVariants.length > 0) {
+      const oldMode = importEp.sequenceMode;
+      const presetId = uuid();
+      presetRepo.create({
+        id: presetId, endpointId, name: 'Default',
+        mode: (oldMode === 'sequential' || oldMode === 'loop') ? oldMode : 'sequential',
+        sortOrder: 0, createdAt: '',
+      });
+      for (let j = 0; j < variants.length; j++) {
+        if ((importEp.responseVariants ?? [])[j]?.variantGroup === 'sequence') {
+          variantRepo.update(variantIds[j], { presetId });
+        }
+      }
+      endpointRepo.update(endpointId, { activePresetId: presetId, sequenceMode: 'on' } as any);
+    }
+  }
 
   const full = endpointRepo.findById(endpointId)!;
   routeRegistry.add(full);

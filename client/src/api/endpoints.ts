@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Endpoint, HttpMethod, ResponseVariant } from '../types';
+import type { Endpoint, HttpMethod, ResponseVariant, SequencePreset } from '../types';
 
 export const endpointsApi = {
   getAll: () => api.get<Endpoint[]>('/api/endpoints'),
@@ -13,4 +13,9 @@ export const endpointsApi = {
   updateVariant: (id: string, data: Partial<ResponseVariant>) => api.put<ResponseVariant>(`/api/variants/${id}`, data),
   deleteVariant: (id: string) => api.delete(`/api/variants/${id}`),
   resetSequence: (id: string) => api.post(`/api/endpoints/${id}/sequence/reset`),
+  createPreset: (endpointId: string, data?: { name?: string; mode?: string }) => api.post<SequencePreset>(`/api/endpoints/${endpointId}/presets`, data),
+  updatePreset: (presetId: string, data: Partial<SequencePreset>) => api.put<SequencePreset>(`/api/presets/${presetId}`, data),
+  deletePreset: (presetId: string) => api.delete(`/api/presets/${presetId}`),
+  setActivePreset: (endpointId: string, presetId: string | null) => api.patch<Endpoint>(`/api/endpoints/${endpointId}/active-preset`, { presetId }),
+  addPresetVariant: (presetId: string, data?: { statusCode?: number; description?: string }) => api.post<Endpoint>(`/api/presets/${presetId}/variants`, data),
 };

@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { getDb } from './connection.js';
 
 export function initSchema(): void {
@@ -111,6 +112,15 @@ export function initSchema(): void {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS sequence_presets (
+      id TEXT PRIMARY KEY,
+      endpoint_id TEXT NOT NULL REFERENCES endpoints(id) ON DELETE CASCADE,
+      name TEXT NOT NULL DEFAULT 'Default',
+      mode TEXT NOT NULL DEFAULT 'sequential',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -164,6 +174,44 @@ export function initSchema(): void {
   const variantCols2 = db.prepare("PRAGMA table_info(response_variants)").all() as { name: string }[];
   if (!variantCols2.some(c => c.name === 'variant_group')) {
     db.exec("ALTER TABLE response_variants ADD COLUMN variant_group TEXT NOT NULL DEFAULT 'standard'");
+  }
+
+  // Migration: add preset_id column to response_variants if missing
+  const variantCols3 = db.prepare("PRAGMA table_info(response_variants)").all() as { name: string }[];
+  if (!variantCols3.some(c => c.name === 'preset_id')) {
+    db.exec("ALTER TABLE response_variants ADD COLUMN preset_id TEXT REFERENCES sequence_presets(id) ON DELETE CASCADE");
+  }
+
+  // Migration: add active_preset_id column to endpoints if missing
+  const endpointCols3 = db.prepare("PRAGMA table_info(endpoints)").all() as { name: string }[];
+  if (!endpointCols3.some(c => c.name === 'active_preset_id')) {
+    db.exec("ALTER TABLE endpoints ADD COLUMN active_preset_id TEXT REFERENCES sequence_presets(id) ON DELETE SET NULL");
+  }
+
+  // Migration: convert existing sequence variants into presets
+  const seqEndpoints = db.prepare(
+    "SELECT id, sequence_mode FROM endpoints WHERE sequence_mode IN ('sequential', 'loop')"
+  ).all() as { id: string; sequence_mode: string }[];
+
+  for (const ep of seqEndpoints) {
+    const existingPreset = db.prepare(
+      "SELECT id FROM sequence_presets WHERE endpoint_id = ?"
+    ).get(ep.id) as { id: string } | undefined;
+
+    if (!existingPreset) {
+      const presetId = randomUUID();
+      db.prepare(
+        "INSERT INTO sequence_presets (id, endpoint_id, name, mode, sort_order) VALUES (?, ?, 'Default', ?, 0)"
+      ).run(presetId, ep.id, ep.sequence_mode);
+
+      db.prepare(
+        "UPDATE response_variants SET preset_id = ? WHERE endpoint_id = ? AND variant_group = 'sequence'"
+      ).run(presetId, ep.id);
+
+      db.prepare(
+        "UPDATE endpoints SET active_preset_id = ?, sequence_mode = 'on' WHERE id = ?"
+      ).run(presetId, ep.id);
+    }
   }
 
   // Migration: normalize trailing slashes in existing endpoint paths

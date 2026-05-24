@@ -2,6 +2,11 @@ import { getDb } from '../db/connection.js';
 import type { Endpoint, QueryParam, RequestHeader } from '../models/endpoint.js';
 import { rowToVariant } from './variant.repo.js';
 import { normalizePath } from '../models/route-path.js';
+import type { SequencePreset } from '../models/sequence-preset.js';
+
+function rowToPreset(row: any): SequencePreset {
+  return { id: row.id, endpointId: row.endpoint_id, name: row.name, mode: row.mode, sortOrder: row.sort_order, createdAt: row.created_at };
+}
 
 function rowToEndpoint(row: any): Endpoint {
   return {
@@ -10,6 +15,7 @@ function rowToEndpoint(row: any): Endpoint {
     path: row.path,
     name: row.name ?? '',
     activeVariantId: row.active_variant_id,
+    activePresetId: row.active_preset_id ?? null,
     sequenceMode: row.sequence_mode ?? 'off',
     isEnabled: !!row.is_enabled,
     requestBodyContentType: row.request_body_content_type,
@@ -49,6 +55,7 @@ export function findAll(): Endpoint[] {
     ep.queryParams = db.prepare('SELECT * FROM query_params WHERE endpoint_id = ? ORDER BY sort_order').all(ep.id).map(rowToParam);
     ep.requestHeaders = db.prepare('SELECT * FROM request_headers WHERE endpoint_id = ? ORDER BY sort_order').all(ep.id).map(rowToHeader);
     ep.responseVariants = db.prepare('SELECT * FROM response_variants WHERE endpoint_id = ? ORDER BY sort_order').all(ep.id).map(rowToVariant);
+    ep.sequencePresets = db.prepare('SELECT * FROM sequence_presets WHERE endpoint_id = ? ORDER BY sort_order').all(ep.id).map(rowToPreset);
     return ep;
   });
 }
@@ -61,15 +68,16 @@ export function findById(id: string): Endpoint | null {
   ep.queryParams = db.prepare('SELECT * FROM query_params WHERE endpoint_id = ? ORDER BY sort_order').all(id).map(rowToParam);
   ep.requestHeaders = db.prepare('SELECT * FROM request_headers WHERE endpoint_id = ? ORDER BY sort_order').all(id).map(rowToHeader);
   ep.responseVariants = db.prepare('SELECT * FROM response_variants WHERE endpoint_id = ? ORDER BY sort_order').all(id).map(rowToVariant);
+  ep.sequencePresets = db.prepare('SELECT * FROM sequence_presets WHERE endpoint_id = ? ORDER BY sort_order').all(id).map(rowToPreset);
   return ep;
 }
 
 export function create(ep: Endpoint): Endpoint {
   const db = getDb();
   db.prepare(`
-    INSERT INTO endpoints (id, method, path, name, active_variant_id, sequence_mode, is_enabled, request_body_content_type, request_body_raw)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(ep.id, ep.method, ep.path, ep.name ?? '', ep.activeVariantId, ep.sequenceMode ?? 'off', ep.isEnabled ? 1 : 0, ep.requestBodyContentType, ep.requestBodyRaw);
+    INSERT INTO endpoints (id, method, path, name, active_variant_id, active_preset_id, sequence_mode, is_enabled, request_body_content_type, request_body_raw)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(ep.id, ep.method, ep.path, ep.name ?? '', ep.activeVariantId, ep.activePresetId ?? null, ep.sequenceMode ?? 'off', ep.isEnabled ? 1 : 0, ep.requestBodyContentType, ep.requestBodyRaw);
   return findById(ep.id)!;
 }
 
@@ -82,16 +90,17 @@ export function update(id: string, data: Partial<Endpoint>): Endpoint | null {
   const path = normalizePath(data.path ?? existing.path);
   const name = data.name !== undefined ? data.name : existing.name;
   const activeVariantId = data.activeVariantId !== undefined ? data.activeVariantId : existing.activeVariantId;
+  const activePresetId = data.activePresetId !== undefined ? data.activePresetId : existing.activePresetId;
   const sequenceMode = data.sequenceMode ?? existing.sequenceMode;
   const isEnabled = data.isEnabled !== undefined ? data.isEnabled : existing.isEnabled;
   const contentType = data.requestBodyContentType ?? existing.requestBodyContentType;
   const bodyRaw = data.requestBodyRaw ?? existing.requestBodyRaw;
 
   db.prepare(`
-    UPDATE endpoints SET method=?, path=?, name=?, active_variant_id=?, sequence_mode=?, is_enabled=?,
+    UPDATE endpoints SET method=?, path=?, name=?, active_variant_id=?, active_preset_id=?, sequence_mode=?, is_enabled=?,
     request_body_content_type=?, request_body_raw=?, updated_at=datetime('now')
     WHERE id=?
-  `).run(method, path, name, activeVariantId, sequenceMode, isEnabled ? 1 : 0, contentType, bodyRaw, id);
+  `).run(method, path, name, activeVariantId, activePresetId, sequenceMode, isEnabled ? 1 : 0, contentType, bodyRaw, id);
 
   // Sync query params
   if (data.queryParams) {
@@ -132,6 +141,12 @@ export function setActiveVariant(id: string, variantId: string | null): Endpoint
   return findById(id);
 }
 
+export function setActivePreset(id: string, presetId: string | null): Endpoint | null {
+  const db = getDb();
+  db.prepare('UPDATE endpoints SET active_preset_id = ?, updated_at = datetime(\'now\') WHERE id = ?').run(presetId, id);
+  return findById(id);
+}
+
 export function createQueryParams(endpointId: string, params: { id: string; key: string; value: string; isEnabled: boolean; sortOrder: number }[]): void {
   const db = getDb();
   const ins = db.prepare('INSERT INTO query_params (id, endpoint_id, key, value, is_enabled, sort_order) VALUES (?,?,?,?,?,?)');
@@ -154,5 +169,6 @@ export function findByMethodAndPath(method: string, path: string): Endpoint | nu
   if (!row) return null;
   const ep = rowToEndpoint(row);
   ep.responseVariants = db.prepare('SELECT * FROM response_variants WHERE endpoint_id = ? ORDER BY sort_order').all(ep.id).map(rowToVariant);
+  ep.sequencePresets = db.prepare('SELECT * FROM sequence_presets WHERE endpoint_id = ? ORDER BY sort_order').all(ep.id).map(rowToPreset);
   return ep;
 }

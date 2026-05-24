@@ -6,7 +6,8 @@ export interface Endpoint {
   path: string;
   name: string;
   activeVariantId: string | null;
-  sequenceMode: 'off' | 'sequential' | 'loop';
+  activePresetId: string | null;
+  sequenceMode: 'off' | 'on';
   isEnabled: boolean;
   requestBodyContentType: string;
   requestBodyRaw: string;
@@ -15,6 +16,7 @@ export interface Endpoint {
   queryParams: QueryParam[];
   requestHeaders: RequestHeader[];
   responseVariants: ResponseVariant[];
+  sequencePresets: SequencePreset[];
 }
 
 export interface QueryParam {
@@ -61,6 +63,16 @@ export interface ResponseVariant {
   sortOrder: number;
   matchRules: MatchRules | null;
   variantGroup: 'standard' | 'sequence';
+  presetId: string | null;
+}
+
+export interface SequencePreset {
+  id: string;
+  endpointId: string;
+  name: string;
+  mode: 'sequential' | 'loop';
+  sortOrder: number;
+  createdAt: string;
 }
 
 export interface Collection {

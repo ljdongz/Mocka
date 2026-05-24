@@ -17,8 +17,9 @@ export function resolveEnvVariables(template: string, envVars: Record<string, st
 
 /** Select the best matching ResponseVariant for a request */
 export function resolveVariant(
-  endpoint: { id: string; activeVariantId?: string; sequenceMode: 'off' | 'sequential' | 'loop' },
+  endpoint: { id: string; activeVariantId?: string; sequenceMode: 'off' | 'on'; activePresetId?: string | null },
   variants: ResponseVariant[],
+  presetMode: 'sequential' | 'loop' | null,
   headers: Record<string, string>,
   body: any,
   queryParams: Record<string, string>,
@@ -42,10 +43,10 @@ export function resolveVariant(
     if (found) return found;
   }
 
-  // 3. Sequence mode — pick by call counter, skip match rules
-  if (endpoint.sequenceMode !== 'off') {
+  // 3. Sequence mode — pick by call counter from active preset
+  if (endpoint.sequenceMode === 'on' && endpoint.activePresetId && presetMode) {
     const sorted = [...variants].sort((a, b) => a.sortOrder - b.sortOrder);
-    const index = sequenceCounter.getNextIndex(endpoint.id, sorted.length, endpoint.sequenceMode);
+    const index = sequenceCounter.getNextIndex(endpoint.activePresetId, sorted.length, presetMode);
     return sorted[index];
   }
 
@@ -107,13 +108,22 @@ export async function handleMockRequest(
   const { endpoint, pathParams } = result;
   const queryParams = parseQueryParams(url);
   const allVariants = endpoint.responseVariants ?? [];
-  const seqMode = endpoint.sequenceMode ?? 'off';
-  const group = seqMode !== 'off' ? 'sequence' : 'standard';
-  const variants = allVariants.filter(v => v.variantGroup === group);
+  const seqMode = (endpoint.sequenceMode ?? 'off') as 'off' | 'on';
+
+  let variants: typeof allVariants;
+  let presetMode: 'sequential' | 'loop' | null = null;
+
+  if (seqMode === 'on' && endpoint.activePresetId) {
+    const preset = endpoint.sequencePresets?.find(p => p.id === endpoint.activePresetId);
+    presetMode = preset?.mode ?? null;
+    variants = allVariants.filter(v => v.presetId === endpoint.activePresetId);
+  } else {
+    variants = allVariants.filter(v => v.variantGroup === 'standard');
+  }
 
   const variant = resolveVariant(
-    { id: endpoint.id, activeVariantId: endpoint.activeVariantId ?? undefined, sequenceMode: seqMode },
-    variants, headers, body, queryParams, pathParams,
+    { id: endpoint.id, activeVariantId: endpoint.activeVariantId ?? undefined, sequenceMode: seqMode, activePresetId: endpoint.activePresetId },
+    variants, presetMode, headers, body, queryParams, pathParams,
   );
 
   if (!variant) {
