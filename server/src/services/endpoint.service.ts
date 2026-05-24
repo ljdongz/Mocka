@@ -123,8 +123,12 @@ export function setActiveVariant(id: string, variantId: string | null): Endpoint
 export function addVariant(endpointId: string, data?: Partial<{ statusCode: number; description: string; variantGroup: 'standard' | 'sequence'; presetId: string }>): Endpoint | null {
   const ep = endpointRepo.findById(endpointId);
   if (!ep) return null;
-  const group = data?.variantGroup ?? 'standard';
-  const presetId = data?.presetId ?? null;
+  let group = data?.variantGroup ?? 'standard';
+  let presetId = data?.presetId ?? null;
+  if (group === 'sequence' && !presetId && ep.activePresetId) {
+    presetId = ep.activePresetId;
+  }
+  if (presetId) group = 'sequence';
   const existing = presetId
     ? variantRepo.findByPresetId(presetId)
     : variantRepo.findByEndpointId(endpointId, group);

@@ -19,10 +19,10 @@ const matchRulesSchema = z.object({
 export function registerVariantTools(server: McpServer) {
   server.tool(
     'add_variant',
-    'Add a response variant. For standard variants, provide endpointId. For sequence variants, provide presetId (from create_preset). If only endpointId is given, the variant is added as a standard variant.',
+    'Add a response variant. For standard variants, provide endpointId. For sequence variants, provide presetId (from create_preset or list_presets). Do NOT use variantGroup — it is determined automatically by whether presetId is provided.',
     {
-      endpointId: z.string().optional().describe('Endpoint ID (adds a standard variant)'),
-      presetId: z.string().optional().describe('Preset ID (adds a sequence variant to this preset)'),
+      endpointId: z.string().optional().describe('Endpoint ID (required — identifies which endpoint)'),
+      presetId: z.string().optional().describe('Preset ID — if provided, variant is added to this sequence preset. If omitted, variant is added as a standard variant.'),
       statusCode: z.number().optional().describe('HTTP status code (default: 200)'),
       description: z.string().optional().describe('Variant label'),
     },
@@ -34,7 +34,7 @@ export function registerVariantTools(server: McpServer) {
             body: JSON.stringify(data),
           }));
         }
-        if (!endpointId) return toolError(new Error('Either endpointId or presetId is required'));
+        if (!endpointId) return toolError(new Error('endpointId is required'));
         return toolResult(await mockaFetch(`/api/endpoints/${endpointId}/variants`, {
           method: 'POST',
           body: JSON.stringify(data),
