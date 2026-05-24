@@ -3,10 +3,9 @@ const ADMIN_URL = process.env.MOCKA_ADMIN_URL || `http://localhost:${process.env
 export async function mockaFetch<T = unknown>(path: string, options?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${ADMIN_URL}${path}`, {
-      headers: { 'Content-Type': 'application/json', ...options?.headers as Record<string, string> },
-      ...options,
-    });
+    const headers: Record<string, string> = { ...options?.headers as Record<string, string> };
+    if (options?.body) headers['Content-Type'] = 'application/json';
+    res = await fetch(`${ADMIN_URL}${path}`, { ...options, headers });
   } catch {
     throw new Error(`Mocka server is not reachable at ${ADMIN_URL}. Run \`mocka start\` first.`);
   }

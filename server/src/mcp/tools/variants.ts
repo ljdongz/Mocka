@@ -19,10 +19,10 @@ const matchRulesSchema = z.object({
 export function registerVariantTools(server: McpServer) {
   server.tool(
     'add_variant',
-    'Add a response variant to an endpoint. Use variantGroup "sequence" for sequential response mode.',
+    'Add a response variant. For standard variants, provide endpointId. For sequence variants, provide presetId (from create_preset). If only endpointId is given, the variant is added as a standard variant.',
     {
-      endpointId: z.string().optional().describe('Endpoint ID (required for standard variants)'),
-      presetId: z.string().optional().describe('Preset ID (required for sequence variants — use create_preset first)'),
+      endpointId: z.string().optional().describe('Endpoint ID (adds a standard variant)'),
+      presetId: z.string().optional().describe('Preset ID (adds a sequence variant to this preset)'),
       statusCode: z.number().optional().describe('HTTP status code (default: 200)'),
       description: z.string().optional().describe('Variant label'),
     },
@@ -45,7 +45,7 @@ export function registerVariantTools(server: McpServer) {
 
   server.tool(
     'update_variant',
-    'Update a response variant (status code, body, headers, delay, match rules, etc.)',
+    'Update a response variant (status code, body, headers, delay, match rules, preset link, etc.)',
     {
       id: z.string().describe('Variant ID'),
       statusCode: z.number().optional(),
@@ -54,6 +54,7 @@ export function registerVariantTools(server: McpServer) {
       headers: z.string().optional().describe('Response headers as JSON string (e.g. {"Content-Type":"application/json"})'),
       delay: z.number().nullable().optional().describe('Response delay in seconds'),
       memo: z.string().optional(),
+      presetId: z.string().nullable().optional().describe('Link this variant to a sequence preset (set null to unlink)'),
       matchRules: matchRulesSchema.nullable().optional().describe('Conditional match rules for this variant'),
     },
     async ({ id, ...data }) => {

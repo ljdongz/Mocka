@@ -149,6 +149,9 @@ export function addVariant(endpointId: string, data?: Partial<{ statusCode: numb
 }
 
 export function updateVariant(variantId: string, data: any): any {
+  if (data.presetId !== undefined) {
+    data.variantGroup = data.presetId ? 'sequence' : 'standard';
+  }
   const result = variantRepo.update(variantId, data);
   if (result) {
     const ep = endpointRepo.findById(result.endpointId);
