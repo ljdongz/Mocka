@@ -6,6 +6,7 @@ import { registerSequenceTools } from './tools/sequences.js';
 import { registerEnvironmentTools } from './tools/environments.js';
 import { registerCollectionTools } from './tools/collections.js';
 import { registerHistoryTools } from './tools/history.js';
+import { registerImportExportTools } from './tools/import-export.js';
 
 export async function startMcpServer() {
   const server = new McpServer({
@@ -19,6 +20,7 @@ export async function startMcpServer() {
   registerEnvironmentTools(server);
   registerCollectionTools(server);
   registerHistoryTools(server);
+  registerImportExportTools(server);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
