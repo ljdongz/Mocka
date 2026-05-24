@@ -25,6 +25,8 @@ The application runs two servers: an **Admin API** (default port 3000) that serv
 ## Features
 
 - **Fully Local & Self-Hosted** — No cloud, no account, no rate limits. Works offline and over your local network, so real devices on the same Wi-Fi can call the mock API directly
+- **Sequence Presets** — Create named response sequences (e.g. "Token Expired Flow") with sequential or loop modes. Each preset has its own call counter, so you can switch between scenarios without rebuilding variants
+- **MCP Server** — Built-in [Model Context Protocol](https://modelcontextprotocol.io/) server with 30 tools. AI agents can create endpoints, configure sequences, and manage mocks through natural language
 - **Multiple Response Variants** — Define multiple responses per endpoint (success, error, etc.) and switch between them with a single click
 - **Dynamic Templates** — 30+ built-in variables (`{{$randomUUID}}`, `{{$randomEmail}}`, etc.) and request context helpers (`{{$body 'field'}}`, `{{$pathParams 'id'}}`) for realistic mock data
 - **Conditional Matching** — Auto-select response variants based on request body, headers, query/path params with AND/OR rule logic
@@ -70,18 +72,20 @@ The Admin API manages endpoint configurations and serves the frontend, while the
 
 ## Getting Started
 
-### Prerequisites
-
-- **Node.js** 20+
-- **npm** 7+
-
-### Quick Start
+### Install via Homebrew
 
 ```bash
-git clone https://github.com/ljdongz/Mocka.git
-cd mocka
-npm install                   # Install dependencies
-npm run build && npm start    # Build and start the server
+brew tap ljdongz/tap
+brew install mocka
+```
+
+### Start / Stop
+
+```bash
+mocka start           # Start in foreground
+mocka start -d        # Start in background (daemon)
+mocka stop            # Stop the running instance
+mocka status          # Check if Mocka is running
 ```
 
 The admin UI and mock server will be available at:
@@ -100,14 +104,41 @@ The admin UI and mock server will be available at:
 
 ```bash
 # Example: Run with custom ports
-ADMIN_PORT=4000 MOCK_PORT=9090 npm start
+ADMIN_PORT=4000 MOCK_PORT=9090 mocka start
 ```
+
+### MCP (AI Agent Integration)
+
+Mocka includes a built-in [MCP](https://modelcontextprotocol.io/) server that lets AI agents (Claude Code, Codex CLI, Gemini CLI, etc.) manage mock endpoints directly.
+
+**Interactive setup:**
+
+```bash
+mocka mcp install
+```
+
+This walks you through selecting an AI client and scope. Or configure manually:
+
+```bash
+# Claude Code
+claude mcp add mocka -- mocka mcp
+
+# Codex CLI
+codex mcp add mocka -- mocka mcp
+```
+
+Once configured, AI agents can create endpoints, set up sequence presets, configure response bodies, and manage collections — all through natural language.
+
+**Available tools (30):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `create_environment`, `export_data`, `import_data`, and more.
 
 ### Development
 
-If you want to contribute to Mocka, use development mode instead. Unlike production mode, development mode runs a separate Vite dev server that watches for code changes and automatically refreshes the browser (HMR), so you can see your edits instantly without rebuilding.
+If you want to contribute to Mocka, clone the repository and use development mode:
 
 ```bash
+git clone https://github.com/ljdongz/Mocka.git
+cd Mocka
+npm install
 npm run dev
 ```
 
@@ -192,6 +223,7 @@ mocka/
 ├── server/                 # Fastify backend
 │   ├── src/
 │   │   ├── db/             # Database connection & schema
+│   │   ├── mcp/            # MCP server & tools
 │   │   ├── models/         # Data models
 │   │   ├── plugins/        # Fastify plugins (WebSocket, etc.)
 │   │   ├── repositories/   # Data access layer
@@ -201,23 +233,31 @@ mocka/
 │   │   ├── __tests__/      # Unit tests (Vitest)
 │   │   ├── admin-server.ts # Admin API server
 │   │   ├── mock-server.ts  # Mock server
-│   │   └── index.ts        # Entry point
-│   └── data/               # SQLite database files
+│   │   ├── cli.ts          # CLI entry point
+│   │   └── index.ts        # Server entry point
+│   └── data/               # SQLite database files (dev)
 └── package.json            # Workspace root
 ```
 
-## Scripts
+## CLI Commands
 
 | Command | Description |
 |---------|-------------|
-| `npm install` | Install all dependencies (server + client) |
+| `mocka start` | Start Mocka (foreground) |
+| `mocka start -d` | Start Mocka in background |
+| `mocka stop` | Stop the running instance |
+| `mocka status` | Check if Mocka is running |
+| `mocka mcp` | Start the MCP server (stdio) |
+| `mocka mcp install` | Register Mocka MCP with an AI client |
+| `mocka mcp uninstall` | Remove Mocka MCP from an AI client |
+
+### Development Scripts
+
+| Command | Description |
+|---------|-------------|
 | `npm run dev` | Start both servers in development mode |
-| `npm run dev:server` | Start only the backend (with hot reload) |
-| `npm run dev:client` | Start only the frontend (Vite dev server) |
 | `npm run build` | Build both client and server for production |
-| `npm start` | Start the production server |
 | `npm test -w server` | Run server unit tests |
-| `npm stop` | Stop running Mocka processes |
 
 ## Contributing
 

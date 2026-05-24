@@ -25,6 +25,8 @@ Mocka는 브라우저에서 Mock HTTP 및 WebSocket endpoint를 생성, 관리, 
 ## 주요 기능
 
 - **완전한 로컬 실행** — 클라우드, 계정, 호출 제한 없이 오프라인에서도 동작. 같은 Wi-Fi의 실제 디바이스에서 로컬 네트워크 IP로 Mock API 호출 가능
+- **Sequence Preset** — 이름 있는 응답 시퀀스(예: "토큰 만료 플로우")를 생성하여 sequential 또는 loop 모드로 구성. 각 preset은 독립된 호출 카운터를 가지므로, variant를 재구성하지 않고 시나리오를 전환 가능
+- **MCP 서버** — 30개 도구를 갖춘 [Model Context Protocol](https://modelcontextprotocol.io/) 서버 내장. AI 에이전트가 자연어로 endpoint 생성, 시퀀스 구성, mock 관리 가능
 - **다중 응답 변형** — endpoint당 여러 응답(성공, 에러 등)을 정의하고 클릭 한 번으로 즉시 전환
 - **동적 템플릿** — 30+ 내장 변수(`{{$randomUUID}}`, `{{$randomEmail}}` 등)와 요청 컨텍스트 헬퍼(`{{$body 'field'}}`, `{{$pathParams 'id'}}`)로 실제와 유사한 Mock 데이터 생성
 - **조건부 매칭** — 요청 body, header, query/path param 기반으로 AND/OR 룰 로직을 통해 응답 변형 자동 선택
@@ -70,18 +72,20 @@ Admin API가 endpoint 설정을 관리하고 프론트엔드를 제공하며, Mo
 
 ## 시작하기
 
-### 사전 요구사항
-
-- **Node.js** 20+
-- **npm** 7+
-
-### 빠른 시작
+### Homebrew로 설치
 
 ```bash
-git clone https://github.com/ljdongz/Mocka.git
-cd mocka
-npm install                   # 의존성 설치
-npm run build && npm start    # 빌드 후 서버 시작
+brew tap ljdongz/tap
+brew install mocka
+```
+
+### 시작 / 종료
+
+```bash
+mocka start           # 포그라운드로 시작
+mocka start -d        # 백그라운드로 시작 (데몬)
+mocka stop            # 실행 중인 인스턴스 종료
+mocka status          # 실행 상태 확인
 ```
 
 관리 UI와 Mock 서버가 다음 주소에서 실행됩니다:
@@ -100,14 +104,41 @@ npm run build && npm start    # 빌드 후 서버 시작
 
 ```bash
 # 예시: 커스텀 포트로 실행
-ADMIN_PORT=4000 MOCK_PORT=9090 npm start
+ADMIN_PORT=4000 MOCK_PORT=9090 mocka start
 ```
+
+### MCP (AI 에이전트 연동)
+
+Mocka는 [MCP](https://modelcontextprotocol.io/) 서버를 내장하고 있어 AI 에이전트(Claude Code, Codex CLI, Gemini CLI 등)가 mock endpoint를 직접 관리할 수 있습니다.
+
+**인터랙티브 설정:**
+
+```bash
+mocka mcp install
+```
+
+AI 클라이언트와 scope를 선택하는 안내를 따릅니다. 또는 수동 설정:
+
+```bash
+# Claude Code
+claude mcp add mocka -- mocka mcp
+
+# Codex CLI
+codex mcp add mocka -- mocka mcp
+```
+
+설정 후 AI 에이전트가 자연어로 endpoint 생성, sequence preset 구성, 응답 본문 설정, collection 관리 등을 수행할 수 있습니다.
+
+**제공 도구 (30개):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `create_environment`, `export_data`, `import_data` 등.
 
 ### 개발 모드
 
-Mocka에 기여하려면 개발 모드를 사용합니다. 프로덕션 모드와 달리 별도의 Vite dev server가 코드 변경을 감지하여 브라우저를 자동으로 새로고침(HMR)하므로, 재빌드 없이 수정 사항을 즉시 확인할 수 있습니다.
+Mocka에 기여하려면 저장소를 클론하고 개발 모드를 사용합니다:
 
 ```bash
+git clone https://github.com/ljdongz/Mocka.git
+cd Mocka
+npm install
 npm run dev
 ```
 
@@ -192,6 +223,7 @@ mocka/
 ├── server/                 # Fastify 백엔드
 │   ├── src/
 │   │   ├── db/             # 데이터베이스 연결 및 스키마
+│   │   ├── mcp/            # MCP 서버 & 도구
 │   │   ├── models/         # 데이터 모델
 │   │   ├── plugins/        # Fastify 플러그인 (WebSocket 등)
 │   │   ├── repositories/   # 데이터 접근 계층
@@ -201,23 +233,31 @@ mocka/
 │   │   ├── __tests__/      # 단위 테스트 (Vitest)
 │   │   ├── admin-server.ts # Admin API 서버
 │   │   ├── mock-server.ts  # Mock 서버
-│   │   └── index.ts        # 진입점
-│   └── data/               # SQLite 데이터베이스 파일
+│   │   ├── cli.ts          # CLI 진입점
+│   │   └── index.ts        # 서버 진입점
+│   └── data/               # SQLite 데이터베이스 파일 (dev)
 └── package.json            # Workspace 루트
 ```
 
-## 스크립트
+## CLI 명령어
 
 | 명령어 | 설명 |
 |--------|------|
-| `npm install` | 모든 의존성 설치 (server + client) |
+| `mocka start` | Mocka 시작 (포그라운드) |
+| `mocka start -d` | Mocka 백그라운드 시작 |
+| `mocka stop` | 실행 중인 인스턴스 종료 |
+| `mocka status` | 실행 상태 확인 |
+| `mocka mcp` | MCP 서버 시작 (stdio) |
+| `mocka mcp install` | AI 클라이언트에 Mocka MCP 등록 |
+| `mocka mcp uninstall` | AI 클라이언트에서 Mocka MCP 제거 |
+
+### 개발용 스크립트
+
+| 명령어 | 설명 |
+|--------|------|
 | `npm run dev` | 개발 모드로 두 서버 동시 시작 |
-| `npm run dev:server` | 백엔드만 시작 (핫 리로드) |
-| `npm run dev:client` | 프론트엔드만 시작 (Vite dev server) |
 | `npm run build` | 클라이언트와 서버를 프로덕션용으로 빌드 |
-| `npm start` | 프로덕션 서버 시작 |
 | `npm test -w server` | 서버 단위 테스트 실행 |
-| `npm stop` | 실행 중인 Mocka 프로세스 종료 |
 
 ## 기여하기
 
