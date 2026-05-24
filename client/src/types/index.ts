@@ -6,6 +6,7 @@ export interface Endpoint {
   path: string;
   name: string;
   activeVariantId: string | null;
+  sequenceMode: 'off' | 'sequential' | 'loop';
   isEnabled: boolean;
   requestBodyContentType: string;
   requestBodyRaw: string;
@@ -59,6 +60,7 @@ export interface ResponseVariant {
   memo: string;
   sortOrder: number;
   matchRules: MatchRules | null;
+  variantGroup: 'standard' | 'sequence';
 }
 
 export interface Collection {

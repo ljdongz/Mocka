@@ -13,11 +13,15 @@ export function rowToVariant(row: any): ResponseVariant {
     memo: row.memo,
     sortOrder: row.sort_order,
     matchRules: row.match_rules ? JSON.parse(row.match_rules) : null,
+    variantGroup: row.variant_group ?? 'standard',
   };
 }
 
-export function findByEndpointId(endpointId: string): ResponseVariant[] {
+export function findByEndpointId(endpointId: string, group?: 'standard' | 'sequence'): ResponseVariant[] {
   const db = getDb();
+  if (group) {
+    return db.prepare('SELECT * FROM response_variants WHERE endpoint_id = ? AND variant_group = ? ORDER BY sort_order').all(endpointId, group).map(rowToVariant);
+  }
   return db.prepare('SELECT * FROM response_variants WHERE endpoint_id = ? ORDER BY sort_order').all(endpointId).map(rowToVariant);
 }
 
@@ -30,10 +34,10 @@ export function findById(id: string): ResponseVariant | null {
 export function create(v: ResponseVariant): ResponseVariant {
   const db = getDb();
   db.prepare(`
-    INSERT INTO response_variants (id, endpoint_id, status_code, description, body, headers, delay, memo, sort_order, match_rules)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO response_variants (id, endpoint_id, status_code, description, body, headers, delay, memo, sort_order, match_rules, variant_group)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(v.id, v.endpointId, v.statusCode, v.description, v.body, v.headers, v.delay, v.memo, v.sortOrder,
-    v.matchRules ? JSON.stringify(v.matchRules) : null);
+    v.matchRules ? JSON.stringify(v.matchRules) : null, v.variantGroup ?? 'standard');
   return findById(v.id)!;
 }
 
@@ -47,7 +51,7 @@ export function update(id: string, data: Partial<ResponseVariant>): ResponseVari
     : (existing.matchRules ? JSON.stringify(existing.matchRules) : null);
 
   db.prepare(`
-    UPDATE response_variants SET status_code=?, description=?, body=?, headers=?, delay=?, memo=?, sort_order=?, match_rules=?
+    UPDATE response_variants SET status_code=?, description=?, body=?, headers=?, delay=?, memo=?, sort_order=?, match_rules=?, variant_group=?
     WHERE id=?
   `).run(
     data.statusCode ?? existing.statusCode,
@@ -58,6 +62,7 @@ export function update(id: string, data: Partial<ResponseVariant>): ResponseVari
     data.memo ?? existing.memo,
     data.sortOrder ?? existing.sortOrder,
     matchRules,
+    data.variantGroup ?? existing.variantGroup,
     id,
   );
   return findById(id);

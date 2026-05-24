@@ -10,6 +10,7 @@ export function initSchema(): void {
       path TEXT NOT NULL,
       name TEXT NOT NULL DEFAULT '',
       active_variant_id TEXT,
+      sequence_mode TEXT NOT NULL DEFAULT 'off',
       is_enabled INTEGER NOT NULL DEFAULT 1,
       request_body_content_type TEXT DEFAULT 'application/json',
       request_body_raw TEXT DEFAULT '',
@@ -28,7 +29,8 @@ export function initSchema(): void {
       delay REAL,
       memo TEXT NOT NULL DEFAULT '',
       sort_order INTEGER NOT NULL DEFAULT 0,
-      match_rules TEXT
+      match_rules TEXT,
+      variant_group TEXT NOT NULL DEFAULT 'standard'
     );
 
     CREATE TABLE IF NOT EXISTS query_params (
@@ -150,6 +152,18 @@ export function initSchema(): void {
   const endpointCols = db.prepare("PRAGMA table_info(endpoints)").all() as { name: string }[];
   if (!endpointCols.some(c => c.name === 'name')) {
     db.exec("ALTER TABLE endpoints ADD COLUMN name TEXT NOT NULL DEFAULT ''");
+  }
+
+  // Migration: add sequence_mode column if missing (for existing databases)
+  const endpointCols2 = db.prepare("PRAGMA table_info(endpoints)").all() as { name: string }[];
+  if (!endpointCols2.some(c => c.name === 'sequence_mode')) {
+    db.exec("ALTER TABLE endpoints ADD COLUMN sequence_mode TEXT NOT NULL DEFAULT 'off'");
+  }
+
+  // Migration: add variant_group column if missing (for existing databases)
+  const variantCols2 = db.prepare("PRAGMA table_info(response_variants)").all() as { name: string }[];
+  if (!variantCols2.some(c => c.name === 'variant_group')) {
+    db.exec("ALTER TABLE response_variants ADD COLUMN variant_group TEXT NOT NULL DEFAULT 'standard'");
   }
 
   // Migration: normalize trailing slashes in existing endpoint paths

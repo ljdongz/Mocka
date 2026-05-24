@@ -12,6 +12,7 @@ function makeVariant(overrides: Partial<ResponseVariant> & { id: string; statusC
     memo: '',
     sortOrder: 0,
     matchRules: null,
+    variantGroup: 'standard',
     ...overrides,
   };
 }
@@ -19,27 +20,27 @@ function makeVariant(overrides: Partial<ResponseVariant> & { id: string; statusC
 // ─── resolveVariant ───────────────────────────────────────────────────────────
 
 describe('resolveVariant', () => {
-  const v200 = makeVariant({ id: 'v1', statusCode: 200, description: 'OK' });
-  const v404 = makeVariant({ id: 'v2', statusCode: 404, description: 'Not Found' });
-  const vActive = makeVariant({ id: 'v3', statusCode: 201, description: 'Created' });
+  const ep = { id: 'ep1', activeVariantId: undefined as string | undefined, sequenceMode: 'off' as const };
+  const v200 = makeVariant({ id: 'v1', statusCode: 200, description: 'OK', sortOrder: 0 });
+  const v404 = makeVariant({ id: 'v2', statusCode: 404, description: 'Not Found', sortOrder: 1 });
+  const vActive = makeVariant({ id: 'v3', statusCode: 201, description: 'Created', sortOrder: 2 });
 
   it('returns undefined when variants array is empty', () => {
-    expect(resolveVariant([], undefined, {}, {}, {}, {})).toBeUndefined();
+    expect(resolveVariant(ep, [], {}, {}, {}, {})).toBeUndefined();
   });
 
   it('selects variant by x-mock-response-code header', () => {
-    const result = resolveVariant([v200, v404], undefined, { 'x-mock-response-code': '404' }, {}, {}, {});
+    const result = resolveVariant(ep, [v200, v404], { 'x-mock-response-code': '404' }, {}, {}, {});
     expect(result?.statusCode).toBe(404);
   });
 
   it('falls through to next strategy when x-mock-response-code does not match', () => {
-    // code 999 doesn't match; should fall through to activeVariantId
-    const result = resolveVariant([v200, v404], 'v2', { 'x-mock-response-code': '999' }, {}, {}, {});
+    const result = resolveVariant({ ...ep, activeVariantId: 'v2' }, [v200, v404], { 'x-mock-response-code': '999' }, {}, {}, {});
     expect(result?.id).toBe('v2');
   });
 
   it('selects variant by x-mock-response-name header (case-insensitive)', () => {
-    const result = resolveVariant([v200, v404], undefined, { 'x-mock-response-name': 'NOT FOUND' }, {}, {}, {});
+    const result = resolveVariant(ep, [v200, v404], { 'x-mock-response-name': 'NOT FOUND' }, {}, {}, {});
     expect(result?.id).toBe('v2');
   });
 
@@ -56,17 +57,71 @@ describe('resolveVariant', () => {
         combineWith: 'AND',
       },
     });
-    const result = resolveVariant([v200, vRule], undefined, {}, { name: 'trigger' }, {}, {});
+    const result = resolveVariant(ep, [v200, vRule], {}, { name: 'trigger' }, {}, {});
     expect(result?.id).toBe('vRule');
   });
 
   it('falls back to activeVariantId when no other strategy matches', () => {
-    const result = resolveVariant([v200, v404, vActive], 'v3', {}, {}, {}, {});
+    const result = resolveVariant({ ...ep, activeVariantId: 'v3' }, [v200, v404, vActive], {}, {}, {}, {});
     expect(result?.id).toBe('v3');
   });
 
   it('falls back to first variant when activeVariantId is absent', () => {
-    const result = resolveVariant([v200, v404], undefined, {}, {}, {}, {});
+    const result = resolveVariant(ep, [v200, v404], {}, {}, {}, {});
+    expect(result?.id).toBe('v1');
+  });
+
+  // Sequential mode tests
+  it('sequential mode returns variants in sortOrder across calls', () => {
+    const seqEp = { id: 'seq1', activeVariantId: undefined, sequenceMode: 'sequential' as const };
+    const r1 = resolveVariant(seqEp, [v200, v404], {}, {}, {}, {});
+    expect(r1?.id).toBe('v1');
+    const r2 = resolveVariant(seqEp, [v200, v404], {}, {}, {}, {});
+    expect(r2?.id).toBe('v2');
+    const r3 = resolveVariant(seqEp, [v200, v404], {}, {}, {}, {});
+    expect(r3?.id).toBe('v2'); // stays on last
+  });
+
+  it('loop mode wraps around', () => {
+    const loopEp = { id: 'loop1', activeVariantId: undefined, sequenceMode: 'loop' as const };
+    const r1 = resolveVariant(loopEp, [v200, v404], {}, {}, {}, {});
+    expect(r1?.id).toBe('v1');
+    const r2 = resolveVariant(loopEp, [v200, v404], {}, {}, {}, {});
+    expect(r2?.id).toBe('v2');
+    const r3 = resolveVariant(loopEp, [v200, v404], {}, {}, {}, {});
+    expect(r3?.id).toBe('v1'); // wraps around
+  });
+
+  it('x-mock-response-code overrides sequence without advancing counter', () => {
+    const seqEp = { id: 'seq2', activeVariantId: undefined, sequenceMode: 'sequential' as const };
+    // first real call
+    const r1 = resolveVariant(seqEp, [v200, v404], {}, {}, {}, {});
+    expect(r1?.id).toBe('v1');
+    // override call — should NOT advance
+    const r2 = resolveVariant(seqEp, [v200, v404], { 'x-mock-response-code': '404' }, {}, {}, {});
+    expect(r2?.id).toBe('v2');
+    // next real call — counter should still be at 1
+    const r3 = resolveVariant(seqEp, [v200, v404], {}, {}, {}, {});
+    expect(r3?.id).toBe('v2');
+  });
+
+  it('match rules are skipped in sequence mode', () => {
+    const seqEp = { id: 'seq3', activeVariantId: undefined, sequenceMode: 'sequential' as const };
+    const vRule = makeVariant({
+      id: 'vRule',
+      statusCode: 422,
+      description: 'Unprocessable',
+      sortOrder: 1,
+      matchRules: {
+        bodyRules: [{ field: 'name', operator: 'equals', value: 'trigger' }],
+        headerRules: [],
+        queryParamRules: [],
+        pathParamRules: [],
+        combineWith: 'AND',
+      },
+    });
+    // In sequence mode, match rules are ignored — first call returns sortOrder 0
+    const result = resolveVariant(seqEp, [v200, vRule], {}, { name: 'trigger' }, {}, {});
     expect(result?.id).toBe('v1');
   });
 });

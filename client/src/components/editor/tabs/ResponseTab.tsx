@@ -1,5 +1,5 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
-import { Check, X, Plus, Trash2, Filter } from 'lucide-react';
+import { Check, X, Plus, Trash2, Filter, RotateCcw } from 'lucide-react';
 import { useEndpointStore } from '../../../stores/endpoint.store';
 import { useSettingsStore } from '../../../stores/settings.store';
 import { StatusCodeBadge } from '../../shared/StatusCodeBadge';
@@ -17,8 +17,13 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
   const addVariant = useEndpointStore(s => s.addVariant);
   const updateVariant = useEndpointStore(s => s.updateVariant);
   const deleteVariant = useEndpointStore(s => s.deleteVariant);
+  const updateEndpoint = useEndpointStore(s => s.updateEndpoint);
+  const resetSequence = useEndpointStore(s => s.resetSequence);
+  const isSequence = endpoint.sequenceMode !== 'off';
 
-  const variants = endpoint.responseVariants ?? [];
+  const allVariants = endpoint.responseVariants ?? [];
+  const currentGroup = isSequence ? 'sequence' : 'standard';
+  const variants = allVariants.filter(v => v.variantGroup === currentGroup);
   const activeVariant = variants.find(v => v.id === endpoint.activeVariantId) ?? variants[0];
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null);
@@ -63,35 +68,71 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
             {t.response.description}
           </p>
         </div>
-        <button onClick={async () => {
-          const ep = await addVariant(endpoint.id);
-          const newVariant = ep.responseVariants?.[ep.responseVariants.length - 1];
-          if (newVariant) setEditingVariantId(newVariant.id);
-        }} className="text-sm text-accent-primary hover:underline">
-          {t.response.addResponse}
-        </button>
+        <div className="flex items-center gap-2">
+          {isSequence && (
+            <button onClick={() => resetSequence(endpoint.id)} className="text-sm text-text-secondary hover:text-accent-primary flex items-center gap-1" title={t.response.resetSequence}>
+              <RotateCcw size={14} />
+              {t.response.resetSequence}
+            </button>
+          )}
+          <button onClick={async () => {
+            const ep = await addVariant(endpoint.id, currentGroup);
+            const newVariant = ep.responseVariants?.filter(v => v.variantGroup === currentGroup).at(-1);
+            if (newVariant) setEditingVariantId(newVariant.id);
+          }} className="text-sm text-accent-primary hover:underline">
+            {t.response.addResponse}
+          </button>
+        </div>
       </div>
+
+      {/* Sequence mode selector */}
+      <div className="flex items-center gap-1 mb-3">
+        <span className="text-xs text-text-muted mr-2">{t.response.responseMode}</span>
+        {(['off', 'sequential', 'loop'] as const).map(mode => (
+          <button
+            key={mode}
+            onClick={() => updateEndpoint(endpoint.id, { sequenceMode: mode })}
+            className={clsx(
+              'text-xs px-3 py-1 rounded-full border transition-colors',
+              endpoint.sequenceMode === mode
+                ? 'bg-accent-primary text-white border-accent-primary'
+                : 'border-border-primary text-text-secondary hover:border-accent-primary',
+            )}
+          >
+            {mode === 'off' ? t.response.modeStandard : mode === 'sequential' ? t.response.modeSequential : t.response.modeLoop}
+          </button>
+        ))}
+      </div>
+      {isSequence && (
+        <p className="text-xs text-text-tertiary mb-3">
+          {endpoint.sequenceMode === 'sequential' ? t.response.sequentialDescription : t.response.loopDescription}
+        </p>
+      )}
 
       {/* Variant list */}
       <div className="mb-4">
         <div className="text-xs text-text-muted uppercase tracking-wider mb-2">{t.response.responseVariants}</div>
-        {variants.map(v => (
+        {variants.map((v, idx) => (
           <div
             key={v.id}
             className={clsx(
               'flex items-center gap-3 rounded px-3 py-2 mb-1 cursor-pointer',
               v.id === (editingVariantId ?? activeVariant?.id) ? 'bg-bg-hover' : 'hover:bg-bg-hover',
             )}
-            onClick={() => { setEditingVariantId(v.id); setActiveVariant(endpoint.id, v.id); }}
+            onClick={() => { setEditingVariantId(v.id); if (!isSequence) setActiveVariant(endpoint.id, v.id); }}
           >
-            <input
-              type="radio"
-              name={`variant-${endpoint.id}`}
-              checked={v.id === endpoint.activeVariantId}
-              onChange={() => setActiveVariant(endpoint.id, v.id)}
-              onClick={e => e.stopPropagation()}
-              className="accent-accent-primary"
-            />
+            {isSequence ? (
+              <span className="text-xs font-mono text-text-muted w-6 text-center">{idx + 1}</span>
+            ) : (
+              <input
+                type="radio"
+                name={`variant-${endpoint.id}`}
+                checked={v.id === endpoint.activeVariantId}
+                onChange={() => setActiveVariant(endpoint.id, v.id)}
+                onClick={e => e.stopPropagation()}
+                className="accent-accent-primary"
+              />
+            )}
             <div className="relative" ref={statusDropdownId === v.id ? dropdownRef : undefined}>
               <button
                 onClick={e => {

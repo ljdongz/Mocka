@@ -13,6 +13,7 @@ function makeEndpoint(overrides: Partial<Endpoint> = {}): Endpoint {
     path: '/api/users',
     name: 'Test',
     activeVariantId: 'v-1',
+    sequenceMode: 'off',
     isEnabled: true,
     requestBodyContentType: 'application/json',
     requestBodyRaw: '',

@@ -14,9 +14,10 @@ interface EndpointStore {
   deleteEndpoint: (id: string) => Promise<void>;
   toggleEnabled: (id: string) => Promise<void>;
   setActiveVariant: (id: string, variantId: string | null) => Promise<void>;
-  addVariant: (endpointId: string) => Promise<Endpoint>;
+  addVariant: (endpointId: string, variantGroup?: 'standard' | 'sequence') => Promise<Endpoint>;
   updateVariant: (variantId: string, data: Partial<ResponseVariant>) => Promise<void>;
   deleteVariant: (variantId: string) => Promise<void>;
+  resetSequence: (id: string) => Promise<void>;
   replaceEndpoint: (ep: Endpoint) => void;
   removeEndpointFromList: (id: string) => void;
 }
@@ -73,8 +74,8 @@ export const useEndpointStore = create<EndpointStore>((set, get) => ({
     set(s => ({ endpoints: s.endpoints.map(e => e.id === id ? ep : e) }));
   },
 
-  addVariant: async (endpointId) => {
-    const ep = await endpointsApi.addVariant(endpointId);
+  addVariant: async (endpointId, variantGroup) => {
+    const ep = await endpointsApi.addVariant(endpointId, variantGroup ? { variantGroup } : undefined);
     set(s => ({ endpoints: s.endpoints.map(e => e.id === endpointId ? ep : e) }));
     return ep;
   },
@@ -96,6 +97,10 @@ export const useEndpointStore = create<EndpointStore>((set, get) => ({
       const updated = await endpointsApi.getById(ep.id);
       set(s => ({ endpoints: s.endpoints.map(e => e.id === ep.id ? updated : e) }));
     }
+  },
+
+  resetSequence: async (id) => {
+    await endpointsApi.resetSequence(id);
   },
 
   replaceEndpoint: (ep) => {

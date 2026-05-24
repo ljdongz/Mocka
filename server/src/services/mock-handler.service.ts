@@ -2,6 +2,7 @@ import { match } from './route-registry.js';
 import * as historyService from './history.service.js';
 import * as environmentService from './environment.service.js';
 import * as settingsService from './settings.service.js';
+import * as sequenceCounter from './sequence-counter.service.js';
 import { resolveVariables } from '../utils/template-variables.js';
 import { resolveHelpers, parseQueryParams, parsePathSegments, type RequestContext } from '../utils/template-helpers.js';
 import { matchesRules, type ResponseVariant } from '../models/response-variant.js';
@@ -16,8 +17,8 @@ export function resolveEnvVariables(template: string, envVars: Record<string, st
 
 /** Select the best matching ResponseVariant for a request */
 export function resolveVariant(
+  endpoint: { id: string; activeVariantId?: string; sequenceMode: 'off' | 'sequential' | 'loop' },
   variants: ResponseVariant[],
-  activeVariantId: string | undefined,
   headers: Record<string, string>,
   body: any,
   queryParams: Record<string, string>,
@@ -41,12 +42,19 @@ export function resolveVariant(
     if (found) return found;
   }
 
-  // 3. Conditional match rules
+  // 3. Sequence mode — pick by call counter, skip match rules
+  if (endpoint.sequenceMode !== 'off') {
+    const sorted = [...variants].sort((a, b) => a.sortOrder - b.sortOrder);
+    const index = sequenceCounter.getNextIndex(endpoint.id, sorted.length, endpoint.sequenceMode);
+    return sorted[index];
+  }
+
+  // 4. Conditional match rules
   const ruleMatch = variants.find(v => v.matchRules && matchesRules(v.matchRules, body, headers, queryParams, pathParams));
   if (ruleMatch) return ruleMatch;
 
-  // 4. Active variant or first variant
-  return variants.find(v => v.id === activeVariantId) ?? variants[0];
+  // 5. Active variant or first variant
+  return variants.find(v => v.id === endpoint.activeVariantId) ?? variants[0];
 }
 
 /** Resolve template body: env vars → helpers → dynamic variables */
@@ -98,9 +106,15 @@ export async function handleMockRequest(
 
   const { endpoint, pathParams } = result;
   const queryParams = parseQueryParams(url);
-  const variants = endpoint.responseVariants ?? [];
+  const allVariants = endpoint.responseVariants ?? [];
+  const seqMode = endpoint.sequenceMode ?? 'off';
+  const group = seqMode !== 'off' ? 'sequence' : 'standard';
+  const variants = allVariants.filter(v => v.variantGroup === group);
 
-  const variant = resolveVariant(variants, endpoint.activeVariantId ?? undefined, headers, body, queryParams, pathParams);
+  const variant = resolveVariant(
+    { id: endpoint.id, activeVariantId: endpoint.activeVariantId ?? undefined, sequenceMode: seqMode },
+    variants, headers, body, queryParams, pathParams,
+  );
 
   if (!variant) {
     return { statusCode: 500, body: JSON.stringify({ error: 'No response variant configured' }), headers: {}, delay: 0 };

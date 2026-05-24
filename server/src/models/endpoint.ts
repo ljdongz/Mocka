@@ -23,6 +23,7 @@ export interface Endpoint {
   path: string;
   name: string;
   activeVariantId: string | null;
+  sequenceMode: 'off' | 'sequential' | 'loop';
   isEnabled: boolean;
   requestBodyContentType: string;
   requestBodyRaw: string;

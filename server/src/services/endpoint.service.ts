@@ -3,6 +3,7 @@ import * as endpointRepo from '../repositories/endpoint.repo.js';
 import * as variantRepo from '../repositories/variant.repo.js';
 import * as routeRegistry from './route-registry.js';
 import * as collectionService from './collection.service.js';
+import * as sequenceCounter from './sequence-counter.service.js';
 import { emit } from './domain-events.js';
 import type { Endpoint } from '../models/endpoint.js';
 import { resolveActiveVariantAfterRemoval } from '../models/endpoint.js';
@@ -27,6 +28,7 @@ export function create(data: { method: HttpMethod; path: string; name?: string; 
     path: normalizePath(data.path),
     name: data.name ?? '',
     activeVariantId: variantId,
+    sequenceMode: 'off',
     isEnabled: true,
     requestBodyContentType: 'application/json',
     requestBodyRaw: '',
@@ -45,6 +47,7 @@ export function create(data: { method: HttpMethod; path: string; name?: string; 
     memo: '',
     sortOrder: 0,
     matchRules: null,
+    variantGroup: 'standard',
   });
 
   const full = endpointRepo.findById(id)!;
@@ -71,6 +74,10 @@ export function update(id: string, data: Partial<Endpoint>): Endpoint | null {
     routeRegistry.remove(existing.method, existing.path);
   }
 
+  if (data.sequenceMode && data.sequenceMode !== 'off' && data.sequenceMode !== existing.sequenceMode) {
+    sequenceCounter.reset(id);
+  }
+
   const ep = endpointRepo.update(id, data);
   if (ep) {
     routeRegistry.update(ep);
@@ -83,6 +90,7 @@ export function remove(id: string): boolean {
   const ep = endpointRepo.findById(id);
   if (ep) {
     routeRegistry.remove(ep.method, ep.path);
+    sequenceCounter.cleanup(id);
   }
   const ok = endpointRepo.remove(id);
   if (ok) emit('endpoint:deleted', { id });
@@ -107,10 +115,11 @@ export function setActiveVariant(id: string, variantId: string | null): Endpoint
   return ep;
 }
 
-export function addVariant(endpointId: string, data?: Partial<{ statusCode: number; description: string }>): Endpoint | null {
+export function addVariant(endpointId: string, data?: Partial<{ statusCode: number; description: string; variantGroup: 'standard' | 'sequence' }>): Endpoint | null {
   const ep = endpointRepo.findById(endpointId);
   if (!ep) return null;
-  const existing = variantRepo.findByEndpointId(endpointId);
+  const group = data?.variantGroup ?? 'standard';
+  const existing = variantRepo.findByEndpointId(endpointId, group);
   variantRepo.create({
     id: uuid(),
     endpointId,
@@ -122,6 +131,7 @@ export function addVariant(endpointId: string, data?: Partial<{ statusCode: numb
     memo: '',
     sortOrder: existing.length,
     matchRules: null,
+    variantGroup: group,
   });
   const updated = endpointRepo.findById(endpointId)!;
   routeRegistry.update(updated);
@@ -156,4 +166,21 @@ export function removeVariant(variantId: string): boolean {
     emit('variant:deleted', { id: variantId });
   }
   return result;
+}
+
+export function resetSequence(id: string): boolean {
+  const ep = endpointRepo.findById(id);
+  if (!ep) return false;
+  sequenceCounter.reset(id);
+  return true;
+}
+
+export function resetAllSequences(): void {
+  sequenceCounter.resetAll();
+}
+
+export function getSequenceState(id: string): { index: number; mode: string } | null {
+  const ep = endpointRepo.findById(id);
+  if (!ep) return null;
+  return { index: sequenceCounter.peek(id), mode: ep.sequenceMode };
 }

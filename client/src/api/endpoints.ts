@@ -12,4 +12,5 @@ export const endpointsApi = {
   addVariant: (id: string, data?: Partial<ResponseVariant>) => api.post<Endpoint>(`/api/endpoints/${id}/variants`, data),
   updateVariant: (id: string, data: Partial<ResponseVariant>) => api.put<ResponseVariant>(`/api/variants/${id}`, data),
   deleteVariant: (id: string) => api.delete(`/api/variants/${id}`),
+  resetSequence: (id: string) => api.post(`/api/endpoints/${id}/sequence/reset`),
 };

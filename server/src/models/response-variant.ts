@@ -23,6 +23,7 @@ export interface ResponseVariant {
   memo: string;
   sortOrder: number;
   matchRules: MatchRules | null;
+  variantGroup: 'standard' | 'sequence';
 }
 
 /** Check if a single match rule passes against a value */

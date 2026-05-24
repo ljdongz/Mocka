@@ -60,6 +60,7 @@ interface ExportEndpoint {
   requestHeaders: { key: string; value: string; isEnabled: boolean; sortOrder: number }[];
   responseVariants: ExportVariant[];
   activeVariantIndex: number;
+  sequenceMode?: 'off' | 'sequential' | 'loop';
 }
 
 interface ExportVariant {
@@ -71,6 +72,7 @@ interface ExportVariant {
   memo: string;
   sortOrder: number;
   matchRules?: import('../models/response-variant.js').MatchRules | null;
+  variantGroup?: 'standard' | 'sequence';
 }
 
 interface ExportCollection {
@@ -140,8 +142,10 @@ export function exportData(collectionIds?: string[]): ExportData {
         memo: v.memo,
         sortOrder: v.sortOrder,
         matchRules: v.matchRules ?? null,
+        variantGroup: v.variantGroup ?? 'standard',
       })),
       activeVariantIndex: activeVariantIndex >= 0 ? activeVariantIndex : 0,
+      sequenceMode: ep.sequenceMode ?? 'off',
     };
   });
 
@@ -258,6 +262,7 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
                     memo: v.memo,
                     sortOrder: nextSort++,
                     matchRules: v.matchRules ?? null,
+                    variantGroup: v.variantGroup ?? 'standard',
                   });
                 }
               }
@@ -427,6 +432,7 @@ function createEndpointFromImport(importEp: ExportEndpoint): string {
     path: normalizePath(importEp.path),
     name: importEp.name ?? '',
     activeVariantId,
+    sequenceMode: importEp.sequenceMode ?? 'off',
     isEnabled: importEp.isEnabled,
     requestBodyContentType: importEp.requestBodyContentType || 'application/json',
     requestBodyRaw: importEp.requestBodyRaw || '',
@@ -447,6 +453,7 @@ function createEndpointFromImport(importEp: ExportEndpoint): string {
       memo: v.memo ?? '',
       sortOrder: v.sortOrder,
       matchRules: v.matchRules ?? null,
+      variantGroup: v.variantGroup ?? 'standard',
     });
   }
 

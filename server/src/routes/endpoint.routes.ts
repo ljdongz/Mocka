@@ -93,4 +93,24 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
     if (!ok) { reply.code(404); return { error: 'Not found' }; }
     return { success: true };
   });
+
+  // Sequence
+  app.get('/api/endpoints/:id/sequence', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const state = endpointService.getSequenceState(id);
+    if (!state) { reply.code(404); return { error: 'Not found' }; }
+    return state;
+  });
+
+  app.post('/api/endpoints/:id/sequence/reset', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const ok = endpointService.resetSequence(id);
+    if (!ok) { reply.code(404); return { error: 'Not found' }; }
+    return { success: true };
+  });
+
+  app.post('/api/sequence/reset-all', async () => {
+    endpointService.resetAllSequences();
+    return { success: true };
+  });
 }
