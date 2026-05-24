@@ -6,6 +6,7 @@ data/
 *.db-shm
 .env
 .DS_Store
+.mcp.json
 *.pen
 .omc
 .omx
