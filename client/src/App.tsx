@@ -52,11 +52,14 @@ export default function App() {
     <div className="flex h-screen overflow-hidden bg-bg-page">
       {/* Icon Rail + Sidebar */}
       <IconRail />
-      <div style={{ width: sidebarWidth, minWidth: sidebarWidth }} className="flex-shrink-0 border-r border-border-primary">
-        <Sidebar />
-      </div>
-
-      <ResizableDivider />
+      {!showHistory && (
+        <>
+          <div style={{ width: sidebarWidth, minWidth: sidebarWidth }} className="flex-shrink-0 border-r border-border-primary">
+            <Sidebar />
+          </div>
+          <ResizableDivider />
+        </>
+      )}
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
