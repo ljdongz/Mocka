@@ -106,6 +106,20 @@ switch (command) {
   case 'status':
     status();
     break;
+  case 'mcp': {
+    const subCommand = process.argv[3];
+    if (subCommand === 'install') {
+      const { runInstall } = await import('./mcp/install.js');
+      await runInstall();
+    } else if (subCommand === 'uninstall') {
+      const { runUninstall } = await import('./mcp/install.js');
+      await runUninstall();
+    } else {
+      const { startMcpServer } = await import('./mcp/server.js');
+      await startMcpServer();
+    }
+    break;
+  }
   default:
     console.log('Usage: mocka <command>');
     console.log('');
@@ -114,5 +128,8 @@ switch (command) {
     console.log('  start -d        Start Mocka in the background');
     console.log('  stop            Stop the running Mocka instance');
     console.log('  status          Show whether Mocka is running');
+    console.log('  mcp             Start the MCP server (stdio)');
+    console.log('  mcp install     Register Mocka MCP with an AI client');
+    console.log('  mcp uninstall   Remove Mocka MCP from an AI client');
     process.exit(command === undefined ? 0 : 1);
 }
