@@ -78,7 +78,10 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
           <button onClick={async () => {
             const ep = await addVariant(endpoint.id, currentGroup);
             const newVariant = ep.responseVariants?.filter(v => v.variantGroup === currentGroup).at(-1);
-            if (newVariant) setEditingVariantId(newVariant.id);
+            if (newVariant) {
+              setEditingVariantId(newVariant.id);
+              if (!isSequence) setActiveVariant(endpoint.id, newVariant.id);
+            }
           }} className="text-sm text-accent-primary hover:underline">
             {t.response.addResponse}
           </button>
