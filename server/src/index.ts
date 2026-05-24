@@ -71,15 +71,13 @@ async function main() {
   // Start Admin API
   await adminApp.listen({ port: ADMIN_PORT, host: '0.0.0.0' });
   const localIp = getLocalIp();
-  console.log(`Admin API:   http://localhost:${ADMIN_PORT}`);
-  console.log(`             http://${localIp}:${ADMIN_PORT}`);
+  console.log(`Admin API:   http://${localIp}:${ADMIN_PORT}`);
 
   // Start Mock Server
   try {
     await mockApp.listen({ port: mockPort, host: '0.0.0.0' });
     setMockStatus(true);
-    console.log(`Mock Server: http://localhost:${mockPort}`);
-    console.log(`             http://${localIp}:${mockPort}`);
+    console.log(`Mock Server: http://${localIp}:${mockPort}`);
     emit('server:status', { running: true, port: mockPort });
   } catch (err) {
     console.error(`Failed to start mock server on port ${mockPort}:`, err);

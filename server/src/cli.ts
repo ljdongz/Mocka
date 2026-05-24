@@ -11,6 +11,7 @@ const DATA_DIR = resolveDataDir();
 const PID_FILE = join(DATA_DIR, 'mocka.pid');
 
 const command = process.argv[2];
+const flags = process.argv.slice(3);
 
 function readPid(): number | null {
   if (!existsSync(PID_FILE)) return null;
@@ -29,31 +30,37 @@ function isProcessAlive(pid: number): boolean {
 }
 
 async function start() {
-  const existingPid = readPid();
-  if (existingPid && isProcessAlive(existingPid)) {
-    console.log(`Mocka is already running (PID ${existingPid})`);
-    process.exit(0);
+  const isDetachedChild = process.env.MOCKA_DETACHED === '1';
+
+  if (!isDetachedChild) {
+    const existingPid = readPid();
+    if (existingPid && isProcessAlive(existingPid)) {
+      console.log(`Mocka is already running (PID ${existingPid})`);
+      process.exit(0);
+    }
   }
 
+  if (!isDetachedChild && (flags.includes('-d') || flags.includes('--detach'))) {
+    mkdirSync(DATA_DIR, { recursive: true });
+
+    const child = spawn(process.execPath, [join(__dirname, 'cli.js'), 'start'], {
+      detached: true,
+      stdio: 'ignore',
+      env: { ...process.env, MOCKA_DETACHED: '1' },
+    });
+
+    if (child.pid) {
+      console.log(`Mocka started in background (PID ${child.pid})`);
+    }
+
+    child.unref();
+    return;
+  }
+
+  // Foreground — write PID for status/stop, then run server
   mkdirSync(DATA_DIR, { recursive: true });
-
-  const child = spawn(process.execPath, [join(__dirname, 'cli.js')], {
-    detached: true,
-    stdio: 'ignore',
-    env: { ...process.env },
-  });
-
-  if (child.pid) {
-    writeFileSync(PID_FILE, String(child.pid));
-    console.log(`Mocka started (PID ${child.pid})`);
-
-    const adminPort = process.env.ADMIN_PORT || '3000';
-    const mockPort = process.env.MOCK_PORT || '8080';
-    console.log(`  Admin UI:    http://localhost:${adminPort}`);
-    console.log(`  Mock Server: http://localhost:${mockPort}`);
-  }
-
-  child.unref();
+  writeFileSync(PID_FILE, String(process.pid));
+  await import('./index.js');
 }
 
 function stop() {
@@ -72,7 +79,6 @@ function stop() {
   process.kill(pid, 'SIGTERM');
   console.log(`Mocka stopped (PID ${pid})`);
 
-  // Wait briefly for PID file cleanup by the server's shutdown handler
   setTimeout(() => {
     if (existsSync(PID_FILE)) {
       try { unlinkSync(PID_FILE); } catch { /* ignore */ }
@@ -87,11 +93,7 @@ function status() {
     process.exit(1);
   }
 
-  const adminPort = process.env.ADMIN_PORT || '3000';
-  const mockPort = process.env.MOCK_PORT || '8080';
   console.log(`Mocka is running (PID ${pid})`);
-  console.log(`  Admin UI:    http://localhost:${adminPort}`);
-  console.log(`  Mock Server: http://localhost:${mockPort}`);
 }
 
 switch (command) {
@@ -104,18 +106,13 @@ switch (command) {
   case 'status':
     status();
     break;
-  case undefined:
-    // Foreground mode — used by brew services and direct invocation
-    await import('./index.js');
-    break;
   default:
-    console.log(`Usage: mocka [start|stop|status]`);
+    console.log('Usage: mocka <command>');
     console.log('');
     console.log('Commands:');
-    console.log('  start    Start Mocka in the background');
-    console.log('  stop     Stop the running Mocka instance');
-    console.log('  status   Show whether Mocka is running');
-    console.log('');
-    console.log('Run without arguments to start in the foreground.');
-    process.exit(1);
+    console.log('  start           Start Mocka (foreground)');
+    console.log('  start -d        Start Mocka in the background');
+    console.log('  stop            Stop the running Mocka instance');
+    console.log('  status          Show whether Mocka is running');
+    process.exit(command === undefined ? 0 : 1);
 }
