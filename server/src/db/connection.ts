@@ -1,10 +1,9 @@
 import Database from 'better-sqlite3';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
 import { mkdirSync } from 'fs';
+import { resolveDataDir } from '../utils/paths.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_DIR = join(__dirname, '..', '..', 'data');
+const DB_DIR = resolveDataDir();
 const DB_PATH = join(DB_DIR, 'mocka.db');
 
 let db: Database.Database;

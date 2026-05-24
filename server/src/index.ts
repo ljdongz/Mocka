@@ -9,6 +9,9 @@ import * as wsEndpointRepo from './repositories/ws-endpoint.repo.js';
 import { emit } from './services/domain-events.js';
 import { getLocalIp, checkPort } from './utils/network.js';
 import { closeDb } from './db/connection.js';
+import { resolveDataDir } from './utils/paths.js';
+import { existsSync, unlinkSync } from 'fs';
+import { join } from 'path';
 
 const ADMIN_PORT = parseInt(process.env.ADMIN_PORT || '') || 3000;
 const MOCK_PORT_OVERRIDE = process.env.MOCK_PORT ? parseInt(process.env.MOCK_PORT) : null;
@@ -89,6 +92,10 @@ async function main() {
     try { await mockApp.close(); } catch { /* ignore */ }
     try { await adminApp.close(); } catch { /* ignore */ }
     closeDb();
+    try {
+      const pidFile = join(resolveDataDir(), 'mocka.pid');
+      if (existsSync(pidFile)) unlinkSync(pidFile);
+    } catch { /* ignore */ }
     process.exit(0);
   };
 
