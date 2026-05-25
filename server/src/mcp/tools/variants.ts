@@ -61,6 +61,7 @@ export function registerVariantTools(server: McpServer) {
       try {
         if (typeof data.body === 'string') {
           data.body = data.body.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+          try { data.body = JSON.stringify(JSON.parse(data.body), null, 2); } catch {}
         }
         return toolResult(await mockaFetch(`/api/variants/${id}`, {
           method: 'PUT',
