@@ -2,7 +2,7 @@
 
 # Mocka
 
-**A cross-platform, web-based HTTP & WebSocket mock server**
+**AI-powered local mock server — describe your API, get a working mock**
 
 [한국어](docs/README.ko.md)
 
@@ -18,24 +18,44 @@
 
 ## Introduction
 
-Mocka is a web-based mock server that lets you create, manage, and serve mock HTTP and WebSocket endpoints from your browser. Define HTTP endpoints with custom methods, paths, status codes, headers, and response bodies, or create WebSocket endpoints with configurable response frames — then point your client applications at the mock server to receive the configured responses.
+Mocka is a local mock server that AI agents can set up for you. Connect it to your coding assistant via [MCP](https://modelcontextprotocol.io/), and the AI reads your project's API calls and builds matching mock endpoints automatically — no manual configuration needed.
 
-The application runs two servers: an **Admin API** (default port 3000) that serves the management UI and REST API, and a **Mock Server** (default port 8080) that dynamically handles incoming requests based on your configured endpoints. All data is persisted in a local SQLite database, so your mock configurations survive restarts.
+You can also use the web UI to create and manage endpoints by hand. Either way, Mocka runs entirely on your machine with no cloud dependency, and real devices on the same network can call the mock API directly.
+
+```
+┌──────────────────────────────────────────────────┐
+│  "Set up mocks for my auth API —                 │
+│   first call returns 401, retry returns 200"     │
+└──────────────────┬───────────────────────────────┘
+                   │ MCP
+                   ▼
+            ┌─────────────┐        ┌──────────────┐
+            │  Mocka       │        │  Your App    │
+            │  Mock Server │◄───────│  (iOS, Web,  │
+            │  :8080       │  HTTP  │   Android)   │
+            └─────────────┘        └──────────────┘
+```
 
 ## Features
 
-- **Fully Local & Self-Hosted** — No cloud, no account, no rate limits. Works offline and over your local network, so real devices on the same Wi-Fi can call the mock API directly
-- **Sequence Presets** — Create named response sequences (e.g. "Token Expired Flow") with sequential or loop modes. Each preset has its own call counter, so you can switch between scenarios without rebuilding variants
-- **MCP Server** — Built-in [Model Context Protocol](https://modelcontextprotocol.io/) server with 30 tools. AI agents can create endpoints, configure sequences, and manage mocks through natural language
-- **Multiple Response Variants** — Define multiple responses per endpoint (success, error, etc.) and switch between them with a single click
-- **Dynamic Templates** — 30+ built-in variables (`{{$randomUUID}}`, `{{$randomEmail}}`, etc.) and request context helpers (`{{$body 'field'}}`, `{{$pathParams 'id'}}`) for realistic mock data
+### AI-Driven Mock Setup
+- **MCP Server (30 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
+- **Sequence Presets** — Named response scenarios (e.g. "Token Expired Flow") with sequential or loop modes. The AI can set up multi-step flows like `401 → token refresh → 200` in one conversation
+
+### Manual Control
+- **Web UI** — Create and manage endpoints from your browser with a visual editor
+- **Multiple Response Variants** — Define multiple responses per endpoint and switch between them with a single click
 - **Conditional Matching** — Auto-select response variants based on request body, headers, query/path params with AND/OR rule logic
-- **Path Parameters** — Dynamic routes with `:param` or `{param}` syntax. Exact paths take priority over patterns
-- **Environments** — Manage variables across dev/staging/production. Reference via `{{variableName}}` in responses and switch instantly
-- **Import / Export** — Export and import endpoints as JSON with conflict resolution (skip, overwrite, merge)
-- **Real-time Logging** — Monitor incoming requests via WebSocket in real time
-- **WebSocket Mock** — Define WebSocket endpoints with response frames. Auto-send on connect, reply on message, or send periodically at random intervals — with the same template engine and conditional matching as HTTP
-- **Response Delay** — Simulate latency per-variant or globally. Override per-request via `x-mock-response-delay` header
+
+### Mock Server Capabilities
+- **Dynamic Templates** — 30+ built-in variables (`{{$randomUUID}}`, `{{$randomEmail}}`, etc.) and request context helpers (`{{$body 'field'}}`, `{{$pathParams 'id'}}`)
+- **Path Parameters** — Dynamic routes with `:param` or `{param}` syntax
+- **Environments** — Manage variables across dev/staging/production and switch instantly
+- **WebSocket Mock** — WebSocket endpoints with response frames, conditional matching, and periodic sending
+- **Response Delay** — Simulate latency per-variant or globally
+- **Real-time Logging** — Monitor incoming requests live
+- **Import / Export** — Share mock configurations as JSON
+- **Fully Local** — No cloud, no account, no rate limits. Works offline and over your local network
 
 ## Architecture
 

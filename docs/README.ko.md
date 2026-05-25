@@ -2,7 +2,7 @@
 
 # Mocka
 
-**크로스 플랫폼 웹 기반 HTTP & WebSocket Mock 서버**
+**AI가 프로젝트를 읽고 mock 서버를 구축해주는 로컬 도구**
 
 [English](../README.md)
 
@@ -18,24 +18,44 @@
 
 ## 소개
 
-Mocka는 브라우저에서 Mock HTTP 및 WebSocket endpoint를 생성, 관리, 제공할 수 있는 웹 기반 Mock 서버입니다. HTTP endpoint의 메서드, 경로, 상태 코드, 헤더, 응답 본문을 자유롭게 설정하거나, WebSocket endpoint에 Response Frame을 구성하고, 클라이언트 애플리케이션에서 Mock 서버로 요청을 보내면 설정된 응답을 반환합니다.
+Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. [MCP](https://modelcontextprotocol.io/)로 코딩 어시스턴트에 연결하면, AI가 프로젝트의 API 호출 코드를 읽고 그에 맞는 mock endpoint를 자동으로 구축합니다 — 수동 설정이 필요 없습니다.
 
-애플리케이션은 두 개의 서버로 구성됩니다. 관리 UI와 REST API를 제공하는 **Admin API** (기본 포트 3000)와, 설정된 endpoint에 따라 요청을 처리하는 **Mock Server** (기본 포트 8080)입니다. 모든 데이터는 로컬 SQLite 데이터베이스에 저장되므로 서버를 재시작해도 설정이 유지됩니다.
+웹 UI에서 직접 endpoint를 생성하고 관리할 수도 있습니다. 어떤 방식이든 Mocka는 완전히 로컬에서 동작하며, 같은 네트워크의 실제 디바이스에서 mock API를 직접 호출할 수 있습니다.
+
+```
+┌──────────────────────────────────────────────────┐
+│  "인증 API mock 만들어줘 —                         │
+│   첫 호출은 401, 재시도하면 200 반환하게"            │
+└──────────────────┬───────────────────────────────┘
+                   │ MCP
+                   ▼
+            ┌─────────────┐        ┌──────────────┐
+            │  Mocka       │        │  내 앱        │
+            │  Mock Server │◄───────│  (iOS, Web,  │
+            │  :8080       │  HTTP  │   Android)   │
+            └─────────────┘        └──────────────┘
+```
 
 ## 주요 기능
 
-- **완전한 로컬 실행** — 클라우드, 계정, 호출 제한 없이 오프라인에서도 동작. 같은 Wi-Fi의 실제 디바이스에서 로컬 네트워크 IP로 Mock API 호출 가능
-- **Sequence Preset** — 이름 있는 응답 시퀀스(예: "토큰 만료 플로우")를 생성하여 sequential 또는 loop 모드로 구성. 각 preset은 독립된 호출 카운터를 가지므로, variant를 재구성하지 않고 시나리오를 전환 가능
-- **MCP 서버** — 30개 도구를 갖춘 [Model Context Protocol](https://modelcontextprotocol.io/) 서버 내장. AI 에이전트가 자연어로 endpoint 생성, 시퀀스 구성, mock 관리 가능
-- **다중 응답 변형** — endpoint당 여러 응답(성공, 에러 등)을 정의하고 클릭 한 번으로 즉시 전환
-- **동적 템플릿** — 30+ 내장 변수(`{{$randomUUID}}`, `{{$randomEmail}}` 등)와 요청 컨텍스트 헬퍼(`{{$body 'field'}}`, `{{$pathParams 'id'}}`)로 실제와 유사한 Mock 데이터 생성
-- **조건부 매칭** — 요청 body, header, query/path param 기반으로 AND/OR 룰 로직을 통해 응답 변형 자동 선택
-- **Path Parameter** — `:param` 또는 `{param}` 문법으로 동적 경로 정의. 정확 경로가 패턴보다 우선
-- **환경 변수** — dev/staging/production 환경별 변수 관리. 응답에서 `{{variableName}}`으로 참조하고 즉시 전환
-- **Import / Export** — endpoint를 JSON으로 내보내고 불러오기. 충돌 해결(건너뛰기, 덮어쓰기, 병합) 지원
-- **실시간 로깅** — WebSocket을 통해 수신 요청을 실시간으로 모니터링
-- **WebSocket Mock** — WebSocket endpoint에 Response Frame을 정의. 연결 시 자동 전송, 메시지 수신 시 응답, 또는 랜덤 간격으로 주기적 전송 — HTTP와 동일한 템플릿 엔진 및 조건부 매칭 지원
-- **응답 지연** — 변형별 또는 전역으로 레이턴시 시뮬레이션. `x-mock-response-delay` 헤더로 요청별 오버라이드 가능
+### AI 기반 Mock 구축
+- **MCP 서버 (30개 도구)** — AI 에이전트(Claude Code, Codex, Gemini 등)가 소스코드를 읽고 그에 맞는 mock endpoint를 생성, 응답 시퀀스 구성, collection 관리 — 자연어 한 문장으로
+- **Sequence Preset** — 이름 있는 응답 시나리오(예: "토큰 만료 플로우")를 sequential 또는 loop 모드로 구성. AI가 `401 → 토큰 갱신 → 200` 같은 다단계 플로우를 대화 한 번으로 셋업
+
+### 수동 관리
+- **웹 UI** — 브라우저에서 비주얼 에디터로 endpoint를 직접 생성 및 관리
+- **다중 응답 변형** — endpoint당 여러 응답을 정의하고 클릭 한 번으로 전환
+- **조건부 매칭** — 요청 body, header, query/path param 기반으로 AND/OR 룰 로직을 통해 응답 자동 선택
+
+### Mock 서버 기능
+- **동적 템플릿** — 30+ 내장 변수(`{{$randomUUID}}`, `{{$randomEmail}}` 등)와 요청 컨텍스트 헬퍼(`{{$body 'field'}}`, `{{$pathParams 'id'}}`)
+- **Path Parameter** — `:param` 또는 `{param}` 문법으로 동적 경로 정의
+- **환경 변수** — dev/staging/production 환경별 변수 관리 및 즉시 전환
+- **WebSocket Mock** — WebSocket endpoint에 Response Frame, 조건부 매칭, 주기적 전송 지원
+- **응답 지연** — 변형별 또는 전역으로 레이턴시 시뮬레이션
+- **실시간 로깅** — 수신 요청을 실시간으로 모니터링
+- **Import / Export** — mock 설정을 JSON으로 공유
+- **완전한 로컬 실행** — 클라우드, 계정, 호출 제한 없이 오프라인에서도 동작. 로컬 네트워크에서 접근 가능
 
 ## 아키텍처
 
