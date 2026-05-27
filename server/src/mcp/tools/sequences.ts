@@ -22,6 +22,17 @@ export function registerSequenceTools(server: McpServer) {
   );
 
   server.tool(
+    'get_sequence_state',
+    'Get the current sequence state for an endpoint (current index, mode, active preset)',
+    { endpointId: z.string().describe('Endpoint ID') },
+    async ({ endpointId }) => {
+      try {
+        return toolResult(await mockaFetch(`/api/endpoints/${endpointId}/sequence`));
+      } catch (e) { return toolError(e); }
+    },
+  );
+
+  server.tool(
     'reset_all_sequences',
     'Reset all sequence counters for all endpoints',
     {},
