@@ -13,9 +13,6 @@ import { resolveDataDir } from './utils/paths.js';
 import { existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
-const ADMIN_PORT = parseInt(process.env.ADMIN_PORT || '') || 4649;
-const MOCK_PORT_OVERRIDE = process.env.MOCK_PORT ? parseInt(process.env.MOCK_PORT) : null;
-
 async function main() {
   // Initialize DB
   initSchema();
@@ -23,14 +20,15 @@ async function main() {
   reloadWs(wsEndpointRepo.findAll());
 
   const settings = settingsService.getAll();
-  const desiredMockPort = MOCK_PORT_OVERRIDE ?? (settings.port || 4650);
+  const adminPort = parseInt(process.env.ADMIN_PORT || '') || settings.adminPort || 4649;
+  const desiredMockPort = (process.env.MOCK_PORT ? parseInt(process.env.MOCK_PORT) : null) ?? (settings.port || 4650);
 
   // Check admin port availability (no auto-fallback — MCP depends on a fixed port)
   try {
-    await checkPort(ADMIN_PORT);
+    await checkPort(adminPort);
   } catch {
-    console.error(`\x1b[31mError: Admin port ${ADMIN_PORT} is already in use.\x1b[0m`);
-    console.error(`  Use ADMIN_PORT=<port> to specify a different port.`);
+    console.error(`\x1b[31mError: Admin port ${adminPort} is already in use.\x1b[0m`);
+    console.error(`  Use \`mocka config admin_port=<port>\` to change the default port.`);
     process.exit(1);
   }
 
@@ -43,7 +41,7 @@ async function main() {
     }
   } catch {
     console.error(`\x1b[31mError: No available port found for mock server (tried ${desiredMockPort}-${desiredMockPort + 9}).\x1b[0m`);
-    console.error(`  Use MOCK_PORT=<port> to specify a different port.`);
+    console.error(`  Use \`mocka config mock_port=<port>\` to change the default port.`);
     process.exit(1);
   }
 
@@ -75,9 +73,9 @@ async function main() {
   const { app: adminApp, setMockStatus } = await createAdminServer(handleRestart);
 
   // Start Admin API
-  await adminApp.listen({ port: ADMIN_PORT, host: '0.0.0.0' });
+  await adminApp.listen({ port: adminPort, host: '0.0.0.0' });
   const localIp = getLocalIp();
-  console.log(`Admin API:   http://${localIp}:${ADMIN_PORT}`);
+  console.log(`Admin API:   http://${localIp}:${adminPort}`);
 
   // Start Mock Server
   try {

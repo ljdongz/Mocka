@@ -115,17 +115,18 @@ mocka status          # 실행 상태 확인
 | Admin UI | `http://localhost:4649` | 관리 UI + REST API |
 | Mock Server | `http://localhost:4650` | Mock 응답 제공 |
 
-### 환경 변수
+### 포트 설정
 
-| 변수 | 기본값 | 설명 |
-|------|--------|------|
-| `ADMIN_PORT` | `4649` | Admin API 포트 |
-| `MOCK_PORT` | `4650` | Mock Server 포트 |
+기본 포트: **Admin 4649**, **Mock 4650**. 아래 명령으로 변경할 수 있습니다:
 
 ```bash
-# 예시: 커스텀 포트로 실행
-ADMIN_PORT=4000 MOCK_PORT=9090 mocka start
+mocka config                                # 현재 설정 확인
+mocka config admin_port=5000 mock_port=5001  # 포트 변경
 ```
+
+환경 변수(`ADMIN_PORT`, `MOCK_PORT`)는 저장된 설정보다 우선하며, 해당 실행에만 적용됩니다.
+
+Mock 서버 포트가 사용 중이면 자동으로 다음 빈 포트를 찾습니다.
 
 ### MCP (AI 에이전트 연동)
 
@@ -267,6 +268,8 @@ mocka/
 | `mocka start -d` | Mocka 백그라운드 시작 |
 | `mocka stop` | 실행 중인 인스턴스 종료 |
 | `mocka status` | 실행 상태 확인 |
+| `mocka config` | 현재 설정 확인 |
+| `mocka config k=v` | 설정 변경 (admin_port, mock_port) |
 | `mocka mcp` | MCP 서버 시작 (stdio) |
 | `mocka mcp install` | AI 클라이언트에 Mocka MCP 등록 |
 | `mocka mcp uninstall` | AI 클라이언트에서 Mocka MCP 제거 |

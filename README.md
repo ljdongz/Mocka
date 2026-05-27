@@ -115,17 +115,18 @@ The admin UI and mock server will be available at:
 | Admin UI | `http://localhost:4649` | Management UI + REST API |
 | Mock Server | `http://localhost:4650` | Serves mock responses |
 
-### Environment Variables
+### Port Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ADMIN_PORT` | `4649` | Port for the Admin API |
-| `MOCK_PORT` | `4650` | Port for the Mock Server |
+Default ports: **Admin 4649**, **Mock 4650**. Change them with:
 
 ```bash
-# Example: Run with custom ports
-ADMIN_PORT=4000 MOCK_PORT=9090 mocka start
+mocka config                                # View current settings
+mocka config admin_port=5000 mock_port=5001  # Set custom ports
 ```
+
+Environment variables (`ADMIN_PORT`, `MOCK_PORT`) override saved config for a single run.
+
+If the mock server port is in use, Mocka automatically tries the next available port.
 
 ### MCP (AI Agent Integration)
 
@@ -267,6 +268,8 @@ mocka/
 | `mocka start -d` | Start Mocka in background |
 | `mocka stop` | Stop the running instance |
 | `mocka status` | Check if Mocka is running |
+| `mocka config` | Show current configuration |
+| `mocka config k=v` | Set configuration (admin_port, mock_port) |
 | `mocka mcp` | Start the MCP server (stdio) |
 | `mocka mcp install` | Register Mocka MCP with an AI client |
 | `mocka mcp uninstall` | Remove Mocka MCP from an AI client |

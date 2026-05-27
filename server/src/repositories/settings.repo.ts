@@ -10,6 +10,7 @@ export function getAll(): Settings {
     raw[key] = row.value;
   }
   return {
+    adminPort: parseInt(raw.adminPort, 10) || 4649,
     port: parseInt(raw.port, 10) || 4650,
     responseDelay: parseInt(raw.responseDelay, 10) || 0,
     autoSaveEndpoints: raw.autoSaveEndpoints !== 'false',
@@ -28,6 +29,7 @@ export function setAll(settings: Partial<Settings>): Settings {
   const db = getDb();
   const update = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
   const txn = db.transaction(() => {
+    if (settings.adminPort !== undefined) update.run('admin_port', String(settings.adminPort));
     if (settings.port !== undefined) update.run('port', String(settings.port));
     if (settings.responseDelay !== undefined) update.run('response_delay', String(settings.responseDelay));
     if (settings.autoSaveEndpoints !== undefined) update.run('auto_save_endpoints', String(settings.autoSaveEndpoints));

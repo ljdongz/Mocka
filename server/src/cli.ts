@@ -96,6 +96,49 @@ function status() {
   console.log(`Mocka is running (PID ${pid})`);
 }
 
+const CONFIG_KEYS: Record<string, { dbKey: string; parse: (v: string) => string | null }> = {
+  admin_port: { dbKey: 'admin_port', parse: v => { const n = parseInt(v, 10); return (n > 0 && n < 65536) ? String(n) : null; } },
+  mock_port:  { dbKey: 'port',       parse: v => { const n = parseInt(v, 10); return (n > 0 && n < 65536) ? String(n) : null; } },
+};
+
+async function config(args: string[]) {
+  const { getDb } = await import('./db/connection.js');
+  const { initSchema } = await import('./db/schema.js');
+  initSchema();
+  const db = getDb();
+
+  if (args.length === 0) {
+    const rows = db.prepare("SELECT key, value FROM settings WHERE key IN ('admin_port', 'port')").all() as { key: string; value: string }[];
+    const map: Record<string, string> = {};
+    for (const row of rows) map[row.key] = row.value;
+    console.log(`  admin_port = ${map['admin_port'] || '4649'}`);
+    console.log(`  mock_port  = ${map['port'] || '4650'}`);
+    return;
+  }
+
+  for (const arg of args) {
+    const match = arg.match(/^(\w+)=(.+)$/);
+    if (!match) {
+      console.error(`Invalid format: ${arg} (expected key=value)`);
+      process.exit(1);
+    }
+    const [, key, value] = match;
+    const def = CONFIG_KEYS[key];
+    if (!def) {
+      console.error(`Unknown config key: ${key}`);
+      console.error(`Available keys: ${Object.keys(CONFIG_KEYS).join(', ')}`);
+      process.exit(1);
+    }
+    const parsed = def.parse(value);
+    if (parsed === null) {
+      console.error(`Invalid value for ${key}: ${value}`);
+      process.exit(1);
+    }
+    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").run(def.dbKey, parsed);
+    console.log(`  ${key} = ${parsed}`);
+  }
+}
+
 switch (command) {
   case 'start':
     await start();
@@ -106,6 +149,9 @@ switch (command) {
   case 'status':
     status();
     break;
+  case 'config':
+    await config(flags);
+    break;
   case 'mcp': {
     const subCommand = process.argv[3];
     if (subCommand === 'install') {
@@ -115,6 +161,14 @@ switch (command) {
       const { runUninstall } = await import('./mcp/install.js');
       await runUninstall();
     } else {
+      // Read admin_port from DB so MCP client connects to the right port
+      if (!process.env.ADMIN_PORT && !process.env.MOCKA_ADMIN_URL) {
+        const { initSchema } = await import('./db/schema.js');
+        const { getDb } = await import('./db/connection.js');
+        initSchema();
+        const row = getDb().prepare("SELECT value FROM settings WHERE key = 'admin_port'").get() as { value: string } | undefined;
+        if (row) process.env.ADMIN_PORT = row.value;
+      }
       const { startMcpServer } = await import('./mcp/server.js');
       await startMcpServer();
     }
@@ -128,6 +182,8 @@ switch (command) {
     console.log('  start -d        Start Mocka in the background');
     console.log('  stop            Stop the running Mocka instance');
     console.log('  status          Show whether Mocka is running');
+    console.log('  config          Show current configuration');
+    console.log('  config k=v      Set configuration (admin_port, mock_port)');
     console.log('  mcp             Start the MCP server (stdio)');
     console.log('  mcp install     Register Mocka MCP with an AI client');
     console.log('  mcp uninstall   Remove Mocka MCP from an AI client');

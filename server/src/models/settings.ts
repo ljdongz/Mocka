@@ -2,6 +2,7 @@ export type Theme = 'dark' | 'light';
 export type Language = 'en' | 'ko';
 
 export interface Settings {
+  adminPort: number;
   port: number;
   responseDelay: number;
   autoSaveEndpoints: boolean;
@@ -11,6 +12,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  adminPort: 4649,
   port: 4650,
   responseDelay: 0,
   autoSaveEndpoints: true,
