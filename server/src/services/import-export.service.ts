@@ -13,6 +13,8 @@ import type { MatchRules } from '../models/response-variant.js';
 import { HTTP_METHODS, type HttpMethod } from '../models/http-method.js';
 import { normalizePath } from '../models/route-path.js';
 
+export const EXPORT_VERSION = 3;
+
 interface ExportDataV1 {
   version: 1;
   exportedAt: string;
@@ -216,7 +218,7 @@ export function exportData(collectionIds?: string[]): ExportData {
   });
 
   return {
-    version: 3,
+    version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     endpoints: exportEndpoints,
     collections: exportCollections,

@@ -1,7 +1,7 @@
 import { api } from './client';
 
 export interface ExportData {
-  version: 1;
+  version: number;
   exportedAt: string;
   endpoints: any[];
   collections: any[];

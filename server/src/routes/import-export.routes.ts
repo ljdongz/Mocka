@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import * as importExportService from '../services/import-export.service.js';
+import { EXPORT_VERSION } from '../services/import-export.service.js';
 import type { ConflictPolicy } from '../services/import-export.service.js';
 
 const VALID_POLICIES = new Set(['skip', 'overwrite', 'merge']);
@@ -18,9 +19,9 @@ export async function importExportRoutes(app: FastifyInstance): Promise<void> {
       conflictPolicy: ConflictPolicy;
     };
 
-    if (!data || (data.version !== 1 && data.version !== 2)) {
+    if (!data || typeof data.version !== 'number' || data.version < 1 || data.version > EXPORT_VERSION) {
       reply.code(400);
-      return { error: 'Invalid or unsupported export format. Expected version 1 or 2.' };
+      return { error: `Invalid or unsupported export format. Expected version 1-${EXPORT_VERSION}.` };
     }
 
     if (!Array.isArray(data.endpoints)) {

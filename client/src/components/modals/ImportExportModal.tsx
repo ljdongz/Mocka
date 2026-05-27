@@ -59,7 +59,7 @@ export function ImportExportModal() {
       const text = await importFile.text();
       const data: ExportData = JSON.parse(text);
 
-      if (data.version !== 1 || !Array.isArray(data.endpoints)) {
+      if (!data.version || data.version < 1 || !Array.isArray(data.endpoints)) {
         setImportResult(t.importExport.invalidFormat);
         setIsResultError(true);
         return;
