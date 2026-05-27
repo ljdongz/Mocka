@@ -104,7 +104,8 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
 
   app.post('/api/endpoints/:id/sequence/reset', async (req, reply) => {
     const { id } = req.params as { id: string };
-    const ok = endpointService.resetSequence(id);
+    const { presetId } = (req.body as { presetId?: string }) ?? {};
+    const ok = endpointService.resetSequence(id, presetId);
     if (!ok) { reply.code(404); return { error: 'Not found' }; }
     return { success: true };
   });

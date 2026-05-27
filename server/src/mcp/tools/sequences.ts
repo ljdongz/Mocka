@@ -10,9 +10,12 @@ export function registerSequenceTools(server: McpServer) {
       endpointId: z.string().describe('Endpoint ID'),
       presetId: z.string().optional().describe('Preset ID (resets specific preset counter)'),
     },
-    async ({ endpointId }) => {
+    async ({ endpointId, presetId }) => {
       try {
-        await mockaFetch(`/api/endpoints/${endpointId}/sequence/reset`, { method: 'POST' });
+        await mockaFetch(`/api/endpoints/${endpointId}/sequence/reset`, {
+          method: 'POST',
+          body: presetId ? JSON.stringify({ presetId }) : undefined,
+        });
         return toolResult({ success: true });
       } catch (e) { return toolError(e); }
     },
