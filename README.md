@@ -39,7 +39,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 ## Features
 
 ### AI-Driven Mock Setup
-- **MCP Server (30 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
+- **MCP Server (41 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
 - **Sequence Presets** — Named response scenarios (e.g. "Token Expired Flow") with sequential or loop modes. The AI can set up multi-step flows like `401 → token refresh → 200` in one conversation
 
 ### Manual Control
@@ -150,7 +150,7 @@ codex mcp add mocka -- mocka mcp
 
 Once configured, AI agents can create endpoints, set up sequence presets, configure response bodies, and manage collections — all through natural language.
 
-**Available tools (30):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `create_environment`, `export_data`, `import_data`, and more.
+**Available tools (41):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, and more.
 
 ### Development
 
