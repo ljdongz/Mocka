@@ -33,7 +33,7 @@ export function SettingsModal() {
   }, [settings]);
 
   const handleSave = async () => {
-    const newPort = parseInt(port, 10) || 8080;
+    const newPort = parseInt(port, 10) || 4650;
     const newDelay = parseInt(delay, 10) || 0;
     await updateSettings({ port: newPort, responseDelay: newDelay, historyToast, theme, language });
     if (newPort !== settings.port) {

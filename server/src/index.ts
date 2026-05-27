@@ -7,13 +7,13 @@ import * as settingsService from './services/settings.service.js';
 import * as endpointService from './services/endpoint.service.js';
 import * as wsEndpointRepo from './repositories/ws-endpoint.repo.js';
 import { emit } from './services/domain-events.js';
-import { getLocalIp, checkPort } from './utils/network.js';
+import { getLocalIp, checkPort, findAvailablePort } from './utils/network.js';
 import { closeDb } from './db/connection.js';
 import { resolveDataDir } from './utils/paths.js';
 import { existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
-const ADMIN_PORT = parseInt(process.env.ADMIN_PORT || '') || 3000;
+const ADMIN_PORT = parseInt(process.env.ADMIN_PORT || '') || 4649;
 const MOCK_PORT_OVERRIDE = process.env.MOCK_PORT ? parseInt(process.env.MOCK_PORT) : null;
 
 async function main() {
@@ -23,9 +23,9 @@ async function main() {
   reloadWs(wsEndpointRepo.findAll());
 
   const settings = settingsService.getAll();
-  const mockPort = MOCK_PORT_OVERRIDE ?? (settings.port || 8080);
+  const desiredMockPort = MOCK_PORT_OVERRIDE ?? (settings.port || 4650);
 
-  // Check port availability before starting
+  // Check admin port availability (no auto-fallback — MCP depends on a fixed port)
   try {
     await checkPort(ADMIN_PORT);
   } catch {
@@ -33,10 +33,16 @@ async function main() {
     console.error(`  Use ADMIN_PORT=<port> to specify a different port.`);
     process.exit(1);
   }
+
+  // Find available mock port (auto-fallback to next available)
+  let mockPort: number;
   try {
-    await checkPort(mockPort);
+    mockPort = await findAvailablePort(desiredMockPort);
+    if (mockPort !== desiredMockPort) {
+      console.log(`\x1b[33mMock server port ${desiredMockPort} is in use, using ${mockPort} instead.\x1b[0m`);
+    }
   } catch {
-    console.error(`\x1b[31mError: Mock server port ${mockPort} is already in use.\x1b[0m`);
+    console.error(`\x1b[31mError: No available port found for mock server (tried ${desiredMockPort}-${desiredMockPort + 9}).\x1b[0m`);
     console.error(`  Use MOCK_PORT=<port> to specify a different port.`);
     process.exit(1);
   }
@@ -46,7 +52,7 @@ async function main() {
   // Restart handler (passed to admin server before listen)
   const handleRestart = async () => {
     const newSettings = settingsService.getAll();
-    const newPort = newSettings.port || 8080;
+    const newPort = newSettings.port || 4650;
 
     try {
       await mockApp.close();

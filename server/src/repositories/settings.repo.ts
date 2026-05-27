@@ -10,7 +10,7 @@ export function getAll(): Settings {
     raw[key] = row.value;
   }
   return {
-    port: parseInt(raw.port, 10) || 8080,
+    port: parseInt(raw.port, 10) || 4650,
     responseDelay: parseInt(raw.responseDelay, 10) || 0,
     autoSaveEndpoints: raw.autoSaveEndpoints !== 'false',
     historyToast: raw.historyToast !== 'false',

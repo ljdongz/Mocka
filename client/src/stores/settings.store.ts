@@ -13,8 +13,8 @@ interface SettingsStore {
 }
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
-  settings: { port: 8080, responseDelay: 0, autoSaveEndpoints: true, historyToast: true, theme: (localStorage.getItem('mocka-theme') as 'dark' | 'light') || 'dark', language: (localStorage.getItem('mocka-language') as Language) || 'en' },
-  serverStatus: { running: false, port: 8080, localIp: 'localhost' },
+  settings: { port: 4650, responseDelay: 0, autoSaveEndpoints: true, historyToast: true, theme: (localStorage.getItem('mocka-theme') as 'dark' | 'light') || 'dark', language: (localStorage.getItem('mocka-language') as Language) || 'en' },
+  serverStatus: { running: false, port: 4650, localIp: 'localhost' },
 
   fetch: async () => {
     const settings = await settingsApi.getAll();

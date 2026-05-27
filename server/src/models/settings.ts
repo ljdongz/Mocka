@@ -11,7 +11,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  port: 8080,
+  port: 4650,
   responseDelay: 0,
   autoSaveEndpoints: true,
   historyToast: true,

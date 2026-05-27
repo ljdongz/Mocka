@@ -1,4 +1,4 @@
-const ADMIN_URL = process.env.MOCKA_ADMIN_URL || `http://localhost:${process.env.ADMIN_PORT || 3000}`;
+const ADMIN_URL = process.env.MOCKA_ADMIN_URL || `http://localhost:${process.env.ADMIN_PORT || 4649}`;
 
 export async function mockaFetch<T = unknown>(path: string, options?: RequestInit): Promise<T> {
   let res: Response;

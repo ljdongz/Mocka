@@ -32,7 +32,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
             ┌─────────────┐        ┌──────────────┐
             │  Mocka       │        │  Your App    │
             │  Mock Server │◄───────│  (iOS, Web,  │
-            │  :8080       │  HTTP  │   Android)   │
+            │  :4650       │  HTTP  │   Android)   │
             └─────────────┘        └──────────────┘
 ```
 
@@ -62,12 +62,12 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Browser (React SPA)                                    │
-│  http://localhost:5173 (dev) / http://localhost:3000     │
+│  http://localhost:5173 (dev) / http://localhost:4649     │
 └──────────┬──────────────────────────────────────────────┘
            │ REST API + WebSocket
            ▼
 ┌──────────────────────┐       ┌──────────────────────┐
-│  Admin API (:3000)   │       │  Mock Server (:8080)  │
+│  Admin API (:4649)   │       │  Mock Server (:4650)  │
 │  - Endpoint CRUD     │       │  - Serves mock        │
 │  - Collection mgmt   │       │    responses (HTTP/WS) │
 │  - Settings          │       │  - Logs requests       │
@@ -112,15 +112,15 @@ The admin UI and mock server will be available at:
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| Admin UI | `http://localhost:3000` | Management UI + REST API |
-| Mock Server | `http://localhost:8080` | Serves mock responses |
+| Admin UI | `http://localhost:4649` | Management UI + REST API |
+| Mock Server | `http://localhost:4650` | Serves mock responses |
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ADMIN_PORT` | `3000` | Port for the Admin API |
-| `MOCK_PORT` | `8080` | Port for the Mock Server |
+| `ADMIN_PORT` | `4649` | Port for the Admin API |
+| `MOCK_PORT` | `4650` | Port for the Mock Server |
 
 ```bash
 # Example: Run with custom ports
@@ -167,33 +167,33 @@ This starts three servers concurrently:
 | Service | URL | Description |
 |---------|-----|-------------|
 | Vite Dev Server | `http://localhost:5173` | Frontend with HMR |
-| Admin API | `http://localhost:3000` | REST API + WebSocket |
-| Mock Server | `http://localhost:8080` | Serves mock responses |
+| Admin API | `http://localhost:4649` | REST API + WebSocket |
+| Mock Server | `http://localhost:4650` | Serves mock responses |
 
 ## Usage
 
-1. **Open the admin UI** at `http://localhost:3000`
+1. **Open the admin UI** at `http://localhost:4649`
 2. **Create a collection** to organize your endpoints
 3. **Add a mock endpoint** — set the method, path, status code, headers, and response body
 4. **Send requests** to the mock server:
 
 ```bash
 # Example: GET request to a mock endpoint
-curl http://localhost:8080/api/users
+curl http://localhost:4650/api/users
 
 # Example: POST request
-curl -X POST http://localhost:8080/api/users \
+curl -X POST http://localhost:4650/api/users \
   -H "Content-Type: application/json" \
   -d '{"name": "John"}'
 
 # Example: Path parameter — matches an endpoint defined as /api/users/:id
-curl http://localhost:8080/api/users/42
+curl http://localhost:4650/api/users/42
 
 # Example: Override response variant via headers
-curl http://localhost:8080/api/users \
+curl http://localhost:4650/api/users \
   -H "x-mock-response-code: 404"
 
-curl http://localhost:8080/api/users \
+curl http://localhost:4650/api/users \
   -H "x-mock-response-name: error" \
   -H "x-mock-response-delay: 2"
 ```
@@ -222,7 +222,7 @@ curl http://localhost:8080/api/users \
 
 7. **Set up environments** to manage variables across different configurations (dev, staging, production). Use `{{variableName}}` in response bodies to reference them.
 
-> **Tip:** The mock server also listens on your local network IP (shown in the console on startup), so you can send requests from other devices on the same network — for example, `curl http://192.168.x.x:8080/api/users`. This is especially useful for testing mobile apps or other clients.
+> **Tip:** The mock server also listens on your local network IP (shown in the console on startup), so you can send requests from other devices on the same network — for example, `curl http://192.168.x.x:4650/api/users`. This is especially useful for testing mobile apps or other clients.
 
 8. **Monitor requests** in real time from the admin UI's request log
 

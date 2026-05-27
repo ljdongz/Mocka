@@ -32,7 +32,7 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
             ┌─────────────┐        ┌──────────────┐
             │  Mocka       │        │  내 앱        │
             │  Mock Server │◄───────│  (iOS, Web,  │
-            │  :8080       │  HTTP  │   Android)   │
+            │  :4650       │  HTTP  │   Android)   │
             └─────────────┘        └──────────────┘
 ```
 
@@ -62,12 +62,12 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  브라우저 (React SPA)                                    │
-│  http://localhost:5173 (dev) / http://localhost:3000     │
+│  http://localhost:5173 (dev) / http://localhost:4649     │
 └──────────┬──────────────────────────────────────────────┘
            │ REST API + WebSocket
            ▼
 ┌──────────────────────┐       ┌──────────────────────┐
-│  Admin API (:3000)   │       │  Mock Server (:8080)  │
+│  Admin API (:4649)   │       │  Mock Server (:4650)  │
 │  - Endpoint CRUD     │       │  - Mock 응답 제공      │
 │  - Collection 관리    │       │    (HTTP/WS)           │
 │  - 설정 관리          │       │  - 요청 기록           │
@@ -112,15 +112,15 @@ mocka status          # 실행 상태 확인
 
 | 서비스 | URL | 설명 |
 |--------|-----|------|
-| Admin UI | `http://localhost:3000` | 관리 UI + REST API |
-| Mock Server | `http://localhost:8080` | Mock 응답 제공 |
+| Admin UI | `http://localhost:4649` | 관리 UI + REST API |
+| Mock Server | `http://localhost:4650` | Mock 응답 제공 |
 
 ### 환경 변수
 
 | 변수 | 기본값 | 설명 |
 |------|--------|------|
-| `ADMIN_PORT` | `3000` | Admin API 포트 |
-| `MOCK_PORT` | `8080` | Mock Server 포트 |
+| `ADMIN_PORT` | `4649` | Admin API 포트 |
+| `MOCK_PORT` | `4650` | Mock Server 포트 |
 
 ```bash
 # 예시: 커스텀 포트로 실행
@@ -167,33 +167,33 @@ npm run dev
 | 서비스 | URL | 설명 |
 |--------|-----|------|
 | Vite Dev Server | `http://localhost:5173` | HMR을 지원하는 프론트엔드 |
-| Admin API | `http://localhost:3000` | REST API + WebSocket |
-| Mock Server | `http://localhost:8080` | Mock 응답 제공 |
+| Admin API | `http://localhost:4649` | REST API + WebSocket |
+| Mock Server | `http://localhost:4650` | Mock 응답 제공 |
 
 ## 사용법
 
-1. 관리 UI에 접속합니다: `http://localhost:3000`
+1. 관리 UI에 접속합니다: `http://localhost:4649`
 2. **Collection을 생성**하여 endpoint를 그룹으로 정리합니다
 3. **Mock endpoint를 추가**합니다 — 메서드, 경로, 상태 코드, 헤더, 응답 본문을 설정합니다
 4. Mock 서버로 **요청을 전송**합니다:
 
 ```bash
 # 예시: Mock endpoint에 GET 요청
-curl http://localhost:8080/api/users
+curl http://localhost:4650/api/users
 
 # 예시: POST 요청
-curl -X POST http://localhost:8080/api/users \
+curl -X POST http://localhost:4650/api/users \
   -H "Content-Type: application/json" \
   -d '{"name": "John"}'
 
 # 예시: Path parameter — /api/users/:id 로 정의된 endpoint에 매칭
-curl http://localhost:8080/api/users/42
+curl http://localhost:4650/api/users/42
 
 # 예시: 헤더로 응답 변형 오버라이드
-curl http://localhost:8080/api/users \
+curl http://localhost:4650/api/users \
   -H "x-mock-response-code: 404"
 
-curl http://localhost:8080/api/users \
+curl http://localhost:4650/api/users \
   -H "x-mock-response-name: error" \
   -H "x-mock-response-delay: 2"
 ```
@@ -222,7 +222,7 @@ curl http://localhost:8080/api/users \
 
 7. **환경 변수**를 설정하여 다양한 구성(dev, staging, production)을 관리합니다. 응답 본문에서 `{{variableName}}` 문법으로 참조합니다.
 
-> **Tip:** Mock 서버는 로컬 네트워크 IP에서도 접근할 수 있습니다 (시작 시 콘솔에 표시). 같은 네트워크의 다른 기기에서도 요청을 보낼 수 있습니다 — 예: `curl http://192.168.x.x:8080/api/users`. 모바일 앱이나 다른 클라이언트를 테스트할 때 유용합니다.
+> **Tip:** Mock 서버는 로컬 네트워크 IP에서도 접근할 수 있습니다 (시작 시 콘솔에 표시). 같은 네트워크의 다른 기기에서도 요청을 보낼 수 있습니다 — 예: `curl http://192.168.x.x:4650/api/users`. 모바일 앱이나 다른 클라이언트를 테스트할 때 유용합니다.
 
 8. 관리 UI의 요청 기록에서 **수신 요청을 실시간으로 모니터링**합니다
 

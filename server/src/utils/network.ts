@@ -29,3 +29,15 @@ export function checkPort(port: number): Promise<void> {
     server.listen(port, '0.0.0.0');
   });
 }
+
+export async function findAvailablePort(start: number, maxAttempts = 10): Promise<number> {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      await checkPort(start + i);
+      return start + i;
+    } catch {
+      continue;
+    }
+  }
+  throw new Error(`No available port found in range ${start}-${start + maxAttempts - 1}`);
+}
