@@ -2,16 +2,22 @@
   "name": "mocka",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["server", "client"],
+  "workspaces": [
+    "server",
+    "client"
+  ],
   "bin": {
     "mocka": "./server/dist/cli.js"
   },
   "scripts": {
-    "dev": "npm run dev:server & npm run dev:client",
+    "dev": "concurrently -k \"npm:dev:server\" \"npm:dev:client\"",
     "dev:server": "npm run dev -w server",
     "dev:client": "npm run dev -w client",
     "build": "npm run build -w client && npm run build -w server",
     "start": "npm run start -w server",
     "stop": "node server/dist/cli.js stop"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
