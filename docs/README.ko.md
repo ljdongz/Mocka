@@ -39,7 +39,7 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
 ## 주요 기능
 
 ### AI 기반 Mock 구축
-- **MCP 서버 (41개 도구)** — AI 에이전트(Claude Code, Codex, Gemini 등)가 소스코드를 읽고 그에 맞는 mock endpoint를 생성, 응답 시퀀스 구성, collection 관리 — 자연어 한 문장으로
+- **MCP 서버 (37개 도구)** — AI 에이전트(Claude Code, Codex, Gemini 등)가 소스코드를 읽고 그에 맞는 mock endpoint를 생성, 응답 시퀀스 구성, collection 관리 — 자연어 한 문장으로
 - **Sequence Preset** — 이름 있는 응답 시나리오(예: "토큰 만료 플로우")를 sequential 또는 loop 모드로 구성. AI가 `401 → 토큰 갱신 → 200` 같은 다단계 플로우를 대화 한 번으로 셋업
 
 ### 수동 관리
@@ -51,7 +51,6 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
 - **동적 템플릿** — 30+ 내장 변수(`{{$randomUUID}}`, `{{$randomEmail}}` 등)와 요청 컨텍스트 헬퍼(`{{$body 'field'}}`, `{{$pathParams 'id'}}`)
 - **Path Parameter** — `:param` 또는 `{param}` 문법으로 동적 경로 정의
 - **환경 변수** — dev/staging/production 환경별 변수 관리 및 즉시 전환
-- **WebSocket Mock** — WebSocket endpoint에 Response Frame, 조건부 매칭, 주기적 전송 지원
 - **응답 지연** — 변형별 또는 전역으로 레이턴시 시뮬레이션
 - **실시간 로깅** — 수신 요청을 실시간으로 모니터링
 - **Import / Export** — mock 설정을 JSON으로 공유
@@ -69,7 +68,7 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
 ┌──────────────────────┐       ┌──────────────────────┐
 │  Admin API (:4649)   │       │  Mock Server (:4650)  │
 │  - Endpoint CRUD     │       │  - Mock 응답 제공      │
-│  - Collection 관리    │       │    (HTTP/WS)           │
+│  - Collection 관리    │       │    (HTTP)              │
 │  - 설정 관리          │       │  - 요청 기록           │
 │  - 정적 파일 제공      │       │                        │
 └──────────┬───────────┘       └────────────────────────┘
@@ -150,7 +149,7 @@ codex mcp add mocka -- mocka mcp
 
 설정 후 AI 에이전트가 자연어로 endpoint 생성, sequence preset 구성, 응답 본문 설정, collection 관리 등을 수행할 수 있습니다.
 
-**제공 도구 (41개):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data` 등.
+**제공 도구 (37개):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data` 등.
 
 ### 개발 모드
 

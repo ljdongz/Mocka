@@ -1,11 +1,9 @@
 import { initSchema } from './db/schema.js';
 import { reload } from './services/route-registry.js';
-import { reload as reloadWs } from './services/ws-registry.js';
 import { createAdminServer } from './admin-server.js';
 import { createMockServer } from './mock-server.js';
 import * as settingsService from './services/settings.service.js';
 import * as endpointService from './services/endpoint.service.js';
-import * as wsEndpointRepo from './repositories/ws-endpoint.repo.js';
 import { emit } from './services/domain-events.js';
 import { getLocalIp, checkPort, findAvailablePort } from './utils/network.js';
 import { closeDb } from './db/connection.js';
@@ -13,15 +11,21 @@ import { resolveDataDir } from './utils/paths.js';
 import { existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
+/** Parse and validate a port from an env var; returns null when absent or out of range. */
+function parsePort(value: string | undefined): number | null {
+  if (!value) return null;
+  const n = parseInt(value, 10);
+  return Number.isInteger(n) && n > 0 && n < 65536 ? n : null;
+}
+
 async function main() {
   // Initialize DB
   initSchema();
   reload(endpointService.getAll());
-  reloadWs(wsEndpointRepo.findAll());
 
   const settings = settingsService.getAll();
-  const adminPort = parseInt(process.env.ADMIN_PORT || '') || settings.adminPort || 4649;
-  const desiredMockPort = (process.env.MOCK_PORT ? parseInt(process.env.MOCK_PORT) : null) ?? (settings.port || 4650);
+  const adminPort = parsePort(process.env.ADMIN_PORT) ?? settings.adminPort ?? 4649;
+  const desiredMockPort = parsePort(process.env.MOCK_PORT) ?? settings.port ?? 4650;
 
   // Check admin port availability (no auto-fallback — MCP depends on a fixed port)
   try {

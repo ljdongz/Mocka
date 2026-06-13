@@ -3,10 +3,15 @@ type MessageHandler = (event: string, data: any) => void;
 let ws: WebSocket | null = null;
 let handlers: MessageHandler[] = [];
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let reconnectAttempts = 0;
 
 function connect() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(`${protocol}//${location.host}/ws`);
+
+  ws.onopen = () => {
+    reconnectAttempts = 0;
+  };
 
   ws.onmessage = (event) => {
     try {
@@ -18,8 +23,14 @@ function connect() {
   };
 
   ws.onclose = () => {
-    if (reconnectTimer) clearTimeout(reconnectTimer);
-    reconnectTimer = setTimeout(connect, 2000);
+    // Only one pending reconnect at a time; capped exponential backoff (1s, 2s, 4s … 30s).
+    if (reconnectTimer) return;
+    const delay = Math.min(30000, 1000 * 2 ** reconnectAttempts);
+    reconnectAttempts++;
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      connect();
+    }, delay);
   };
 
   ws.onerror = () => {
@@ -36,6 +47,7 @@ export function initWebSocket() {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
   }
+  reconnectAttempts = 0;
   connect();
 }
 

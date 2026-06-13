@@ -9,7 +9,7 @@ export function registerHistoryTools(server: McpServer) {
     {
       method: z.string().optional().describe('Filter by HTTP method'),
       search: z.string().optional().describe('Search in path'),
-      limit: z.number().optional().describe('Max results (default: 50)'),
+      limit: z.number().optional().describe('Max results (default: 100)'),
       offset: z.number().optional().describe('Pagination offset'),
     },
     async (params) => {

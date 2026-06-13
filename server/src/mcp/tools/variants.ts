@@ -23,7 +23,7 @@ export function registerVariantTools(server: McpServer) {
     {
       endpointId: z.string().optional().describe('Endpoint ID (required — identifies which endpoint)'),
       presetId: z.string().optional().describe('Preset ID — if provided, variant is added to this sequence preset. If omitted, variant is added as a standard variant.'),
-      statusCode: z.number().optional().describe('HTTP status code (default: 200)'),
+      statusCode: z.number().int().min(100).max(599).optional().describe('HTTP status code 100-599 (default: 200)'),
       description: z.string().optional().describe('Variant label'),
     },
     async ({ endpointId, presetId, ...data }) => {
@@ -48,11 +48,11 @@ export function registerVariantTools(server: McpServer) {
     'Update a response variant (status code, body, headers, delay, match rules, preset link, etc.)',
     {
       id: z.string().describe('Variant ID'),
-      statusCode: z.number().optional(),
+      statusCode: z.number().int().min(100).max(599).optional(),
       description: z.string().optional(),
       body: z.string().optional().describe('Response body (JSON string). Supports template helpers like {{$body.field}}, {{$query.key}}, {{$path.segment}}'),
       headers: z.string().optional().describe('Response headers as JSON string (e.g. {"Content-Type":"application/json"})'),
-      delay: z.number().nullable().optional().describe('Response delay in seconds'),
+      delay: z.number().min(0).nullable().optional().describe('Response delay in seconds'),
       memo: z.string().optional(),
       presetId: z.string().nullable().optional().describe('Link this variant to a sequence preset (set null to unlink)'),
       matchRules: matchRulesSchema.nullable().optional().describe('Conditional match rules for this variant'),

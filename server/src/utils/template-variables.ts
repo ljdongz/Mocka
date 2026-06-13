@@ -116,6 +116,8 @@ export function resolveVariables(template: string): string {
 
 /** Check if a string contains any template variable patterns */
 export function hasVariables(template: string): boolean {
+  // TEMPLATE_REGEX is global (/g); reset lastIndex so repeated .test() calls are not stateful.
+  TEMPLATE_REGEX.lastIndex = 0;
   return TEMPLATE_REGEX.test(template);
 }
 

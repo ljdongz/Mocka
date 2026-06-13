@@ -142,7 +142,9 @@ export async function handleMockRequest(
   let responseHeaders: Record<string, string> = {};
   try {
     responseHeaders = JSON.parse(variant.headers);
-  } catch { /* ignore invalid headers */ }
+  } catch {
+    console.warn(`[Mocka] Invalid JSON in response headers for variant ${variant.id}; sending no custom headers.`);
+  }
 
   const envVars = environmentService.getActiveVariables();
   const requestContext: RequestContext = {

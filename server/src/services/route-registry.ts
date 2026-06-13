@@ -22,17 +22,24 @@ export interface MatchResult {
 
 export { buildKey };
 
+/** Sort pattern routes by specificity: more literal segments = higher priority. */
+function sortPatternRoutes(): void {
+  patternRoutes.sort((a, b) => b.literalCount - a.literalCount);
+}
+
 export function reload(endpoints: Endpoint[]): void {
   registry.clear();
   patternRoutes.length = 0;
   for (const ep of endpoints) {
     if (ep.isEnabled) {
-      addInternal(ep);
+      addInternal(ep, false);
     }
   }
+  // Sort once after the bulk load instead of on every insert (avoids O(n² log n)).
+  sortPatternRoutes();
 }
 
-function addInternal(ep: Endpoint): void {
+function addInternal(ep: Endpoint, sort = true): void {
   const key = buildKey(ep.method, ep.path);
   if (hasParams(ep.path)) {
     // Remove existing pattern route with the same key
@@ -41,8 +48,7 @@ function addInternal(ep: Endpoint): void {
 
     const { regex, paramNames, literalCount } = compilePattern(ep.path);
     patternRoutes.push({ key, method: ep.method.toUpperCase(), regex, paramNames, literalCount, endpoint: ep });
-    // Sort by specificity: more literal segments = higher priority
-    patternRoutes.sort((a, b) => b.literalCount - a.literalCount);
+    if (sort) sortPatternRoutes();
   } else {
     registry.set(key, ep);
   }

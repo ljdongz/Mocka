@@ -5,7 +5,7 @@ import { mockaFetch, toolResult, toolError } from '../client.js';
 export function registerImportExportTools(server: McpServer) {
   server.tool(
     'export_data',
-    'Export all mock endpoints, collections, and WebSocket endpoints as JSON. Optionally filter by collection IDs.',
+    'Export all mock endpoints and collections as JSON. Optionally filter by collection IDs.',
     {
       collectionIds: z.array(z.string()).optional().describe('Export only these collections (omit for all)'),
     },

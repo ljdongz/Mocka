@@ -4,7 +4,6 @@ import type { ResponseVariant } from '../models/response-variant.js';
 import type { Collection } from '../models/collection.js';
 import type { Environment } from '../models/environment.js';
 import type { RequestRecord } from '../models/request-record.js';
-import type { WsEndpoint, WsResponseFrame } from '../models/ws-endpoint.js';
 
 const emitter = new EventEmitter();
 
@@ -25,12 +24,7 @@ export type DomainEvent =
   | { type: 'history:new'; payload: RequestRecord }
   | { type: 'history:cleared'; payload: null }
   | { type: 'import:completed'; payload: any }
-  | { type: 'server:status'; payload: { running: boolean; port: number } }
-  | { type: 'ws-endpoint:created'; payload: WsEndpoint }
-  | { type: 'ws-endpoint:updated'; payload: WsEndpoint }
-  | { type: 'ws-endpoint:deleted'; payload: { id: string } }
-  | { type: 'ws-frame:updated'; payload: WsResponseFrame }
-  | { type: 'ws-frame:deleted'; payload: { id: string } };
+  | { type: 'server:status'; payload: { running: boolean; port: number } };
 
 /** Emit a domain event that will be broadcast to WebSocket clients */
 export function emit<T extends DomainEvent['type']>(

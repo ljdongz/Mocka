@@ -27,6 +27,18 @@ export interface ResponseVariant {
   presetId: string | null;
 }
 
+/** Cache compiled regexes so a pathological/expensive pattern is built at most once per request stream. */
+const regexCache = new Map<string, RegExp | null>();
+
+function getCachedRegex(pattern: string): RegExp | null {
+  let re = regexCache.get(pattern);
+  if (re === undefined) {
+    try { re = new RegExp(pattern); } catch { re = null; }
+    regexCache.set(pattern, re);
+  }
+  return re;
+}
+
 /** Check if a single match rule passes against a value */
 export function evaluateRule(rule: MatchRule, actual: string | undefined): boolean {
   if (actual === undefined || actual === null) return false;
@@ -36,7 +48,7 @@ export function evaluateRule(rule: MatchRule, actual: string | undefined): boole
     case 'contains': return a.includes(rule.value);
     case 'startsWith': return a.startsWith(rule.value);
     case 'endsWith': return a.endsWith(rule.value);
-    case 'regex': try { return new RegExp(rule.value).test(a); } catch { return false; }
+    case 'regex': { const re = getCachedRegex(rule.value); return re ? re.test(a) : false; }
     default: return false;
   }
 }

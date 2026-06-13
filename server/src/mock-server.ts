@@ -1,19 +1,34 @@
 import Fastify from 'fastify';
-import websocket from '@fastify/websocket';
 import { handleMockRequest } from './services/mock-handler.service.js';
-import { wsHandler } from './plugins/ws-mock.js';
 
-export async function createMockServer(port: number) {
-  const app = Fastify({ logger: false });
+/** Cap on accepted request body size — JSON via Fastify bodyLimit, multipart via manual counting. */
+const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MiB
 
-  // Accept multipart/form-data requests (store raw body without parsing)
+export async function createMockServer(_port: number) {
+  const app = Fastify({ logger: false, bodyLimit: MAX_BODY_BYTES });
+
+  // Accept multipart/form-data requests (store raw body without parsing), with a size cap.
   app.addContentTypeParser('multipart/form-data', function (_req, payload, done) {
     const chunks: Buffer[] = [];
-    payload.on('data', (chunk: Buffer) => chunks.push(chunk));
-    payload.on('end', () => {
-      done(null, { raw: Buffer.concat(chunks).toString() });
+    let size = 0;
+    let settled = false;
+    const finish = (err: Error | null, value?: unknown) => {
+      if (settled) return;
+      settled = true;
+      done(err, value);
+    };
+
+    payload.on('data', (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > MAX_BODY_BYTES) {
+        finish(new Error('Request payload too large'));
+        payload.destroy();
+        return;
+      }
+      chunks.push(chunk);
     });
-    payload.on('error', done);
+    payload.on('end', () => finish(null, { raw: Buffer.concat(chunks).toString() }));
+    payload.on('error', (err) => finish(err));
   });
 
   // Manual CORS handling via hooks (avoids route conflict with catch-all)
@@ -26,9 +41,6 @@ export async function createMockServer(port: number) {
       reply.code(204).send();
     }
   });
-
-  // Register WebSocket support
-  await app.register(websocket);
 
   // Catch-all handler delegates to mock-handler service
   const handler = async (req: any, reply: any) => {
@@ -48,9 +60,7 @@ export async function createMockServer(port: number) {
     return reply.send(result.body);
   };
 
-  // GET /* combines HTTP handler + WebSocket handler on a single route
-  // Fastify does not allow two GET /* registrations, so wsHandler is attached here
-  app.get('/*', { handler, wsHandler } as any);
+  app.get('/*', handler);
   app.post('/*', handler);
   app.put('/*', handler);
   app.delete('/*', handler);

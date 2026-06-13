@@ -39,7 +39,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 ## Features
 
 ### AI-Driven Mock Setup
-- **MCP Server (41 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
+- **MCP Server (37 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
 - **Sequence Presets** — Named response scenarios (e.g. "Token Expired Flow") with sequential or loop modes. The AI can set up multi-step flows like `401 → token refresh → 200` in one conversation
 
 ### Manual Control
@@ -51,7 +51,6 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 - **Dynamic Templates** — 30+ built-in variables (`{{$randomUUID}}`, `{{$randomEmail}}`, etc.) and request context helpers (`{{$body 'field'}}`, `{{$pathParams 'id'}}`)
 - **Path Parameters** — Dynamic routes with `:param` or `{param}` syntax
 - **Environments** — Manage variables across dev/staging/production and switch instantly
-- **WebSocket Mock** — WebSocket endpoints with response frames, conditional matching, and periodic sending
 - **Response Delay** — Simulate latency per-variant or globally
 - **Real-time Logging** — Monitor incoming requests live
 - **Import / Export** — Share mock configurations as JSON
@@ -69,7 +68,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 ┌──────────────────────┐       ┌──────────────────────┐
 │  Admin API (:4649)   │       │  Mock Server (:4650)  │
 │  - Endpoint CRUD     │       │  - Serves mock        │
-│  - Collection mgmt   │       │    responses (HTTP/WS) │
+│  - Collection mgmt   │       │    responses (HTTP)    │
 │  - Settings          │       │  - Logs requests       │
 │  - Static files      │       │                        │
 └──────────┬───────────┘       └────────────────────────┘
@@ -150,7 +149,7 @@ codex mcp add mocka -- mocka mcp
 
 Once configured, AI agents can create endpoints, set up sequence presets, configure response bodies, and manage collections — all through natural language.
 
-**Available tools (41):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, and more.
+**Available tools (37):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, and more.
 
 ### Development
 
