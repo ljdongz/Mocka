@@ -4,7 +4,7 @@ import * as environmentService from './environment.service.js';
 import * as settingsService from './settings.service.js';
 import * as sequenceCounter from './sequence-counter.service.js';
 import { resolveVariables } from '../utils/template-variables.js';
-import { resolveHelpers, parseQueryParams, parsePathSegments, type RequestContext } from '../utils/template-helpers.js';
+import { resolveHelpers, resolveDataset, parseQueryParams, parsePathSegments, type RequestContext } from '../utils/template-helpers.js';
 import { matchesRules, type ResponseVariant } from '../models/response-variant.js';
 
 /** Replace {{envVarName}} placeholders (non-$ prefixed) with environment variable values */
@@ -58,13 +58,14 @@ export function resolveVariant(
   return variants.find(v => v.id === endpoint.activeVariantId) ?? variants[0];
 }
 
-/** Resolve template body: env vars → helpers → dynamic variables */
+/** Resolve template body: env vars → helpers → dynamic variables → dataset */
 export function resolveResponseBody(
   template: string,
   envVars: Record<string, string>,
   requestContext: RequestContext,
 ): string {
-  return resolveVariables(resolveHelpers(resolveEnvVariables(template, envVars), requestContext));
+  const resolved = resolveVariables(resolveHelpers(resolveEnvVariables(template, envVars), requestContext));
+  return resolveDataset(resolved, requestContext);
 }
 
 /** Build the body string used for history recording (merges pathParams if present) */
