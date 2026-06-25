@@ -8,7 +8,8 @@ import { useTranslation, fmt } from '../../../i18n';
 import { STATUS_CODES } from '../../../utils/http';
 import { formatJson } from '../../../utils/json';
 import { validateStatusCode } from '../../../utils/validation';
-import type { Endpoint, ResponseVariant, MatchRules, MatchRule } from '../../../types';
+import type { Endpoint, ResponseVariant, MatchRules, MatchRule, DatasetBinding } from '../../../types';
+import { useDatasetStore } from '../../../stores/dataset.store';
 import clsx from 'clsx';
 
 export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
@@ -419,6 +420,9 @@ function VariantEditor({
       {/* Match Rules */}
       <MatchRulesEditor variant={variant} updateVariant={updateVariant} />
 
+      {/* Dataset binding */}
+      <DatasetBindingEditor variant={variant} updateVariant={updateVariant} />
+
       {/* Response Headers */}
       <ResponseHeadersEditor variant={variant} updateVariant={updateVariant} />
 
@@ -435,6 +439,70 @@ function VariantEditor({
           height="500px"
         />
       </div>
+    </div>
+  );
+}
+
+function DatasetBindingEditor({
+  variant,
+  updateVariant,
+}: {
+  variant: ResponseVariant;
+  updateVariant: (id: string, data: Partial<ResponseVariant>) => Promise<void>;
+}) {
+  const t = useTranslation();
+  const datasets = useDatasetStore(s => s.datasets);
+  const fetchDatasets = useDatasetStore(s => s.fetch);
+  useEffect(() => { fetchDatasets(); }, [fetchDatasets]);
+
+  const binding = variant.datasetBinding ?? null;
+  const setBinding = (next: DatasetBinding | null) => updateVariant(variant.id, { datasetBinding: next });
+
+  const projectionText = (binding?.projection ?? []).join(', ');
+
+  return (
+    <div className="mb-4">
+      <label className="block text-xs text-text-tertiary mb-1 uppercase tracking-wider">{t.response.datasetBinding}</label>
+      <div className="flex gap-2">
+        <select
+          value={binding?.datasetId ?? ''}
+          onChange={e => {
+            const datasetId = e.target.value;
+            setBinding(datasetId ? { datasetId, mode: binding?.mode ?? 'detail', projection: binding?.projection } : null);
+          }}
+          className="flex-1 rounded border border-border-secondary bg-bg-input px-2 py-1.5 text-sm text-text-primary outline-none focus:border-accent-primary"
+        >
+          <option value="">{t.response.noDataset}</option>
+          {datasets.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+        {binding && (
+          <select
+            value={binding.mode}
+            onChange={e => setBinding({ ...binding, mode: e.target.value as 'list' | 'detail' })}
+            className="rounded border border-border-secondary bg-bg-input px-2 py-1.5 text-sm text-text-primary outline-none focus:border-accent-primary"
+          >
+            <option value="detail">detail</option>
+            <option value="list">list</option>
+          </select>
+        )}
+      </div>
+
+      {binding?.mode === 'list' && (
+        <input
+          type="text"
+          defaultValue={projectionText}
+          onBlur={e => {
+            const fields = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+            setBinding({ ...binding, projection: fields.length ? fields : undefined });
+          }}
+          placeholder="projection: idx, title, price (비우면 전체 필드)"
+          className="mt-2 w-full rounded border border-border-secondary bg-bg-input px-2 py-1.5 text-xs text-text-primary font-mono outline-none focus:border-accent-primary"
+        />
+      )}
+
+      {binding && (
+        <p className="mt-1 text-xs text-text-muted">{fmt(t.response.datasetHint, '{{$dataset}}')}</p>
+      )}
     </div>
   );
 }

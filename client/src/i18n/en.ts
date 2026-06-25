@@ -199,6 +199,9 @@ const en = {
     addResponseHeader: 'Add Header',
     responseBody: 'Response Body',
     formatJson: 'Format JSON',
+    datasetBinding: 'Dataset Binding',
+    noDataset: 'No dataset',
+    datasetHint: 'This dataset is injected where {0} appears in the Response Body.',
   },
 
   body: {

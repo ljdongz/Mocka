@@ -201,6 +201,9 @@ const ko: Translations = {
     addResponseHeader: 'Header 추가',
     responseBody: 'Response Body',
     formatJson: 'JSON Format',
+    datasetBinding: 'Dataset Binding',
+    noDataset: 'Dataset 없음',
+    datasetHint: 'Response Body의 {0} 위치에 이 Dataset이 주입됩니다.',
   },
 
   body: {
