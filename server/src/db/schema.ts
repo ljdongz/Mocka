@@ -214,6 +214,12 @@ export function initSchema(): void {
     }
   }
 
+  // Migration: update default mock port from 8080 to 4650
+  const currentPort = db.prepare("SELECT value FROM settings WHERE key = 'port'").get() as { value: string } | undefined;
+  if (currentPort?.value === '8080') {
+    db.prepare("UPDATE settings SET value = '4650' WHERE key = 'port'").run();
+  }
+
   // Migration: normalize trailing slashes in existing endpoint paths
   const trailingSlashRows = db.prepare(
     "SELECT id, method, path, created_at FROM endpoints WHERE length(path) > 1 AND path LIKE '%/'"
