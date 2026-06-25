@@ -95,6 +95,7 @@ Admin API가 endpoint 설정을 관리하고 프론트엔드를 제공하며, Mo
 
 ```bash
 brew tap ljdongz/tap
+brew trust ljdongz/tap   # Homebrew 6.0+에서는 서드파티 tap 신뢰 등록이 필요합니다
 brew install mocka
 ```
 

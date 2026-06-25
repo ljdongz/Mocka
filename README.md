@@ -95,6 +95,7 @@ The Admin API manages endpoint configurations and serves the frontend, while the
 
 ```bash
 brew tap ljdongz/tap
+brew trust ljdongz/tap   # Homebrew 6.0+ requires trusting third-party taps
 brew install mocka
 ```
 
