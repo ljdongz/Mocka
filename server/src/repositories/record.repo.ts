@@ -2,9 +2,8 @@ import { getDb } from '../db/connection.js';
 import type { RequestRecord } from '../models/request-record.js';
 
 function rowToRecord(row: any): RequestRecord {
-  const protocol = row.protocol === 'ws' ? 'ws' : 'http';
   return {
-    protocol,
+    protocol: 'http',
     id: row.id,
     method: row.method,
     path: row.path,

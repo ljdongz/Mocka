@@ -51,7 +51,6 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 - **Dynamic Templates** — 30+ built-in variables (`{{$randomUUID}}`, `{{$randomEmail}}`, etc.) and request context helpers (`{{$body 'field'}}`, `{{$pathParams 'id'}}`)
 - **Path Parameters** — Dynamic routes with `:param` or `{param}` syntax
 - **Environments** — Manage variables across dev/staging/production and switch instantly
-- **WebSocket Mock** — WebSocket endpoints with response frames, conditional matching, and periodic sending
 - **Response Delay** — Simulate latency per-variant or globally
 - **Real-time Logging** — Monitor incoming requests live
 - **Import / Export** — Share mock configurations as JSON
@@ -69,7 +68,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 ┌──────────────────────┐       ┌──────────────────────┐
 │  Admin API (:4649)   │       │  Mock Server (:4650)  │
 │  - Endpoint CRUD     │       │  - Serves mock        │
-│  - Collection mgmt   │       │    responses (HTTP/WS) │
+│  - Collection mgmt   │       │    responses (HTTP)    │
 │  - Settings          │       │  - Logs requests       │
 │  - Static files      │       │                        │
 └──────────┬───────────┘       └────────────────────────┘

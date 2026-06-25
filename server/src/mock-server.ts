@@ -1,7 +1,5 @@
 import Fastify from 'fastify';
-import websocket from '@fastify/websocket';
 import { handleMockRequest } from './services/mock-handler.service.js';
-import { wsHandler } from './plugins/ws-mock.js';
 
 export async function createMockServer(port: number) {
   const app = Fastify({ logger: false });
@@ -27,9 +25,6 @@ export async function createMockServer(port: number) {
     }
   });
 
-  // Register WebSocket support
-  await app.register(websocket);
-
   // Catch-all handler delegates to mock-handler service
   const handler = async (req: any, reply: any) => {
     const result = await handleMockRequest(
@@ -48,9 +43,7 @@ export async function createMockServer(port: number) {
     return reply.send(result.body);
   };
 
-  // GET /* combines HTTP handler + WebSocket handler on a single route
-  // Fastify does not allow two GET /* registrations, so wsHandler is attached here
-  app.get('/*', { handler, wsHandler } as any);
+  app.get('/*', handler);
   app.post('/*', handler);
   app.put('/*', handler);
   app.delete('/*', handler);

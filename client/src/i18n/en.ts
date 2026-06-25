@@ -35,8 +35,6 @@ const en = {
     settings: 'Settings',
     addEndpoint: 'Add Endpoint',
     rename: 'Rename',
-    wsEndpoints: 'WebSocket',
-    newWsEndpoint: 'New WS Endpoint',
   },
 
   editor: {
@@ -248,26 +246,6 @@ const en = {
     startsWith: 'Starts with',
     endsWith: 'Ends with',
     regex: 'Regex',
-  },
-
-  wsEditor: {
-    selectEndpoint: 'Select a WebSocket endpoint to edit, or create a new one.',
-    title: 'Mock WebSocket Response',
-    description: 'Define the mock response frames. Set the active frame to control what the endpoint sends when a client connects.',
-    addFrame: '+ Add Frame',
-    responseFrames: 'Response Frames',
-    frameLabel: 'Label',
-    unnamedFrame: 'Unnamed frame',
-    messageBody: 'Message Body',
-    trigger: 'Trigger',
-    triggerMessage: 'On message received',
-    triggerConnect: 'On connect (auto-send)',
-    intervalMin: 'Interval Min (s)',
-    intervalMax: 'Interval Max (s)',
-    intervalHelp: 'Sends repeatedly at random intervals within this range.',
-    newWsEndpoint: 'New WS Endpoint',
-    wsEndpointPath: 'WebSocket Path',
-    failedToCreate: 'Failed to create WebSocket endpoint',
   },
 
   onboarding: {
