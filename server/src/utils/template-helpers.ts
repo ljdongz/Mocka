@@ -108,5 +108,5 @@ const DATASET_REGEX = /\{\{\s*\$dataset\s*\}\}/g;
 
 /** Replace {{$dataset}} with the request's pre-resolved dataset JSON (or null literal). */
 export function resolveDataset(template: string, ctx: RequestContext): string {
-  return template.replace(DATASET_REGEX, ctx.datasetJson ?? 'null');
+  return template.replace(DATASET_REGEX, () => ctx.datasetJson ?? 'null');
 }

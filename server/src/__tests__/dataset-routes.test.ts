@@ -46,4 +46,20 @@ describe('dataset routes', () => {
     expect(upd.json().records).toEqual([{ idx: 7 }]);
     expect((await app.inject({ method: 'DELETE', url: `/api/datasets/${created.id}` })).statusCode).toBe(200);
   });
+
+  it('POST with non-array records returns 400', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/datasets',
+      payload: { name: 'x', keyField: 'id', records: 'oops' } });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe('records must be an array');
+  });
+
+  it('PUT with non-array records returns 400', async () => {
+    const created = (await app.inject({ method: 'POST', url: '/api/datasets',
+      payload: { name: 'y', keyField: 'id', records: [] } })).json();
+    const res = await app.inject({ method: 'PUT', url: `/api/datasets/${created.id}`,
+      payload: { records: 42 } });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe('records must be an array');
+  });
 });

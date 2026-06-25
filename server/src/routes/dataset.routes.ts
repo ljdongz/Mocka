@@ -14,6 +14,7 @@ export async function datasetRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/datasets', async (req, reply) => {
     const body = req.body as { name?: string; keyField?: string; records?: any[] };
     if (!body.name || !body.keyField) { reply.code(400); return { error: 'name and keyField are required' }; }
+    if (body.records !== undefined && !Array.isArray(body.records)) { reply.code(400); return { error: 'records must be an array' }; }
     reply.code(201);
     return datasetService.create({ name: body.name, keyField: body.keyField, records: body.records });
   });
@@ -21,6 +22,7 @@ export async function datasetRoutes(app: FastifyInstance): Promise<void> {
   app.put('/api/datasets/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = req.body as Partial<{ name: string; keyField: string; records: any[] }>;
+    if (body.records !== undefined && !Array.isArray(body.records)) { reply.code(400); return { error: 'records must be an array' }; }
     const ds = datasetService.update(id, body);
     if (!ds) { reply.code(404); return { error: 'Not found' }; }
     return ds;

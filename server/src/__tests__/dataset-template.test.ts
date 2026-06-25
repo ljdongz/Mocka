@@ -25,4 +25,14 @@ describe('resolveDataset', () => {
     const out = resolveResponseBody('{"errorCode":null,"data": {{$dataset}}}', {}, ctx);
     expect(JSON.parse(out)).toEqual({ errorCode: null, data: { idx: 2, title: 'beta' } });
   });
+
+  it('preserves $ sequences in dataset values byte-for-byte (regression for String.replace $ corruption)', () => {
+    const original = { price: '$$100', note: 'a$&b', raw: "$'x$`y" };
+    const dsCtx: RequestContext = {
+      body: {}, queryParams: {}, pathSegments: [], headers: {}, pathParams: {},
+      datasetJson: JSON.stringify(original),
+    };
+    const out = resolveDataset('{"data": {{$dataset}}}', dsCtx);
+    expect(JSON.parse(out).data).toEqual(original);
+  });
 });
