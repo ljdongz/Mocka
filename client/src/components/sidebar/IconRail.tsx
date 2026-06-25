@@ -1,4 +1,4 @@
-import { Folder, History, Layers, ArrowUpDown, Settings, BookOpen } from 'lucide-react';
+import { Folder, History, Layers, ArrowUpDown, Settings, BookOpen, Database } from 'lucide-react';
 import { useUIStore } from '../../stores/ui.store';
 import { useTranslation } from '../../i18n';
 
@@ -9,6 +9,7 @@ export function IconRail() {
   const showOnboarding = useUIStore(s => s.showOnboarding);
   const setShowOnboarding = useUIStore(s => s.setShowOnboarding);
   const setShowEnvironments = useUIStore(s => s.setShowEnvironments);
+  const setShowDatasets = useUIStore(s => s.setShowDatasets);
   const setShowImportExport = useUIStore(s => s.setShowImportExport);
   const setShowSettings = useUIStore(s => s.setShowSettings);
 
@@ -67,6 +68,13 @@ export function IconRail() {
           title={t.sidebar.environments}
         >
           <Layers size={20} strokeWidth={1.8} />
+        </button>
+        <button
+          onClick={() => setShowDatasets(true)}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-hover hover:text-text-secondary"
+          title={t.sidebar.datasets}
+        >
+          <Database size={20} strokeWidth={1.8} />
         </button>
         <button
           onClick={() => setShowImportExport(true)}

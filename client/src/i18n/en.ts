@@ -30,6 +30,7 @@ const en = {
     uncollected: 'Uncollected',
     guide: 'Guide',
     environments: 'Environments',
+    datasets: 'Datasets',
     importExport: 'Import / Export',
     settings: 'Settings',
     addEndpoint: 'Add Endpoint',
@@ -104,6 +105,19 @@ const en = {
     countCollectionsCreated: '{0} collections created',
     countCollectionsSkipped: '{0} collections skipped',
     errors: 'Errors:',
+  },
+
+  dataset: {
+    title: 'Datasets',
+    createToStart: 'Create a dataset to start.',
+    namePlaceholder: 'Name...',
+    newDataset: 'New Dataset',
+    deleteDataset: 'Delete Dataset',
+    keyField: 'Key Field',
+    records: 'Records (JSON)',
+    invalidJson: 'Invalid JSON',
+    mustBeArray: 'Must be an array',
+    usageHint: 'Put {{$dataset}} in a Response Body to inject this dataset.',
   },
 
   environment: {
