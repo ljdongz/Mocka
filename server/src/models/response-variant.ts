@@ -1,3 +1,5 @@
+import type { DatasetBinding } from './dataset.js';
+
 export interface MatchRule {
   field: string;
   operator: 'equals' | 'contains' | 'startsWith' | 'endsWith' | 'regex';
@@ -25,6 +27,7 @@ export interface ResponseVariant {
   matchRules: MatchRules | null;
   variantGroup: 'standard' | 'sequence';
   presetId: string | null;
+  datasetBinding?: DatasetBinding | null;
 }
 
 /** Check if a single match rule passes against a value */
