@@ -39,7 +39,7 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
 ## 주요 기능
 
 ### AI 기반 Mock 구축
-- **MCP 서버 (41개 도구)** — AI 에이전트(Claude Code, Codex, Gemini 등)가 소스코드를 읽고 그에 맞는 mock endpoint를 생성, 응답 시퀀스 구성, collection 관리 — 자연어 한 문장으로
+- **MCP 서버 (42개 도구)** — AI 에이전트(Claude Code, Codex, Gemini 등)가 소스코드를 읽고 그에 맞는 mock endpoint를 생성, 응답 시퀀스 구성, collection 관리 — 자연어 한 문장으로
 - **Sequence Preset** — 이름 있는 응답 시나리오(예: "토큰 만료 플로우")를 sequential 또는 loop 모드로 구성. AI가 `401 → 토큰 갱신 → 200` 같은 다단계 플로우를 대화 한 번으로 셋업
 
 ### 수동 관리
@@ -150,7 +150,9 @@ codex mcp add mocka -- mocka mcp
 
 설정 후 AI 에이전트가 자연어로 endpoint 생성, sequence preset 구성, 응답 본문 설정, collection 관리 등을 수행할 수 있습니다.
 
-**제공 도구 (41개):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data` 등.
+**제공 도구 (42개):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data` 등.
+
+> **전체 MCP 레퍼런스 →** [docs/mcp](mcp/README.ko.md) (클라이언트별 설치, 42개 도구 전체 목록, 예시 에이전트 워크플로, 문제 해결).
 
 ### 개발 모드
 
@@ -172,6 +174,8 @@ npm run dev
 | Mock Server | `http://localhost:4650` | Mock 응답 제공 |
 
 ## 사용법
+
+> **상세 사용 가이드 →** [docs/usage](usage/README.ko.md) (개념, 조건부 매칭, dataset, environment, sequence preset, 템플릿, 전체 응답 해석 순서).
 
 1. 관리 UI에 접속합니다: `http://localhost:4649`
 2. **Collection을 생성**하여 endpoint를 그룹으로 정리합니다
