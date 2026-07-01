@@ -32,6 +32,7 @@ const ko: Translations = {
     uncollected: '미분류',
     guide: '가이드',
     environments: 'Environments',
+    datasets: 'Datasets',
     importExport: 'Import / Export',
     settings: '설정',
     addEndpoint: 'Endpoint 추가',
@@ -104,6 +105,19 @@ const ko: Translations = {
     countCollectionsCreated: '{0}개 Collection 생성',
     countCollectionsSkipped: '{0}개 Collection 건너뜀',
     errors: '오류:',
+  },
+
+  dataset: {
+    title: 'Datasets',
+    createToStart: '시작하려면 Dataset을 생성하세요.',
+    namePlaceholder: '이름...',
+    newDataset: '새 Dataset',
+    deleteDataset: 'Dataset 삭제',
+    keyField: 'Key Field',
+    records: 'Records (JSON)',
+    invalidJson: '유효하지 않은 JSON',
+    mustBeArray: '배열이어야 합니다',
+    usageHint: 'Response Body에 {{$dataset}}를 넣으면 이 Dataset이 주입됩니다.',
   },
 
   environment: {
@@ -185,6 +199,9 @@ const ko: Translations = {
     addResponseHeader: 'Header 추가',
     responseBody: 'Response Body',
     formatJson: 'JSON Format',
+    datasetBinding: 'Dataset Binding',
+    noDataset: 'Dataset 없음',
+    datasetHint: 'Response Body의 {0} 위치에 이 Dataset이 주입됩니다.',
   },
 
   body: {

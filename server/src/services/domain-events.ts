@@ -4,6 +4,7 @@ import type { ResponseVariant } from '../models/response-variant.js';
 import type { Collection } from '../models/collection.js';
 import type { Environment } from '../models/environment.js';
 import type { RequestRecord } from '../models/request-record.js';
+import type { Dataset } from '../models/dataset.js';
 
 const emitter = new EventEmitter();
 
@@ -21,6 +22,9 @@ export type DomainEvent =
   | { type: 'environment:updated'; payload: Environment }
   | { type: 'environment:deleted'; payload: { id: string } }
   | { type: 'environment:active-changed'; payload: { activeId: string | null } }
+  | { type: 'dataset:created'; payload: Dataset }
+  | { type: 'dataset:updated'; payload: Dataset }
+  | { type: 'dataset:deleted'; payload: { id: string } }
   | { type: 'history:new'; payload: RequestRecord }
   | { type: 'history:cleared'; payload: null }
   | { type: 'import:completed'; payload: any }

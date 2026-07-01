@@ -64,6 +64,7 @@ export interface ResponseVariant {
   matchRules: MatchRules | null;
   variantGroup: 'standard' | 'sequence';
   presetId: string | null;
+  datasetBinding?: DatasetBinding | null;
 }
 
 export interface SequencePreset {
@@ -120,4 +121,22 @@ export interface Environment {
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
+}
+
+export interface Dataset {
+  id: string;
+  name: string;
+  keyField: string;
+  records: any[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DatasetBinding {
+  datasetId: string;
+  mode: 'list' | 'detail';
+  /** list mode only: return just these fields per record */
+  projection?: string[];
+  /** detail mode: where the lookup key comes from (defaults to body[keyField]) */
+  keySource?: { from: 'body' | 'path' | 'query'; field: string };
 }

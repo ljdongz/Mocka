@@ -39,7 +39,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 ## Features
 
 ### AI-Driven Mock Setup
-- **MCP Server (37 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
+- **MCP Server (42 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
 - **Sequence Presets** — Named response scenarios (e.g. "Token Expired Flow") with sequential or loop modes. The AI can set up multi-step flows like `401 → token refresh → 200` in one conversation
 
 ### Manual Control
@@ -95,6 +95,7 @@ The Admin API manages endpoint configurations and serves the frontend, while the
 
 ```bash
 brew tap ljdongz/tap
+brew trust ljdongz/tap   # Homebrew 6.0+ requires trusting third-party taps
 brew install mocka
 ```
 
@@ -149,7 +150,9 @@ codex mcp add mocka -- mocka mcp
 
 Once configured, AI agents can create endpoints, set up sequence presets, configure response bodies, and manage collections — all through natural language.
 
-**Available tools (37):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, and more.
+**Available tools (42):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, `create_dataset`, `update_dataset`, and more.
+
+> **Full MCP reference →** [docs/mcp](docs/mcp/README.md) (installation per client, the complete 42-tool catalog, example agent workflows, troubleshooting).
 
 ### Development
 
@@ -171,6 +174,8 @@ This starts three servers concurrently:
 | Mock Server | `http://localhost:4650` | Serves mock responses |
 
 ## Usage
+
+> **In-depth usage guide →** [docs/usage](docs/usage/README.md) (concepts, conditional matching, datasets, environments, sequence presets, templates, and the full response-resolution order).
 
 1. **Open the admin UI** at `http://localhost:4649`
 2. **Create a collection** to organize your endpoints

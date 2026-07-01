@@ -7,6 +7,7 @@ import { registerEnvironmentTools } from './tools/environments.js';
 import { registerCollectionTools } from './tools/collections.js';
 import { registerHistoryTools } from './tools/history.js';
 import { registerImportExportTools } from './tools/import-export.js';
+import { registerDatasetTools } from './tools/datasets.js';
 import { registerServerTools } from './tools/server.js';
 
 export async function startMcpServer() {
@@ -22,6 +23,7 @@ export async function startMcpServer() {
   registerCollectionTools(server);
   registerHistoryTools(server);
   registerImportExportTools(server);
+  registerDatasetTools(server);
   registerServerTools(server);
 
   const transport = new StdioServerTransport();

@@ -56,6 +56,15 @@ export function registerVariantTools(server: McpServer) {
       memo: z.string().optional(),
       presetId: z.string().nullable().optional().describe('Link this variant to a sequence preset (set null to unlink)'),
       matchRules: matchRulesSchema.nullable().optional().describe('Conditional match rules for this variant'),
+      datasetBinding: z.object({
+        datasetId: z.string(),
+        mode: z.enum(['list', 'detail']),
+        projection: z.array(z.string()).optional().describe('list mode: return only these fields per record'),
+        keySource: z.object({
+          from: z.enum(['body', 'path', 'query']),
+          field: z.string(),
+        }).optional().describe('detail mode: where the lookup key comes from (defaults to body[keyField])'),
+      }).nullable().optional().describe('Bind this variant to a shared dataset; set null to unbind. body should contain {{$dataset}} where the dataset value goes.'),
     },
     async ({ id, ...data }) => {
       try {

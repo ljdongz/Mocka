@@ -101,6 +101,15 @@ export function initSchema(): void {
       value TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS datasets (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      key_field TEXT NOT NULL DEFAULT 'id',
+      records TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     INSERT OR IGNORE INTO settings VALUES ('port', '4650');
     INSERT OR IGNORE INTO settings VALUES ('response_delay', '0');
     INSERT OR IGNORE INTO settings VALUES ('auto_save_endpoints', 'true');
@@ -142,6 +151,12 @@ export function initSchema(): void {
     db.exec("ALTER TABLE response_variants ADD COLUMN preset_id TEXT REFERENCES sequence_presets(id) ON DELETE CASCADE");
   }
 
+  // Migration: add dataset_binding column to response_variants if missing
+  const variantCols4 = db.prepare("PRAGMA table_info(response_variants)").all() as { name: string }[];
+  if (!variantCols4.some(c => c.name === 'dataset_binding')) {
+    db.exec("ALTER TABLE response_variants ADD COLUMN dataset_binding TEXT");
+  }
+
   // Migration: add active_preset_id column to endpoints if missing
   const endpointCols3 = db.prepare("PRAGMA table_info(endpoints)").all() as { name: string }[];
   if (!endpointCols3.some(c => c.name === 'active_preset_id')) {
@@ -172,6 +187,12 @@ export function initSchema(): void {
         "UPDATE endpoints SET active_preset_id = ?, sequence_mode = 'on' WHERE id = ?"
       ).run(presetId, ep.id);
     }
+  }
+
+  // Migration: update default mock port from 8080 to 4650
+  const currentPort = db.prepare("SELECT value FROM settings WHERE key = 'port'").get() as { value: string } | undefined;
+  if (currentPort?.value === '8080') {
+    db.prepare("UPDATE settings SET value = '4650' WHERE key = 'port'").run();
   }
 
   // Migration: normalize trailing slashes in existing endpoint paths

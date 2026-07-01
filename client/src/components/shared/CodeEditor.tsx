@@ -109,6 +109,10 @@ export function CodeEditor({ value, onChange, language = 'json', readOnly = fals
   const handleBeforeMount = (monaco: Monaco) => {
     monacoRef.current = monaco;
     registerTemplateCompletion(monaco);
+    // Bodies are templates (e.g. {{$dataset}}, {{$body 'x'}}, {{$randomUUID}}), which are
+    // not valid JSON until the server resolves them at request time. Monaco's JSON validator
+    // would otherwise flag every template token as a syntax error, so turn off JSON diagnostics.
+    monaco.languages.json.jsonDefaults.setDiagnosticsOptions({ validate: false });
   };
 
   return (

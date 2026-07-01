@@ -9,6 +9,8 @@ export interface RequestContext {
   pathSegments: string[];
   headers: Record<string, string>;
   pathParams: Record<string, string>;
+  /** Pre-rendered JSON of a variant's resolved dataset binding, injected for {{$dataset}}. */
+  datasetJson?: string;
 }
 
 /**
@@ -100,4 +102,11 @@ export function parseQueryParams(url: string): Record<string, string> {
 export function parsePathSegments(url: string): string[] {
   const path = url.split('?')[0];
   return path.split('/').filter(Boolean);
+}
+
+const DATASET_REGEX = /\{\{\s*\$dataset\s*\}\}/g;
+
+/** Replace {{$dataset}} with the request's pre-resolved dataset JSON (or null literal). */
+export function resolveDataset(template: string, ctx: RequestContext): string {
+  return template.replace(DATASET_REGEX, () => ctx.datasetJson ?? 'null');
 }

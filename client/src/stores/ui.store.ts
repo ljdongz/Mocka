@@ -7,6 +7,7 @@ interface UIStore {
   showNewCollection: boolean;
   showImportExport: boolean;
   showEnvironments: boolean;
+  showDatasets: boolean;
   showOnboarding: boolean;
   newEndpointCollectionId: string;
 
@@ -19,6 +20,7 @@ interface UIStore {
   setShowNewCollection: (v: boolean) => void;
   setShowImportExport: (v: boolean) => void;
   setShowEnvironments: (v: boolean) => void;
+  setShowDatasets: (v: boolean) => void;
   setShowOnboarding: (v: boolean) => void;
   setSidebarWidth: (w: number) => void;
   setHistoryDetailWidth: (w: number) => void;
@@ -32,6 +34,7 @@ export const useUIStore = create<UIStore>((set) => ({
   showNewCollection: false,
   showImportExport: false,
   showEnvironments: false,
+  showDatasets: false,
   showOnboarding: false,
   newEndpointCollectionId: '',
   sidebarWidth: 280,
@@ -44,6 +47,7 @@ export const useUIStore = create<UIStore>((set) => ({
   setShowNewCollection: (v) => set({ showNewCollection: v }),
   setShowImportExport: (v) => set({ showImportExport: v }),
   setShowEnvironments: (v) => set({ showEnvironments: v }),
+  setShowDatasets: (v) => set({ showDatasets: v }),
   setShowOnboarding: (v) => set({ showOnboarding: v }),
   setSidebarWidth: (w) => set({ sidebarWidth: w }),
   setHistoryDetailWidth: (w) => set({ historyDetailWidth: w }),

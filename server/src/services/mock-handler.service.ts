@@ -3,9 +3,11 @@ import * as historyService from './history.service.js';
 import * as environmentService from './environment.service.js';
 import * as settingsService from './settings.service.js';
 import * as sequenceCounter from './sequence-counter.service.js';
+import * as datasetService from './dataset.service.js';
 import { resolveVariables } from '../utils/template-variables.js';
-import { resolveHelpers, parseQueryParams, parsePathSegments, type RequestContext } from '../utils/template-helpers.js';
+import { resolveHelpers, resolveDataset, parseQueryParams, parsePathSegments, type RequestContext } from '../utils/template-helpers.js';
 import { matchesRules, type ResponseVariant } from '../models/response-variant.js';
+import { resolveDatasetValue } from '../models/dataset.js';
 
 /** Replace {{envVarName}} placeholders (non-$ prefixed) with environment variable values */
 export function resolveEnvVariables(template: string, envVars: Record<string, string>): string {
@@ -58,13 +60,14 @@ export function resolveVariant(
   return variants.find(v => v.id === endpoint.activeVariantId) ?? variants[0];
 }
 
-/** Resolve template body: env vars → helpers → dynamic variables */
+/** Resolve template body: env vars → helpers → dynamic variables → dataset */
 export function resolveResponseBody(
   template: string,
   envVars: Record<string, string>,
   requestContext: RequestContext,
 ): string {
-  return resolveVariables(resolveHelpers(resolveEnvVariables(template, envVars), requestContext));
+  const resolved = resolveVariables(resolveHelpers(resolveEnvVariables(template, envVars), requestContext));
+  return resolveDataset(resolved, requestContext);
 }
 
 /** Build the body string used for history recording (merges pathParams if present) */
@@ -130,6 +133,19 @@ export async function handleMockRequest(
     return { statusCode: 500, body: JSON.stringify({ error: 'No response variant configured' }), headers: {}, delay: 0 };
   }
 
+  let datasetJson: string | undefined;
+  if (variant.datasetBinding) {
+    const dataset = datasetService.getById(variant.datasetBinding.datasetId);
+    const value = dataset
+      ? resolveDatasetValue(dataset, variant.datasetBinding, {
+          body: typeof body === 'object' && body !== null ? body : {},
+          pathParams,
+          queryParams,
+        })
+      : null;
+    datasetJson = JSON.stringify(value);
+  }
+
   // Apply delay: header > variant delay > global default (all in seconds)
   const mockResponseDelay = headers['x-mock-response-delay'];
   const globalDelay = settingsService.getAll().responseDelay ?? 0;
@@ -153,6 +169,7 @@ export async function handleMockRequest(
     pathSegments: parsePathSegments(url),
     headers,
     pathParams,
+    datasetJson,
   };
 
   const resolvedBody = resolveResponseBody(variant.body, envVars, requestContext);

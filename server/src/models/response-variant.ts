@@ -1,3 +1,5 @@
+import type { DatasetBinding } from './dataset.js';
+
 export interface MatchRule {
   field: string;
   operator: 'equals' | 'contains' | 'startsWith' | 'endsWith' | 'regex';
@@ -25,6 +27,7 @@ export interface ResponseVariant {
   matchRules: MatchRules | null;
   variantGroup: 'standard' | 'sequence';
   presetId: string | null;
+  datasetBinding?: DatasetBinding | null;
 }
 
 /** Cache compiled regexes so a pathological/expensive pattern is built at most once per request stream. */
