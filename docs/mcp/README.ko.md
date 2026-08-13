@@ -74,11 +74,14 @@ mocka mcp uninstall
 <summary><b>Claude Code</b></summary>
 
 ```bash
-# User scope (모든 프로젝트에서 사용 가능) — 기본값
-claude mcp add mocka -- mocka mcp
+# User scope (모든 프로젝트에서 사용 가능)
+claude mcp add --scope user mocka -- mocka mcp
 
-# Project scope (현재 디렉토리에서만)
+# Project scope (현재 디렉토리의 .mcp.json으로 팀과 공유)
 claude mcp add --scope project mocka -- mocka mcp
+
+# Local scope (현재 디렉토리에서만, 나에게만 적용)
+claude mcp add --scope local mocka -- mocka mcp
 ```
 
 설정 파일은 Claude Code가 소유하며, Mocka는 `claude mcp add`를 호출할 뿐입니다.

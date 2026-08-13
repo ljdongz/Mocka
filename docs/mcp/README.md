@@ -74,11 +74,14 @@ mocka mcp uninstall
 <summary><b>Claude Code</b></summary>
 
 ```bash
-# User scope (available in all projects) — default
-claude mcp add mocka -- mocka mcp
+# User scope (available in all projects)
+claude mcp add --scope user mocka -- mocka mcp
 
-# Project scope (current directory only)
+# Project scope (shared via .mcp.json in the current directory)
 claude mcp add --scope project mocka -- mocka mcp
+
+# Local scope (current directory only, private to you)
+claude mcp add --scope local mocka -- mocka mcp
 ```
 
 Claude Code owns the config file; Mocka just shells out to `claude mcp add`.

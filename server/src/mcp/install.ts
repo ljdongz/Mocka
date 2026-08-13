@@ -5,6 +5,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 
 type Client = 'claude-code' | 'codex' | 'gemini';
+type Scope = 'user' | 'project' | 'local';
 
 const MCP_SERVER_CONFIG = { command: 'mocka', args: ['mcp'] };
 
@@ -51,12 +52,11 @@ function getGeminiConfigPath(): string {
   return join(homedir(), '.gemini', 'settings.json');
 }
 
-function installClaudeCode(scope: 'user' | 'project') {
+function installClaudeCode(scope: Scope) {
   if (!which('claude')) {
     throw new Error('Claude Code CLI not found. Install it first: https://docs.anthropic.com/en/docs/claude-code');
   }
-  const scopeFlag = scope === 'project' ? '--scope project' : '';
-  execSync(`claude mcp add ${scopeFlag} mocka -- mocka mcp`.replace(/\s+/g, ' ').trim(), { stdio: 'inherit' });
+  execSync(`claude mcp add --scope ${scope} mocka -- mocka mcp`, { stdio: 'inherit' });
 }
 
 function installCodex() {
@@ -102,14 +102,15 @@ export async function runInstall() {
   });
   if (isCancel(client)) { cancel('Installation cancelled.'); process.exit(0); }
 
-  let scope: 'user' | 'project' = 'user';
+  let scope: Scope = 'user';
 
   if (client === 'claude-code') {
-    const scopeChoice = await select<'user' | 'project'>({
+    const scopeChoice = await select<Scope>({
       message: 'Select scope:',
       options: [
         { value: 'user', label: 'User', hint: 'available in all projects' },
-        { value: 'project', label: 'Project', hint: 'current directory only' },
+        { value: 'project', label: 'Project', hint: 'shared via .mcp.json in current directory' },
+        { value: 'local', label: 'Local', hint: 'current directory only, private to you' },
       ],
     });
     if (isCancel(scopeChoice)) { cancel('Installation cancelled.'); process.exit(0); }

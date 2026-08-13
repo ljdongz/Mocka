@@ -142,7 +142,7 @@ AI 클라이언트와 scope를 선택하는 안내를 따릅니다. 또는 수�
 
 ```bash
 # Claude Code
-claude mcp add mocka -- mocka mcp
+claude mcp add --scope user mocka -- mocka mcp
 
 # Codex CLI
 codex mcp add mocka -- mocka mcp

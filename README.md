@@ -142,7 +142,7 @@ This walks you through selecting an AI client and scope. Or configure manually:
 
 ```bash
 # Claude Code
-claude mcp add mocka -- mocka mcp
+claude mcp add --scope user mocka -- mocka mcp
 
 # Codex CLI
 codex mcp add mocka -- mocka mcp
