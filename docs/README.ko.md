@@ -99,6 +99,17 @@ brew trust ljdongz/tap   # Homebrew 6.0+에서는 서드파티 tap 신뢰 등록
 brew install mocka
 ```
 
+### 업데이트
+
+```bash
+brew update && brew upgrade mocka
+mocka stop && mocka start -d   # 새 바이너리로 데몬 재시작
+```
+
+`brew upgrade`가 이미 최신이라고 나오면 tap이 갱신되지 않은 것이니 `brew update --force`를 먼저 실행하세요. 데몬은 재시작하기 전까지 이전 코드로 계속 동작하므로 재시작을 생략하면 안 됩니다.
+
+`~/Library/Application Support/Mocka/`의 데이터와 MCP 등록 정보는 업그레이드 후에도 유지됩니다.
+
 ### 시작 / 종료
 
 ```bash

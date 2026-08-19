@@ -99,6 +99,17 @@ brew trust ljdongz/tap   # Homebrew 6.0+ requires trusting third-party taps
 brew install mocka
 ```
 
+### Update
+
+```bash
+brew update && brew upgrade mocka
+mocka stop && mocka start -d   # restart the daemon on the new binary
+```
+
+If `brew upgrade` reports Mocka as already installed, the tap is stale — run `brew update --force` first. The daemon keeps running the old code until it is restarted, so do not skip the restart.
+
+Your data in `~/Library/Application Support/Mocka/` and your MCP registration are preserved across upgrades.
+
 ### Start / Stop
 
 ```bash
