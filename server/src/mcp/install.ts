@@ -71,22 +71,39 @@ function installGemini() {
   mergeJsonConfig(configPath, 'mocka', MCP_SERVER_CONFIG);
 }
 
-function uninstallClaudeCode() {
-  if (!which('claude')) return;
-  try {
-    execSync('claude mcp remove mocka', { stdio: 'inherit' });
-  } catch { /* may not exist */ }
+// `claude mcp remove` without --scope refuses when the server exists in more
+// than one scope, so remove from each scope explicitly.
+const CLAUDE_SCOPES: Scope[] = ['local', 'project', 'user'];
+
+export function uninstallClaudeCode(): string[] {
+  if (!which('claude')) {
+    throw new Error('Claude Code CLI not found. Nothing was removed.');
+  }
+  const removed: string[] = [];
+  for (const scope of CLAUDE_SCOPES) {
+    try {
+      execSync(`claude mcp remove mocka --scope ${scope}`, { stdio: 'pipe' });
+      removed.push(scope);
+    } catch { /* not registered in this scope */ }
+  }
+  return removed;
 }
 
-function uninstallCodex() {
-  if (!which('codex')) return;
+// Codex and Gemini have no scopes, so they report a single unnamed location.
+function uninstallCodex(): string[] {
+  if (!which('codex')) {
+    throw new Error('Codex CLI not found. Nothing was removed.');
+  }
   try {
-    execSync('codex mcp remove mocka', { stdio: 'inherit' });
-  } catch { /* may not exist */ }
+    execSync('codex mcp remove mocka', { stdio: 'pipe' });
+    return [''];
+  } catch {
+    return [];
+  }
 }
 
-function uninstallGemini() {
-  removeJsonConfig(getGeminiConfigPath(), 'mocka');
+function uninstallGemini(): string[] {
+  return removeJsonConfig(getGeminiConfigPath(), 'mocka') ? [''] : [];
 }
 
 export async function runInstall() {
@@ -154,16 +171,34 @@ export async function runUninstall() {
   const s = spinner();
   s.start('Removing Mocka MCP...');
 
+  let removed: string[] = [];
   try {
     switch (client) {
-      case 'claude-code': uninstallClaudeCode(); break;
-      case 'codex': uninstallCodex(); break;
-      case 'gemini': uninstallGemini(); break;
+      case 'claude-code': removed = uninstallClaudeCode(); break;
+      case 'codex': removed = uninstallCodex(); break;
+      case 'gemini': removed = uninstallGemini(); break;
     }
-    s.stop('Removed successfully.');
-  } catch {
-    s.stop('Removal may have partially failed.');
+  } catch (e: any) {
+    s.stop('Removal failed.');
+    log.error(e.message);
+    process.exit(1);
   }
 
+  if (removed.length === 0) {
+    s.stop('Nothing to remove.');
+    log.warn('Mocka MCP was not registered for this client.');
+    if (client === 'claude-code') {
+      log.info('Local and project scopes are per-directory. Run this from the project directory that registered Mocka.');
+    }
+    outro('No changes made.');
+    return;
+  }
+
+  if (client === 'claude-code') {
+    s.stop(`Removed from scopes: ${removed.join(', ')}.`);
+    log.info('Local and project scopes only cover the current directory. Re-run elsewhere if Mocka is registered in other projects.');
+  } else {
+    s.stop('Removed successfully.');
+  }
   outro('Mocka MCP has been removed.');
 }
