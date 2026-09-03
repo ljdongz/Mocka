@@ -76,16 +76,16 @@ async function main() {
   // Create admin server with restart handler
   const { app: adminApp, setMockStatus } = await createAdminServer(handleRestart);
 
-  // Start Admin API
+  // Start Admin UI
   await adminApp.listen({ port: adminPort, host: '0.0.0.0' });
   const localIp = getLocalIp();
-  console.log(`Admin API:   http://${localIp}:${adminPort}`);
+  console.log(`Admin UI: http://${localIp}:${adminPort}`);
 
-  // Start Mock Server
+  // Start Mock API
   try {
     await mockApp.listen({ port: mockPort, host: '0.0.0.0' });
     setMockStatus(true);
-    console.log(`Mock Server: http://${localIp}:${mockPort}`);
+    console.log(`Mock API: http://${localIp}:${mockPort}`);
     emit('server:status', { running: true, port: mockPort });
   } catch (err) {
     console.error(`Failed to start mock server on port ${mockPort}:`, err);
