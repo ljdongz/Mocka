@@ -10,7 +10,7 @@
 
 Mocka ships with a built-in [MCP](https://modelcontextprotocol.io/) (Model Context Protocol) server. Once registered with an AI client, agents like **Claude Code**, **Codex CLI**, and **Gemini CLI** can read your project's API calls and create matching mock endpoints, configure response sequences, manage collections, seed datasets — all through conversation, with no manual UI work.
 
-The MCP server exposes **42 tools** that map 1:1 to Mocka's admin REST API, so anything you can do in the web UI, an agent can do through MCP — under the exact same matching, precedence, and resolution rules.
+The MCP server exposes **43 tools** that map 1:1 to Mocka's admin REST API, so anything you can do in the web UI, an agent can do through MCP — under the exact same matching, precedence, and resolution rules.
 
 > Example prompt:
 > *"Set up mocks for my auth API — the first `/login` call returns 401, retrying returns 200. Then add a `/users/:id` endpoint backed by a shared dataset."*
@@ -122,7 +122,7 @@ After registering, start Mocka and ask your agent to call `get_server_status` (o
 
 ---
 
-## Tool reference (42 tools)
+## Tool reference (43 tools)
 
 All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned by the corresponding `list_*` / `get_*` / `create_*` tools.
 

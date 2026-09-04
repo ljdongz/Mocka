@@ -284,5 +284,5 @@ After selection:
 
 ## See also
 
-- [MCP Guide](../mcp/README.md) — drive all of the above from an AI agent (42 tools).
+- [MCP Guide](../mcp/README.md) — drive all of the above from an AI agent (43 tools).
 - [Main README](../../README.md) — install, CLI commands, architecture.

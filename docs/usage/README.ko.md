@@ -284,5 +284,5 @@ LAYER 3 · pool에서 하나 선택, 엄격한 순서로:
 
 ## 함께 보기
 
-- [MCP 가이드](../mcp/README.ko.md) — 위의 모든 것을 AI 에이전트로 조작(42개 도구).
+- [MCP 가이드](../mcp/README.ko.md) — 위의 모든 것을 AI 에이전트로 조작(43개 도구).
 - [메인 README](../README.ko.md) — 설치, CLI 명령어, 아키텍처.

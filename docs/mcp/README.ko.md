@@ -10,7 +10,7 @@
 
 Mocka는 [MCP](https://modelcontextprotocol.io/)(Model Context Protocol) 서버를 내장하고 있습니다. AI 클라이언트에 등록하면 **Claude Code**, **Codex CLI**, **Gemini CLI** 같은 에이전트가 프로젝트의 API 호출 코드를 읽고 그에 맞는 mock endpoint를 생성하고, 응답 시퀀스를 구성하고, collection을 관리하고, dataset을 채우는 작업을 — 수동 UI 조작 없이 대화만으로 — 수행합니다.
 
-MCP 서버는 **42개 도구**를 제공하며, 이들은 Mocka의 admin REST API와 1:1로 대응합니다. 따라서 웹 UI에서 할 수 있는 모든 작업을 에이전트가 MCP로 할 수 있고, **동일한 매칭·우선순위·해석 규칙**이 그대로 적용됩니다.
+MCP 서버는 **43개 도구**를 제공하며, 이들은 Mocka의 admin REST API와 1:1로 대응합니다. 따라서 웹 UI에서 할 수 있는 모든 작업을 에이전트가 MCP로 할 수 있고, **동일한 매칭·우선순위·해석 규칙**이 그대로 적용됩니다.
 
 > 예시 프롬프트:
 > *"내 인증 API mock 만들어줘 — `/login` 첫 호출은 401, 재시도하면 200. 그리고 공유 dataset 기반의 `/users/:id` endpoint도 추가해줘."*
@@ -122,7 +122,7 @@ Gemini에는 `mcp add` 명령이 없어 Mocka가 설정을 직접 작성합니�
 
 ---
 
-## 도구 레퍼런스 (42개)
+## 도구 레퍼런스 (43개)
 
 모든 도구는 `mcp__mocka__<name>` 형태로 노출됩니다. 아래에서 참조하는 ID는 대응하는 `list_*` / `get_*` / `create_*` 도구가 반환합니다.
 
