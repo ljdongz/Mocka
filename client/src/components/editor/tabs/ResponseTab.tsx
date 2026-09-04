@@ -1,5 +1,20 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
-import { Check, X, Plus, Trash2, Filter, RotateCcw } from 'lucide-react';
+import { Check, X, Plus, Trash2, Filter, RotateCcw, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useEndpointStore } from '../../../stores/endpoint.store';
 import { useSettingsStore } from '../../../stores/settings.store';
 import { StatusCodeBadge } from '../../shared/StatusCodeBadge';
@@ -11,6 +26,30 @@ import { validateStatusCode } from '../../../utils/validation';
 import type { Endpoint, ResponseVariant, MatchRules, MatchRule, DatasetBinding } from '../../../types';
 import { useDatasetStore } from '../../../stores/dataset.store';
 import clsx from 'clsx';
+
+function SortableVariantRow({
+  variant,
+  children,
+}: {
+  variant: ResponseVariant;
+  children: (dragHandleProps: { listeners: any; attributes: any }) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: variant.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ listeners, attributes })}
+    </div>
+  );
+}
 
 export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
   const t = useTranslation();
@@ -25,6 +64,7 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
   const deletePreset = useEndpointStore(s => s.deletePreset);
   const setActivePreset = useEndpointStore(s => s.setActivePreset);
   const addPresetVariant = useEndpointStore(s => s.addPresetVariant);
+  const reorderVariants = useEndpointStore(s => s.reorderVariants);
   const isSequence = endpoint.sequenceMode === 'on';
 
   const allVariants = endpoint.responseVariants ?? [];
@@ -43,6 +83,19 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
   const selectedVariant = editingVariantId
     ? variants.find(v => v.id === editingVariantId) ?? activeVariant
     : activeVariant;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = variants.findIndex(v => v.id === active.id);
+    const newIndex = variants.findIndex(v => v.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    reorderVariants(endpoint.id, arrayMove(variants, oldIndex, newIndex).map(v => v.id));
+  };
 
   const handleBodyChange = useCallback((body: string) => {
     if (selectedVariant) updateVariant(selectedVariant.id, { body });
@@ -222,124 +275,139 @@ export function ResponseTab({ endpoint }: { endpoint: Endpoint }) {
             </button>
           )}
         </div>
-        {variants.map((v, idx) => (
-          <div
-            key={v.id}
-            className={clsx(
-              'flex items-center gap-3 rounded px-3 py-2 mb-1 cursor-pointer',
-              v.id === (editingVariantId ?? activeVariant?.id) ? 'bg-bg-hover' : 'hover:bg-bg-hover',
-            )}
-            onClick={() => { setEditingVariantId(v.id); if (!isSequence) setActiveVariant(endpoint.id, v.id); }}
-          >
-            {isSequence ? (
-              <span className="text-xs font-mono text-text-muted w-6 text-center">{idx + 1}</span>
-            ) : (
-              <input
-                type="radio"
-                name={`variant-${endpoint.id}`}
-                checked={v.id === endpoint.activeVariantId}
-                onChange={() => setActiveVariant(endpoint.id, v.id)}
-                onClick={e => e.stopPropagation()}
-                className="accent-accent-primary"
-              />
-            )}
-            <div className="relative" ref={statusDropdownId === v.id ? dropdownRef : undefined}>
-              <button
-                onClick={e => {
-                  e.stopPropagation();
-                  setStatusDropdownId(statusDropdownId === v.id ? null : v.id);
-                }}
-                className="hover:ring-1 hover:ring-accent-primary rounded transition-shadow"
-                title={t.response.changeStatusCode}
-              >
-                <StatusCodeBadge code={v.statusCode} />
-              </button>
-              {statusDropdownId === v.id && (
-                <div className="absolute top-full left-0 mt-1 z-50 bg-bg-surface border border-border-secondary rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto w-56">
-                  <div className="pb-1 mb-1 border-b border-border-secondary">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5" onClick={e => e.stopPropagation()}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={variants.map(v => v.id)} strategy={verticalListSortingStrategy}>
+            {variants.map((v, idx) => (
+              <SortableVariantRow key={v.id} variant={v}>
+                {({ listeners, attributes }) => (
+                  <div
+                    className={clsx(
+                      'flex items-center gap-3 rounded px-3 py-2 mb-1 cursor-pointer',
+                      v.id === (editingVariantId ?? activeVariant?.id) ? 'bg-bg-hover' : 'hover:bg-bg-hover',
+                    )}
+                    onClick={() => { setEditingVariantId(v.id); if (!isSequence) setActiveVariant(endpoint.id, v.id); }}
+                  >
+                    <button
+                      {...listeners}
+                      {...attributes}
+                      onClick={e => e.stopPropagation()}
+                      className="text-text-muted hover:text-text-primary cursor-grab active:cursor-grabbing flex items-center"
+                    >
+                      <GripVertical size={14} />
+                    </button>
+                    {isSequence ? (
+                      <span className="text-xs font-mono text-text-muted w-6 text-center">{idx + 1}</span>
+                    ) : (
                       <input
-                        type="number"
-                        min={100}
-                        max={599}
-                        value={customCodeInput}
-                        onChange={e => setCustomCodeInput(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            const code = parseInt(customCodeInput);
-                            if (validateStatusCode(code)) {
-                              updateVariant(v.id, { statusCode: code });
-                              setStatusDropdownId(null);
-                              setCustomCodeInput('');
-                            }
-                          }
-                          if (e.key === 'Escape') {
-                            setStatusDropdownId(null);
-                            setCustomCodeInput('');
-                          }
-                        }}
-                        placeholder={t.response.customCode}
-                        autoFocus
-                        className="flex-1 rounded border border-border-secondary bg-bg-input px-2 py-1 text-sm text-text-primary font-mono outline-none focus:border-accent-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        type="radio"
+                        name={`variant-${endpoint.id}`}
+                        checked={v.id === endpoint.activeVariantId}
+                        onChange={() => setActiveVariant(endpoint.id, v.id)}
+                        onClick={e => e.stopPropagation()}
+                        className="accent-accent-primary"
                       />
+                    )}
+                    <div className="relative" ref={statusDropdownId === v.id ? dropdownRef : undefined}>
                       <button
                         onClick={e => {
                           e.stopPropagation();
-                          const code = parseInt(customCodeInput);
-                          if (code >= 100 && code <= 599) {
-                            updateVariant(v.id, { statusCode: code });
-                            setStatusDropdownId(null);
-                            setCustomCodeInput('');
-                          }
+                          setStatusDropdownId(statusDropdownId === v.id ? null : v.id);
                         }}
-                        className="text-accent-primary hover:text-accent-primary/80 flex items-center"
+                        className="hover:ring-1 hover:ring-accent-primary rounded transition-shadow"
+                        title={t.response.changeStatusCode}
                       >
-                        <Check size={16} strokeWidth={2.5} />
+                        <StatusCodeBadge code={v.statusCode} />
                       </button>
-                    </div>
-                  </div>
-                  {STATUS_CODES.map(sc => (
-                    <button
-                      key={sc.code}
-                      onClick={e => {
-                        e.stopPropagation();
-                        updateVariant(v.id, { statusCode: sc.code });
-                        setStatusDropdownId(null);
-                        setCustomCodeInput('');
-                      }}
-                      className={clsx(
-                        'w-full text-left px-3 py-1.5 text-sm hover:bg-bg-hover flex items-center gap-2',
-                        v.statusCode === sc.code && 'text-accent-primary font-medium',
+                      {statusDropdownId === v.id && (
+                        <div className="absolute top-full left-0 mt-1 z-50 bg-bg-surface border border-border-secondary rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto w-56">
+                          <div className="pb-1 mb-1 border-b border-border-secondary">
+                            <div className="flex items-center gap-1.5 px-3 py-1.5" onClick={e => e.stopPropagation()}>
+                              <input
+                                type="number"
+                                min={100}
+                                max={599}
+                                value={customCodeInput}
+                                onChange={e => setCustomCodeInput(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') {
+                                    const code = parseInt(customCodeInput);
+                                    if (validateStatusCode(code)) {
+                                      updateVariant(v.id, { statusCode: code });
+                                      setStatusDropdownId(null);
+                                      setCustomCodeInput('');
+                                    }
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setStatusDropdownId(null);
+                                    setCustomCodeInput('');
+                                  }
+                                }}
+                                placeholder={t.response.customCode}
+                                autoFocus
+                                className="flex-1 rounded border border-border-secondary bg-bg-input px-2 py-1 text-sm text-text-primary font-mono outline-none focus:border-accent-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  const code = parseInt(customCodeInput);
+                                  if (code >= 100 && code <= 599) {
+                                    updateVariant(v.id, { statusCode: code });
+                                    setStatusDropdownId(null);
+                                    setCustomCodeInput('');
+                                  }
+                                }}
+                                className="text-accent-primary hover:text-accent-primary/80 flex items-center"
+                              >
+                                <Check size={16} strokeWidth={2.5} />
+                              </button>
+                            </div>
+                          </div>
+                          {STATUS_CODES.map(sc => (
+                            <button
+                              key={sc.code}
+                              onClick={e => {
+                                e.stopPropagation();
+                                updateVariant(v.id, { statusCode: sc.code });
+                                setStatusDropdownId(null);
+                                setCustomCodeInput('');
+                              }}
+                              className={clsx(
+                                'w-full text-left px-3 py-1.5 text-sm hover:bg-bg-hover flex items-center gap-2',
+                                v.statusCode === sc.code && 'text-accent-primary font-medium',
+                              )}
+                            >
+                              <StatusCodeBadge code={sc.code} />
+                              <span className="text-text-secondary">{sc.label.slice(4)}</span>
+                            </button>
+                          ))}
+                        </div>
                       )}
-                    >
-                      <StatusCodeBadge code={sc.code} />
-                      <span className="text-text-secondary">{sc.label.slice(4)}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <span className="flex-1 text-sm text-text-secondary flex items-center gap-1.5">
-              {v.description}
-              {v.matchRules && (() => {
-                const count = (v.matchRules.bodyRules?.length ?? 0) + (v.matchRules.headerRules?.length ?? 0) + (v.matchRules.queryParamRules?.length ?? 0) + (v.matchRules.pathParamRules?.length ?? 0);
-                return count > 0 ? (
-                  <span className="inline-flex items-center gap-0.5 text-[10px] text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-full" title={t.response.matchConditions}>
-                    <Filter size={10} /> {count}
-                  </span>
-                ) : null;
-              })()}
-            </span>
-            {(isSequence || variants.length > 1) && (
-              <button
-                onClick={e => { e.stopPropagation(); deleteVariant(v.id); }}
-                className="text-text-muted hover:text-method-delete flex items-center"
-              >
-                <X size={14} strokeWidth={2.5} />
-              </button>
-            )}
-          </div>
-        ))}
+                    </div>
+                    <span className="flex-1 text-sm text-text-secondary flex items-center gap-1.5">
+                      {v.description}
+                      {v.matchRules && (() => {
+                        const count = (v.matchRules.bodyRules?.length ?? 0) + (v.matchRules.headerRules?.length ?? 0) + (v.matchRules.queryParamRules?.length ?? 0) + (v.matchRules.pathParamRules?.length ?? 0);
+                        return count > 0 ? (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-full" title={t.response.matchConditions}>
+                            <Filter size={10} /> {count}
+                          </span>
+                        ) : null;
+                      })()}
+                    </span>
+                    {(isSequence || variants.length > 1) && (
+                      <button
+                        onClick={e => { e.stopPropagation(); deleteVariant(v.id); }}
+                        className="text-text-muted hover:text-method-delete flex items-center"
+                      >
+                        <X size={14} strokeWidth={2.5} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </SortableVariantRow>
+            ))}
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* Variant editor */}

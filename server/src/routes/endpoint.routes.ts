@@ -79,6 +79,14 @@ export async function endpointRoutes(app: FastifyInstance): Promise<void> {
     return ep;
   });
 
+  app.put('/api/endpoints/:id/variants/reorder', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { orderedIds } = req.body as { orderedIds: string[] };
+    const ep = endpointService.reorderVariants(id, orderedIds);
+    if (!ep) { reply.code(404); return { error: 'Not found' }; }
+    return ep;
+  });
+
   app.put('/api/variants/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
     const data = req.body as any;

@@ -146,6 +146,7 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 | `add_variant` | Add a variant (standard, or to a preset via `presetId`) | `endpointId?`, `presetId?`, `statusCode?`, `description?` |
 | `update_variant` | Update body, headers, delay, memo, match rules, dataset binding, preset link | `id`, …optional |
 | `delete_variant` | Delete a variant | `id` |
+| `reorder_variants` | Reorder one group of an endpoint's variants (standard, or one preset's) | `endpointId`, `orderedIds` |
 | `set_active_variant` | Set the default variant (used in standard mode when no rule matches) | `endpointId`, `variantId` (nullable) |
 
 > `update_variant.body` supports template helpers (`{{$body 'field'}}`, …) and the `{{$dataset}}` token. `matchRules` and `datasetBinding` are objects — see the [Usage Guide](../usage/README.md) for their shapes.

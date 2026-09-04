@@ -165,6 +165,18 @@ export function updateVariant(variantId: string, data: any): any {
   return result;
 }
 
+export function reorderVariants(endpointId: string, orderedIds: string[]): Endpoint | null {
+  const ep = endpointRepo.findById(endpointId);
+  if (!ep) return null;
+  const owned = new Set((ep.responseVariants ?? []).map(v => v.id));
+  if (!orderedIds.every(id => owned.has(id))) return null;
+  variantRepo.reorderVariants(orderedIds);
+  const updated = endpointRepo.findById(endpointId)!;
+  routeRegistry.update(updated);
+  emit('endpoint:updated', updated);
+  return updated;
+}
+
 export function removeVariant(variantId: string): boolean {
   const variant = variantRepo.findById(variantId);
   if (!variant) return false;

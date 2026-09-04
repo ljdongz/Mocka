@@ -93,6 +93,24 @@ export function registerVariantTools(server: McpServer) {
   );
 
   server.tool(
+    'reorder_variants',
+    'Reorder an endpoint\'s response variants. Pass the variant IDs of one group (the standard variants, or one sequence preset\'s variants) in the desired order',
+    {
+      endpointId: z.string().describe('Endpoint ID'),
+      orderedIds: z.array(z.string()).describe('Variant IDs in desired order'),
+    },
+    async ({ endpointId, orderedIds }) => {
+      try {
+        await mockaFetch(`/api/endpoints/${endpointId}/variants/reorder`, {
+          method: 'PUT',
+          body: JSON.stringify({ orderedIds }),
+        });
+        return toolResult({ success: true });
+      } catch (e) { return toolError(e); }
+    },
+  );
+
+  server.tool(
     'set_active_variant',
     'Set which variant is the default response for an endpoint (used when sequenceMode is off and no match rules match)',
     {

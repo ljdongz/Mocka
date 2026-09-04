@@ -82,6 +82,15 @@ export function update(id: string, data: Partial<ResponseVariant>): ResponseVari
   return findById(id);
 }
 
+export function reorderVariants(orderedIds: string[]): void {
+  const db = getDb();
+  const update = db.prepare('UPDATE response_variants SET sort_order = ? WHERE id = ?');
+  const txn = db.transaction(() => {
+    orderedIds.forEach((id, index) => update.run(index, id));
+  });
+  txn();
+}
+
 export function remove(id: string): boolean {
   const db = getDb();
   const result = db.prepare('DELETE FROM response_variants WHERE id = ?').run(id);

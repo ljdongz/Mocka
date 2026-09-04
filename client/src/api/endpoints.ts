@@ -12,6 +12,8 @@ export const endpointsApi = {
   addVariant: (id: string, data?: Partial<ResponseVariant>) => api.post<Endpoint>(`/api/endpoints/${id}/variants`, data),
   updateVariant: (id: string, data: Partial<ResponseVariant>) => api.put<ResponseVariant>(`/api/variants/${id}`, data),
   deleteVariant: (id: string) => api.delete(`/api/variants/${id}`),
+  reorderVariants: (endpointId: string, orderedIds: string[]) =>
+    api.put<Endpoint>(`/api/endpoints/${endpointId}/variants/reorder`, { orderedIds }),
   resetSequence: (id: string) => api.post(`/api/endpoints/${id}/sequence/reset`),
   createPreset: (endpointId: string, data?: { name?: string; mode?: string }) => api.post<SequencePreset>(`/api/endpoints/${endpointId}/presets`, data),
   updatePreset: (presetId: string, data: Partial<SequencePreset>) => api.put<SequencePreset>(`/api/presets/${presetId}`, data),

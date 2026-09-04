@@ -146,6 +146,7 @@ Gemini에는 `mcp add` 명령이 없어 Mocka가 설정을 직접 작성합니�
 | `add_variant` | 변형 추가(standard, 또는 `presetId`로 preset에) | `endpointId?`, `presetId?`, `statusCode?`, `description?` |
 | `update_variant` | body·header·delay·memo·match rule·dataset binding·preset 연결 수정 | `id`, …선택 |
 | `delete_variant` | 변형 삭제 | `id` |
+| `reorder_variants` | endpoint 변형 한 그룹 재정렬(standard, 또는 preset 하나) | `endpointId`, `orderedIds` |
 | `set_active_variant` | 기본 변형 설정(standard 모드에서 매칭 실패 시 사용) | `endpointId`, `variantId`(nullable) |
 
 > `update_variant.body`는 템플릿 헬퍼(`{{$body 'field'}}` 등)와 `{{$dataset}}` 토큰을 지원합니다. `matchRules`·`datasetBinding`은 객체입니다 — 구조는 [사용 가이드](../usage/README.ko.md) 참고.

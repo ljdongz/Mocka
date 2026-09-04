@@ -17,6 +17,7 @@ interface EndpointStore {
   addVariant: (endpointId: string, variantGroup?: 'standard' | 'sequence') => Promise<Endpoint>;
   updateVariant: (variantId: string, data: Partial<ResponseVariant>) => Promise<void>;
   deleteVariant: (variantId: string) => Promise<void>;
+  reorderVariants: (endpointId: string, orderedIds: string[]) => Promise<void>;
   resetSequence: (id: string) => Promise<void>;
   createPreset: (endpointId: string, data?: { name?: string; mode?: string }) => Promise<SequencePreset>;
   updatePreset: (presetId: string, data: Partial<SequencePreset>) => Promise<void>;
@@ -102,6 +103,24 @@ export const useEndpointStore = create<EndpointStore>((set, get) => ({
       const updated = await endpointsApi.getById(ep.id);
       set(s => ({ endpoints: s.endpoints.map(e => e.id === ep.id ? updated : e) }));
     }
+  },
+
+  reorderVariants: async (endpointId, orderedIds) => {
+    // orderedIds only covers one group (standard, or one preset's variants) —
+    // substitute by position so variants of the other group keep their slots.
+    set(s => ({
+      endpoints: s.endpoints.map(e => {
+        if (e.id !== endpointId) return e;
+        const moved = orderedIds.map(id => e.responseVariants?.find(v => v.id === id)).filter(Boolean);
+        let next = 0;
+        return {
+          ...e,
+          responseVariants: e.responseVariants?.map(v => orderedIds.includes(v.id) ? moved[next++]! : v),
+        };
+      }),
+    }));
+    const updated = await endpointsApi.reorderVariants(endpointId, orderedIds);
+    set(s => ({ endpoints: s.endpoints.map(e => e.id === endpointId ? updated : e) }));
   },
 
   resetSequence: async (id) => {
