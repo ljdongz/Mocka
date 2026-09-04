@@ -1,6 +1,32 @@
-import { Folder, History, Layers, ArrowUpDown, Settings, BookOpen, Database } from 'lucide-react';
+import { Folder, History, Layers, ArrowUpDown, Settings, BookOpen, Database, LucideIcon } from 'lucide-react';
 import { useUIStore } from '../../stores/ui.store';
 import { useTranslation } from '../../i18n';
+
+function RailButton({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+        active
+          ? 'bg-bg-hover text-text-primary'
+          : 'text-text-tertiary hover:bg-bg-hover hover:text-text-secondary'
+      }`}
+      title={label}
+    >
+      <Icon size={20} strokeWidth={1.8} />
+    </button>
+  );
+}
 
 export function IconRail() {
   const t = useTranslation();
@@ -8,88 +34,61 @@ export function IconRail() {
   const setShowHistory = useUIStore(s => s.setShowHistory);
   const showOnboarding = useUIStore(s => s.showOnboarding);
   const setShowOnboarding = useUIStore(s => s.setShowOnboarding);
+  const showEnvironments = useUIStore(s => s.showEnvironments);
   const setShowEnvironments = useUIStore(s => s.setShowEnvironments);
+  const showDatasets = useUIStore(s => s.showDatasets);
   const setShowDatasets = useUIStore(s => s.setShowDatasets);
   const setShowImportExport = useUIStore(s => s.setShowImportExport);
   const setShowSettings = useUIStore(s => s.setShowSettings);
 
-  const activePanel = showHistory ? 'history' : 'collections';
-
-  const railItems = [
-    { id: 'collections' as const, icon: Folder, label: t.sidebar.collections },
-    { id: 'history' as const, icon: History, label: t.sidebar.history },
-  ];
-
-  const handleRailClick = (id: string) => {
-    if (id === 'history') {
-      setShowHistory(!showHistory);
-    } else if (id === 'collections') {
-      if (showHistory) setShowHistory(false);
-    }
-  };
-
   return (
     <div className="flex h-full w-12 flex-col items-center justify-between border-r border-border-primary bg-bg-sidebar py-3">
-      {/* Top section - nav icons */}
+      {/* Top section - the project's own content */}
       <div className="flex flex-col items-center gap-1">
-        {/* Panel toggle icons */}
-        {railItems.map(({ id, icon: Icon, label }) => (
-          <button
-            key={id}
-            onClick={() => handleRailClick(id)}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
-              activePanel === id
-                ? 'bg-bg-hover text-text-primary'
-                : 'text-text-tertiary hover:bg-bg-hover hover:text-text-secondary'
-            }`}
-            title={label}
-          >
-            <Icon size={20} strokeWidth={1.8} />
-          </button>
-        ))}
+        <RailButton
+          icon={Folder}
+          label={t.sidebar.collections}
+          active={!showHistory}
+          onClick={() => setShowHistory(false)}
+        />
+        <RailButton
+          icon={History}
+          label={t.sidebar.history}
+          active={showHistory}
+          onClick={() => setShowHistory(!showHistory)}
+        />
+        <RailButton
+          icon={Layers}
+          label={t.sidebar.environments}
+          active={showEnvironments}
+          onClick={() => setShowEnvironments(true)}
+        />
+        <RailButton
+          icon={Database}
+          label={t.sidebar.datasets}
+          active={showDatasets}
+          onClick={() => setShowDatasets(true)}
+        />
       </div>
 
-      {/* Bottom section - modal actions + settings */}
+      {/* Bottom section - about the app, not the project */}
       <div className="flex flex-col items-center gap-1">
-        <button
+        <RailButton
+          icon={BookOpen}
+          label={t.sidebar.guide}
+          active={showOnboarding}
           onClick={() => setShowOnboarding(!showOnboarding)}
-          className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
-            showOnboarding
-              ? 'bg-bg-hover text-text-primary'
-              : 'text-text-tertiary hover:bg-bg-hover hover:text-text-secondary'
-          }`}
-          title={t.sidebar.guide}
-        >
-          <BookOpen size={20} strokeWidth={1.8} />
-        </button>
-        <button
-          onClick={() => setShowEnvironments(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-hover hover:text-text-secondary"
-          title={t.sidebar.environments}
-        >
-          <Layers size={20} strokeWidth={1.8} />
-        </button>
-        <button
-          onClick={() => setShowDatasets(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-hover hover:text-text-secondary"
-          title={t.sidebar.datasets}
-        >
-          <Database size={20} strokeWidth={1.8} />
-        </button>
-        <button
+        />
+        <RailButton
+          icon={ArrowUpDown}
+          label={t.sidebar.importExport}
           onClick={() => setShowImportExport(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-hover hover:text-text-secondary"
-          title={t.sidebar.importExport}
-        >
-          <ArrowUpDown size={20} strokeWidth={1.8} />
-        </button>
-        <button
+        />
+        <RailButton
+          icon={Settings}
+          label={t.sidebar.settings}
           onClick={() => setShowSettings(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-hover hover:text-text-secondary"
-          title={t.sidebar.settings}
-        >
-          <Settings size={20} strokeWidth={1.8} />
-        </button>
+        />
       </div>
     </div>
   );
