@@ -1,5 +1,6 @@
-import { Braces, SlidersHorizontal, Layers, Reply, Route, ArrowUpDown, X, Sparkles, Info, Check } from 'lucide-react';
+import { Braces, SlidersHorizontal, Layers, Reply, Route, ArrowUpDown, X, Sparkles, Info, Check, Bot, ListOrdered, Database } from 'lucide-react';
 import { useUIStore } from '../../stores/ui.store';
+import { StatusCodeBadge } from '../shared/StatusCodeBadge';
 import { ModalOverlay } from '../shared/ModalOverlay';
 import { useTranslation } from '../../i18n';
 
@@ -11,6 +12,15 @@ export function OnboardingPage() {
   const handleClose = () => setShowOnboarding(false);
 
   const features = [
+    {
+      key: 'aiDrivenSetup',
+      icon: Bot,
+      iconColor: 'text-accent-primary',
+      iconBg: 'bg-accent-primary/10',
+      title: t.onboarding.aiDrivenSetup,
+      description: t.onboarding.aiDrivenSetupDesc,
+      preview: AiSetupPreview,
+    },
     {
       key: 'dynamicTemplates',
       icon: Braces,
@@ -28,6 +38,24 @@ export function OnboardingPage() {
       title: t.onboarding.conditionalMatchRules,
       description: t.onboarding.conditionalMatchRulesDesc,
       preview: MatchRulesPreview,
+    },
+    {
+      key: 'sequencePresets',
+      icon: ListOrdered,
+      iconColor: 'text-method-post',
+      iconBg: 'bg-method-post/10',
+      title: t.onboarding.sequencePresets,
+      description: t.onboarding.sequencePresetsDesc,
+      preview: SequencePreview,
+    },
+    {
+      key: 'sharedDatasets',
+      icon: Database,
+      iconColor: 'text-method-put',
+      iconBg: 'bg-method-put/10',
+      title: t.onboarding.sharedDatasets,
+      description: t.onboarding.sharedDatasetsDesc,
+      preview: DatasetPreview,
     },
     {
       key: 'environmentVariables',
@@ -173,16 +201,76 @@ function MatchRulesPreview() {
         <span className="rounded-full bg-method-patch/10 px-2 py-0.5 text-[9px] font-bold text-method-patch">AND</span>
       </div>
       <span className="text-[8px] font-semibold tracking-wider text-text-muted uppercase">{t.onboarding.previewBodyRules}</span>
+      <RuleRow field="user.role" op="equals" value="admin" />
+      <span className="text-[8px] font-semibold tracking-wider text-text-muted uppercase">{t.onboarding.previewQueryRules}</span>
+      <RuleRow field="page" op="equals" value="2" />
+    </div>
+  );
+}
+
+function RuleRow({ field, op, value }: { field: string; op: string; value: string }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="flex-1 rounded border border-border-secondary bg-bg-input px-1.5 py-0.5 font-mono text-[9px] text-text-primary">{field}</span>
+      <span className="rounded border border-border-secondary bg-bg-input px-1.5 py-0.5 text-[9px] text-text-secondary">{op}</span>
+      <span className="flex-1 rounded border border-border-secondary bg-bg-input px-1.5 py-0.5 font-mono text-[9px] text-text-primary">{value}</span>
+    </div>
+  );
+}
+
+function AiSetupPreview() {
+  const t = useTranslation();
+  return (
+    <div className="flex flex-col gap-1.5 p-3">
+      <span className="text-[9px] leading-relaxed text-text-secondary">{t.onboarding.previewAiPrompt}</span>
+      <div className="flex flex-col gap-0.5 border-t border-border-secondary pt-1.5">
+        {['create_endpoint', 'create_preset', 'add_variant'].map(tool => (
+          <div key={tool} className="flex items-center gap-1.5">
+            <Check size={9} className="text-server-running" />
+            <span className="font-mono text-[9px] text-text-primary">{tool}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SequencePreview() {
+  const t = useTranslation();
+  return (
+    <div className="flex flex-col gap-1.5 p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] font-semibold tracking-wider text-text-tertiary uppercase">{t.onboarding.previewSequencePreset}</span>
+        <span className="rounded-full bg-method-post/10 px-2 py-0.5 text-[9px] font-bold text-method-post">{t.onboarding.previewSequential}</span>
+      </div>
       {[
-        { field: 'user.role', op: 'equals', value: 'admin' },
-        { field: 'status', op: 'contains', value: 'active' },
-      ].map((r, i) => (
-        <div key={i} className="flex items-center gap-1">
-          <span className="flex-1 rounded border border-border-secondary bg-bg-input px-1.5 py-0.5 font-mono text-[9px] text-text-primary">{r.field}</span>
-          <span className="rounded border border-border-secondary bg-bg-input px-1.5 py-0.5 text-[9px] text-text-secondary">{r.op}</span>
-          <span className="flex-1 rounded border border-border-secondary bg-bg-input px-1.5 py-0.5 font-mono text-[9px] text-text-primary">{r.value}</span>
+        { code: 401, label: 'Token expired' },
+        { code: 200, label: 'Token refreshed' },
+        { code: 200, label: 'User profile' },
+      ].map((v, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <span className="w-2 font-mono text-[9px] text-text-muted">{i + 1}</span>
+          <StatusCodeBadge code={v.code} />
+          <span className="text-[9px] text-text-secondary">{v.label}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+function DatasetPreview() {
+  const t = useTranslation();
+  return (
+    <div className="flex flex-col gap-1.5 p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] font-semibold tracking-wider text-text-tertiary uppercase">{t.onboarding.previewDataset}</span>
+        <span className="font-mono text-[9px] text-text-muted">users · key: id</span>
+      </div>
+      <CodeLine pairs={[['{', 'text-text-muted'], ['"id"', 'text-code-key'], [': 1,', 'text-text-muted'], ['"name"', 'text-code-key'], [':', 'text-text-muted'], ['"Ada"', 'text-code-string'], ['}', 'text-text-muted']]} />
+      <CodeLine pairs={[['{', 'text-text-muted'], ['"id"', 'text-code-key'], [': 2,', 'text-text-muted'], ['"name"', 'text-code-key'], [':', 'text-text-muted'], ['"Linus"', 'text-code-string'], ['}', 'text-text-muted']]} />
+      <div className="border-t border-border-secondary pt-1.5">
+        <CodeLine pairs={[['"data"', 'text-code-key'], [':', 'text-text-muted'], ['"{{$dataset}}"', 'text-code-string']]} />
+      </div>
     </div>
   );
 }
