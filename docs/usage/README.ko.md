@@ -134,6 +134,34 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 | `{{$pathSegments 'index' 'default'}}` | 0-기반 숫자 인덱스 위치의 raw URL 세그먼트 |
 | `{{$headers 'Header-Name' 'default'}}` | request header(대소문자 무시) |
 
+#### 오프셋 접미사 — 산술 & 상대 시간
+
+변수·헬퍼 토큰 뒤에 `+ N` / `- N` 접미사를 붙일 수 있고, 시간 단위도 함께 쓸 수 있습니다. **치환이 끝난 값**에 적용되므로 요청 데이터와 생성 값 모두에 동작합니다.
+
+| 접미사 | 의미 | 예시 | 입력 | 결과 |
+|--------|------|------|------|------|
+| `+ N` / `- N` | 숫자 산술 | `{{$body 'data' + 1}}` | body `{"data":1}` | `2` |
+| `+ Ns` `+ Nm` `+ Nh` `+ Nd` `+ Nw` | 초 / 분 / 시간 / 일 / 주 단위로 날짜 이동 | `{{$isoTimestamp + 3h}}` | — | 현재 + 3시간, ISO 8601 |
+| | | `{{$timestamp - 7d}}` | — | 현재 − 7일, Unix 초 |
+| | | `{{$body 'startAt' + 1d}}` | body `{"startAt":"2026-01-01T00:00:00Z"}` | `2026-01-02T00:00:00.000Z` |
+
+```json
+{
+  "data": {{$body 'data'}},
+  "next": {{$body 'data' + 1}},
+  "afterNext": {{$body 'data' + 2}},
+  "page": {{$queryParams 'page' '1' + 1}},
+  "issuedAt": "{{$isoTimestamp}}",
+  "expiresAt": "{{$isoTimestamp + 3h}}",
+  "trialEndsAt": "{{$isoTimestamp + 14d}}",
+  "deletedBefore": {{$timestamp - 30d}}
+}
+```
+
+> [!NOTE]
+> **비어 있거나 숫자가 아닌** 값(없는 body 필드, 이름 문자열, 파싱 불가한 날짜)은 **그대로** 반환됩니다 — `NaN`을 내보내는 대신 오프셋을 건너뛰므로 body가 유효한 JSON으로 유지됩니다. 적용하려면 default를 주세요: `{{$body 'count' '0' + 1}}`.
+> 날짜 값은 전부 숫자면 **Unix 초**로, 아니면 `Date.parse`로 읽고 같은 형식으로 돌려줍니다. `m`은 **분**이며, 월·연 단위는 지원하지 않습니다(고정 배수가 아니라 달력 연산이 필요).
+
 ### Path Parameter
 
 `:name` **또는** `{name}`으로 파라미터를 선언합니다. 캡처된 세그먼트는 match rule(`pathParamRules`), dataset `keySource`, `{{$pathParams 'name'}}` 헬퍼로 흘러갑니다.

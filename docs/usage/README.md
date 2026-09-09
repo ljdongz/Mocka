@@ -134,6 +134,34 @@ Response bodies are templates resolved at request time in **four fixed passes**:
 | `{{$pathSegments 'index' 'default'}}` | Raw URL segment at a 0-based numeric index |
 | `{{$headers 'Header-Name' 'default'}}` | Request header (case-insensitive) |
 
+#### Offset suffix — arithmetic & relative time
+
+Any variable or helper token accepts a trailing `+ N` / `- N` suffix, optionally with a time unit. It is applied to the **resolved** value, so it works on request data and on generated values alike.
+
+| Suffix | Meaning | Example | With | Result |
+|--------|---------|---------|------|--------|
+| `+ N` / `- N` | Number arithmetic | `{{$body 'data' + 1}}` | body `{"data":1}` | `2` |
+| `+ Ns` `+ Nm` `+ Nh` `+ Nd` `+ Nw` | Shift a date by seconds / minutes / hours / days / weeks | `{{$isoTimestamp + 3h}}` | — | now + 3h, ISO 8601 |
+| | | `{{$timestamp - 7d}}` | — | now − 7d, Unix seconds |
+| | | `{{$body 'startAt' + 1d}}` | body `{"startAt":"2026-01-01T00:00:00Z"}` | `2026-01-02T00:00:00.000Z` |
+
+```json
+{
+  "data": {{$body 'data'}},
+  "next": {{$body 'data' + 1}},
+  "afterNext": {{$body 'data' + 2}},
+  "page": {{$queryParams 'page' '1' + 1}},
+  "issuedAt": "{{$isoTimestamp}}",
+  "expiresAt": "{{$isoTimestamp + 3h}}",
+  "trialEndsAt": "{{$isoTimestamp + 14d}}",
+  "deletedBefore": {{$timestamp - 30d}}
+}
+```
+
+> [!NOTE]
+> A value that is **empty or non-numeric** (missing body field, a name string, an unparseable date) is returned **unchanged** — the offset is skipped rather than emitting `NaN`, so the body stays valid JSON. Give the helper a default to opt in: `{{$body 'count' '0' + 1}}`.
+> A date value is read as **Unix seconds** if it is all digits, otherwise via `Date.parse`, and comes back in the same form. `m` means **minutes**; months and years are not supported (they need calendar math, not a fixed multiplier).
+
 ### Path Parameters
 
 Declare parameters with `:name` **or** `{name}`. Captured segments flow into match rules (`pathParamRules`), dataset `keySource`, and the `{{$pathParams 'name'}}` helper.

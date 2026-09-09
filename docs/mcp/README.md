@@ -149,7 +149,7 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 | `reorder_variants` | Reorder one group of an endpoint's variants (standard, or one preset's) | `endpointId`, `orderedIds` |
 | `set_active_variant` | Set the default variant (used in standard mode when no rule matches) | `endpointId`, `variantId` (nullable) |
 
-> `update_variant.body` supports template helpers (`{{$body 'field'}}`, …) and the `{{$dataset}}` token. `matchRules` and `datasetBinding` are objects — see the [Usage Guide](../usage/README.md) for their shapes.
+> `update_variant.body` supports template helpers (`{{$body 'field'}}`, …), the offset suffix (`{{$body 'count' + 1}}`, `{{$isoTimestamp + 3h}}`) and the `{{$dataset}}` token. `matchRules` and `datasetBinding` are objects — see the [Usage Guide](../usage/README.md) for their shapes.
 
 ### Sequences & Presets (8)
 

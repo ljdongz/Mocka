@@ -48,7 +48,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 - **Conditional Matching** — Auto-select response variants based on request body, headers, query/path params with AND/OR rule logic
 
 ### Mock Server Capabilities
-- **Dynamic Templates** — 30+ built-in variables (`{{$randomUUID}}`, `{{$randomEmail}}`, etc.) and request context helpers (`{{$body 'field'}}`, `{{$pathParams 'id'}}`)
+- **Dynamic Templates** — 30+ built-in variables (`{{$randomUUID}}`, `{{$randomEmail}}`, etc.) and request context helpers (`{{$body 'field'}}`, `{{$pathParams 'id'}}`), with an offset suffix for arithmetic and relative time (`{{$body 'count' + 1}}`, `{{$isoTimestamp + 3h}}`)
 - **Path Parameters** — Dynamic routes with `:param` or `{param}` syntax
 - **Environments** — Manage variables across dev/staging/production and switch instantly
 - **Response Delay** — Simulate latency per-variant or globally

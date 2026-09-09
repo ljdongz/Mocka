@@ -18,8 +18,8 @@ const TEMPLATE_VARIABLES = [
   { name: '$randomInt', description: 'Random integer (0-9999)' },
   { name: '$randomFloat', description: 'Random float (0-1000)' },
   { name: '$randomBoolean', description: 'Random true/false' },
-  { name: '$timestamp', description: 'Current Unix timestamp' },
-  { name: '$isoTimestamp', description: 'Current ISO 8601 timestamp' },
+  { name: '$timestamp', description: 'Current Unix timestamp — offset: {{$timestamp + 7d}}' },
+  { name: '$isoTimestamp', description: 'Current ISO 8601 timestamp — offset: {{$isoTimestamp + 3h}}' },
   { name: '$randomDate', description: 'Random date (YYYY-MM-DD)' },
   { name: '$randomDatetime', description: 'Random ISO datetime' },
   { name: '$randomCity', description: 'Random city name' },
@@ -38,9 +38,11 @@ const TEMPLATE_VARIABLES = [
   { name: '$randomAvatarUrl', description: 'Random avatar URL' },
 ];
 
+// Any variable or helper accepts a trailing offset suffix: `+ 1` (arithmetic)
+// or `+ 3h` / `- 7d` (s/m/h/d/w time shift on a Unix-seconds or ISO value).
 const TEMPLATE_HELPERS = [
-  { name: '$body', description: "Request body field — {{$body 'field.path' 'default'}}" },
-  { name: '$queryParams', description: "Query parameter — {{$queryParams 'key' 'default'}}" },
+  { name: '$body', description: "Request body field — {{$body 'field.path' 'default'}}, {{$body 'count' + 1}}" },
+  { name: '$queryParams', description: "Query parameter — {{$queryParams 'key' 'default'}}, {{$queryParams 'page' - 1}}" },
   { name: '$pathSegments', description: "URL path segment by index — {{$pathSegments '1'}}" },
   { name: '$pathParams', description: "Path parameter — {{$pathParams 'id'}}" },
   { name: '$headers', description: "Request header — {{$headers 'authorization'}}" },

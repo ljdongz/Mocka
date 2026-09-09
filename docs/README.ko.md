@@ -48,7 +48,7 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
 - **조건부 매칭** — 요청 body, header, query/path param 기반으로 AND/OR 룰 로직을 통해 응답 자동 선택
 
 ### Mock 서버 기능
-- **동적 템플릿** — 30+ 내장 변수(`{{$randomUUID}}`, `{{$randomEmail}}` 등)와 요청 컨텍스트 헬퍼(`{{$body 'field'}}`, `{{$pathParams 'id'}}`)
+- **동적 템플릿** — 30+ 내장 변수(`{{$randomUUID}}`, `{{$randomEmail}}` 등)와 요청 컨텍스트 헬퍼(`{{$body 'field'}}`, `{{$pathParams 'id'}}`), 그리고 산술·상대 시간 오프셋 접미사(`{{$body 'count' + 1}}`, `{{$isoTimestamp + 3h}}`)
 - **Path Parameter** — `:param` 또는 `{param}` 문법으로 동적 경로 정의
 - **환경 변수** — dev/staging/production 환경별 변수 관리 및 즉시 전환
 - **응답 지연** — 변형별 또는 전역으로 레이턴시 시뮬레이션

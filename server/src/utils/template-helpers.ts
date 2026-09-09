@@ -66,20 +66,54 @@ const HELPERS: Record<string, HelperFn> = {
   },
 };
 
-/**
- * Pattern: {{$helperName 'arg'}} or {{$helperName 'arg' 'default'}}
- * Supports both single and double quotes.
- */
-const HELPER_REGEX = /\{\{\s*(\$\w+)\s+['"]([^'"]*)['"]\s*(?:['"]([^'"]*)['"]\s*)?\}\}/g;
+const UNIT_SECONDS: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400, w: 604800 };
 
 /**
- * Resolve all {{$helper 'arg' 'default'}} placeholders using request context.
+ * Apply an offset suffix (`+ 1`, `- 30m`, `+ 3h`) to an already-resolved value.
+ * With a time unit the value is read as a date — Unix seconds, or anything Date.parse accepts —
+ * and comes back as Unix seconds / ISO 8601 respectively. Without a unit it is plain arithmetic.
+ * Empty or non-numeric values are returned untouched, so an absent field never yields `NaN`
+ * in the response body. Supply a default to opt in: {{$body 'count' '0' + 1}}.
+ * ponytail: units capped at s/m/h/d/w — months/years need calendar math (setMonth), add when asked.
+ */
+export function applyOffset(value: string, sign?: string, amount?: string, unit?: string): string {
+  if (!sign || amount === undefined) return value;
+  const trimmed = value.trim();
+  if (trimmed === '') return value;
+  const delta = (sign === '-' ? -1 : 1) * Number(amount);
+
+  if (!unit) {
+    const n = Number(trimmed);
+    if (!Number.isFinite(n)) return value;
+    return String(Number((n + delta).toFixed(10)));
+  }
+
+  const seconds = delta * UNIT_SECONDS[unit];
+  if (/^\d+$/.test(trimmed)) return String(Math.trunc(Number(trimmed) + seconds));
+  const ms = Date.parse(trimmed);
+  if (Number.isNaN(ms)) return value;
+  return new Date(ms + seconds * 1000).toISOString();
+}
+
+/**
+ * Pattern: {{$helperName 'arg'}}, {{$helperName 'arg' 'default'}},
+ * each optionally followed by an offset suffix — {{$body 'count' + 1}}, {{$body 'at' + 3h}}.
+ * Supports both single and double quotes.
+ */
+const HELPER_REGEX = /\{\{\s*(\$\w+)\s+['"]([^'"]*)['"]\s*(?:['"]([^'"]*)['"]\s*)?(?:([-+])\s*(\d+(?:\.\d+)?)\s*([smhdw])?\s*)?\}\}/g;
+
+/**
+ * Resolve all {{$helper 'arg' 'default'}} placeholders using request context,
+ * applying any trailing offset suffix to the result.
  */
 export function resolveHelpers(template: string, ctx: RequestContext): string {
-  return template.replace(HELPER_REGEX, (_fullMatch, helperName: string, arg: string, defaultValue?: string) => {
+  return template.replace(HELPER_REGEX, (
+    _fullMatch, helperName: string, arg: string, defaultValue?: string,
+    sign?: string, amount?: string, unit?: string,
+  ) => {
     const helper = HELPERS[helperName];
     if (!helper) return _fullMatch;
-    return helper(ctx, arg, defaultValue);
+    return applyOffset(helper(ctx, arg, defaultValue), sign, amount, unit);
   });
 }
 

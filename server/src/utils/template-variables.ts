@@ -1,7 +1,10 @@
 /**
  * Dynamic response variables — replaces {{$variableName}} placeholders
  * in response bodies with generated values at request time.
+ * An optional offset suffix shifts the result: {{$isoTimestamp + 3h}}, {{$timestamp - 7d}}, {{$randomInt + 100}}.
  */
+
+import { applyOffset } from './template-helpers.js';
 
 const FIRST_NAMES = ['James', 'Emma', 'Liam', 'Olivia', 'Noah', 'Ava', 'Ethan', 'Sophia', 'Mason', 'Isabella', 'Lucas', 'Mia', 'Logan', 'Charlotte', 'Alexander'];
 const LAST_NAMES = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Wilson', 'Anderson', 'Taylor', 'Thomas', 'Moore'];
@@ -100,17 +103,20 @@ const VARIABLES: Record<string, () => string> = {
   '$randomAvatarUrl': () => `https://i.pravatar.cc/150?u=${randomInt(1, 999)}`,
 };
 
-/** Pattern: {{$variableName}} */
-const TEMPLATE_REGEX = /\{\{\s*(\$\w+)\s*\}\}/g;
+/** Pattern: {{$variableName}}, with an optional offset suffix — {{$isoTimestamp + 3h}} */
+const TEMPLATE_REGEX = /\{\{\s*(\$\w+)\s*(?:([-+])\s*(\d+(?:\.\d+)?)\s*([smhdw])?\s*)?\}\}/g;
 
 /**
- * Resolve all {{$variable}} placeholders in the given template string.
+ * Resolve all {{$variable}} placeholders in the given template string,
+ * applying any trailing offset suffix to the generated value.
  * Unknown variables are left as-is.
  */
 export function resolveVariables(template: string): string {
-  return template.replace(TEMPLATE_REGEX, (fullMatch, varName: string) => {
+  return template.replace(TEMPLATE_REGEX, (
+    fullMatch, varName: string, sign?: string, amount?: string, unit?: string,
+  ) => {
     const generator = VARIABLES[varName];
-    return generator ? generator() : fullMatch;
+    return generator ? applyOffset(generator(), sign, amount, unit) : fullMatch;
   });
 }
 
@@ -139,8 +145,8 @@ export function getAvailableVariables(): { name: string; description: string }[]
     { name: '$randomInt', description: 'Random integer (0-9999)' },
     { name: '$randomFloat', description: 'Random float (0-1000)' },
     { name: '$randomBoolean', description: 'Random true/false' },
-    { name: '$timestamp', description: 'Current Unix timestamp' },
-    { name: '$isoTimestamp', description: 'Current ISO 8601 timestamp' },
+    { name: '$timestamp', description: 'Current Unix timestamp (offset: {{$timestamp + 7d}})' },
+    { name: '$isoTimestamp', description: 'Current ISO 8601 timestamp (offset: {{$isoTimestamp + 3h}})' },
     { name: '$randomDate', description: 'Random date (YYYY-MM-DD)' },
     { name: '$randomDatetime', description: 'Random ISO datetime' },
     { name: '$randomCity', description: 'Random city name' },
