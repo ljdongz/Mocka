@@ -1,5 +1,10 @@
 import Fastify from 'fastify';
+import websocket from '@fastify/websocket';
 import { handleMockRequest } from './services/mock-handler.service.js';
+import { stompWsHandler } from './stomp/handler.js';
+import * as stompRuntime from './stomp/runtime.js';
+import * as stompRegistry from './services/stomp-registry.js';
+import { normalizeStompPath } from './models/stomp.js';
 
 /** Cap on accepted request body size — JSON via Fastify bodyLimit, multipart via manual counting. */
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MiB
@@ -42,6 +47,20 @@ export async function createMockServer(_port: number) {
     }
   });
 
+  // STOMP over raw WebSocket. A fresh mock server (start or restart) begins with no live sessions.
+  await app.register(websocket);
+  stompRuntime.resetAll();
+
+  // Reject upgrades for paths without an enabled STOMP connection with a plain HTTP 404.
+  app.addHook('preValidation', async (req, reply) => {
+    if (String(req.headers.upgrade ?? '').toLowerCase() !== 'websocket') return;
+    const path = normalizeStompPath(req.url.split('?')[0]);
+    const conn = stompRegistry.getByPath(path);
+    if (!conn || !conn.isEnabled) {
+      reply.code(404).send({ error: `No STOMP connection configured for ${path}` });
+    }
+  });
+
   // Catch-all handler delegates to mock-handler service
   const handler = async (req: any, reply: any) => {
     const result = await handleMockRequest(
@@ -60,7 +79,8 @@ export async function createMockServer(_port: number) {
     return reply.send(result.body);
   };
 
-  app.get('/*', handler);
+  // GET /* serves HTTP mocks and, on upgrade, STOMP — Fastify allows only one GET /* registration.
+  app.get('/*', { handler, wsHandler: stompWsHandler } as any);
   app.post('/*', handler);
   app.put('/*', handler);
   app.delete('/*', handler);
