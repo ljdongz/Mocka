@@ -7,9 +7,14 @@
 import type { WebSocket } from 'ws';
 import type { StompFrame } from './frame.js';
 import { negotiateHeartbeat, parseHeartbeat } from './heartbeat.js';
+import { matchDestination } from './destination-matcher.js';
+import * as broker from './broker.js';
+import { buildMessageFrame, pickVariantPool, selectVariant, type FireContext } from './fire.js';
+import { executeFire } from './runtime.js';
 import * as stompRegistry from '../services/stomp-registry.js';
+import * as environmentService from '../services/environment.service.js';
 import { emit } from '../services/domain-events.js';
-import { normalizeStompPath, type StompConnection } from '../models/stomp.js';
+import { normalizeStompPath, type StompConnection, type StompTrigger } from '../models/stomp.js';
 import {
   createSession, getSession, logFrame, sendFrame, startHeartbeat, teardown, toInfo, touch, type StompSession,
 } from './session.js';
@@ -148,8 +153,7 @@ function handleDisconnect(session: StompSession, frame: StompFrame): void {
   teardown(session.id, { code: 1000, reason: 'client disconnect' });
 }
 
-// Broker-backed commands land with the broker task; until then they are accepted and acknowledged.
-function handleSubscribe(session: StompSession, _connection: StompConnection, frame: StompFrame): void {
+function handleSubscribe(session: StompSession, connection: StompConnection, frame: StompFrame): void {
   const id = frame.headers.id;
   const destination = frame.headers.destination;
   if (!id || !destination) {
@@ -157,8 +161,13 @@ function handleSubscribe(session: StompSession, _connection: StompConnection, fr
     return;
   }
   session.subscriptions.set(id, destination);
-  maybeReceipt(session, frame);
+  broker.subscribe({ connectionId: connection.id, sessionId: session.id, subscriptionId: id, destination });
+  maybeReceipt(session, frame); // clients may block on the receipt — answer before anything else
+  for (const entry of broker.takeReplay(connection.id, destination)) {
+    sendFrame(session, buildMessageFrame(destination, id, entry.body, entry.headers));
+  }
   emit('stomp:session:updated', toInfo(session));
+  fireTriggers(session, connection, frame, 'subscribe');
 }
 
 function handleUnsubscribe(session: StompSession, frame: StompFrame): void {
@@ -168,14 +177,55 @@ function handleUnsubscribe(session: StompSession, frame: StompFrame): void {
     return;
   }
   session.subscriptions.delete(id);
+  broker.unsubscribe(session.connectionId, session.id, id); // unknown id: ignored
   maybeReceipt(session, frame);
   emit('stomp:session:updated', toInfo(session));
 }
 
-function handleSend(session: StompSession, _connection: StompConnection, frame: StompFrame): void {
+function handleSend(session: StompSession, connection: StompConnection, frame: StompFrame): void {
   if (!frame.headers.destination) {
     fail(session, 'SEND requires destination');
     return;
   }
   maybeReceipt(session, frame);
+  // No matching rule → nothing happens beyond the frame log, like a real broker with no listener.
+  fireTriggers(session, connection, frame, 'send');
+}
+
+function buildContext(session: StompSession, connection: StompConnection, frame: StompFrame, captures: string[]): FireContext {
+  let body: any = {};
+  if (frame.body) {
+    try { body = JSON.parse(frame.body); } catch { body = { _raw: frame.body }; }
+  }
+  return {
+    connection,
+    triggerDestination: frame.headers.destination ?? '',
+    captures,
+    frameHeaders: frame.headers,
+    connectHeaders: session.clientHeaders,
+    body,
+    rawBody: frame.body,
+    sessionId: session.id,
+    subscriptionId: frame.command === 'SUBSCRIBE' ? (frame.headers.id ?? null) : null,
+    envVars: environmentService.getActiveVariables(),
+  };
+}
+
+/** Fire every enabled destination of the given trigger whose pattern matches the frame's destination. */
+function fireTriggers(session: StompSession, connection: StompConnection, frame: StompFrame, trigger: StompTrigger): number {
+  const destination = frame.headers.destination ?? '';
+  let fired = 0;
+  for (const d of connection.destinations ?? []) {
+    if (!d.isEnabled || d.trigger !== trigger) continue;
+    const m = matchDestination(d.pattern, destination);
+    if (!m) continue;
+    const ctx = buildContext(session, connection, frame, m.captures);
+    const { variants, presetMode } = pickVariantPool(d);
+    const variant = selectVariant(d, variants, presetMode, ctx);
+    if (!variant) continue;
+    executeFire(variant, ctx, session, frame.headers.receipt);
+    fired++;
+    if (!getSession(session.id)) break; // an error/disconnect variant ended the session
+  }
+  return fired;
 }

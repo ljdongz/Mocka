@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import * as stompService from '../services/stomp.service.js';
 import { exportConnection, importConnection, isStompExport } from '../services/stomp-import-export.service.js';
+import * as stompRuntime from '../services/stomp-runtime.service.js';
 import {
   STOMP_CONNECT_POLICIES, STOMP_TRIGGERS, STOMP_SCOPES, STOMP_FIRE_KINDS,
   type StompConnection, type StompDestination, type StompMessageVariant,
@@ -236,5 +237,66 @@ export async function stompRoutes(app: FastifyInstance): Promise<void> {
     if (!isStompExport(data)) return badRequest(reply, 'Invalid file: expected a Mocka STOMP connection export (kind mocka-stomp-connection, version 1)');
     const policy = conflictPolicy === 'overwrite' ? 'overwrite' : 'skip';
     return importConnection(data, policy);
+  });
+
+  // ── runtime: sessions, push, injection ──
+
+  const runtimeError = (reply: FastifyReply, e: any) => {
+    const msg = String(e?.message ?? e);
+    reply.code(/not found/.test(msg) ? 404 : 400);
+    return { error: msg };
+  };
+
+  app.get('/api/stomp/sessions', async (req) => {
+    const { connectionId } = (req.query ?? {}) as { connectionId?: string };
+    return stompRuntime.listSessions(connectionId || undefined);
+  });
+
+  app.delete('/api/stomp/sessions/:id', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { code, reason } = (req.body as { code?: number; reason?: string } | undefined) ?? {};
+    return stompRuntime.disconnect(id, code, reason) ? { success: true } : notFound(reply);
+  });
+
+  app.post('/api/stomp/sessions/:id/inject', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const payload = (req.body ?? {}) as Partial<stompRuntime.InjectPayload>;
+    if (!payload.kind || !['error', 'disconnect', 'stop-heartbeat', 'malformed'].includes(payload.kind)) {
+      return badRequest(reply, `Invalid injection kind: ${payload.kind}`);
+    }
+    return stompRuntime.inject(id, payload as stompRuntime.InjectPayload) ? { success: true } : notFound(reply);
+  });
+
+  app.post('/api/stomp/connections/:id/push', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const opts = (req.body ?? {}) as Parameters<typeof stompRuntime.push>[1];
+    if (opts.scope !== undefined && !STOMP_SCOPES.includes(opts.scope)) return badRequest(reply, `Invalid scope: ${opts.scope}`);
+    try {
+      return stompRuntime.push(id, opts);
+    } catch (e) {
+      return runtimeError(reply, e);
+    }
+  });
+
+  app.post('/api/stomp/destinations/:id/fire', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { sessionId } = (req.body as { sessionId?: string | null } | undefined) ?? {};
+    try {
+      return stompRuntime.fireDestination(id, sessionId ?? null);
+    } catch (e) {
+      return runtimeError(reply, e);
+    }
+  });
+
+  app.delete('/api/stomp/connections/:id/repeats', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!stompService.getById(id)) return notFound(reply);
+    stompRuntime.stopRepeats(id);
+    return { success: true };
+  });
+
+  app.get('/api/stomp/connections/:id/stats', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    return stompRuntime.stats(id) ?? notFound(reply);
   });
 }
