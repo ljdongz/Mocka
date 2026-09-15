@@ -9,6 +9,7 @@ import { registerHistoryTools } from './tools/history.js';
 import { registerImportExportTools } from './tools/import-export.js';
 import { registerDatasetTools } from './tools/datasets.js';
 import { registerServerTools } from './tools/server.js';
+import { registerStompTools } from './tools/stomp.js';
 
 export async function startMcpServer() {
   const server = new McpServer({
@@ -25,6 +26,7 @@ export async function startMcpServer() {
   registerImportExportTools(server);
   registerDatasetTools(server);
   registerServerTools(server);
+  registerStompTools(server);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
