@@ -46,6 +46,17 @@ const TEMPLATE_HELPERS = [
   { name: '$pathSegments', description: "URL path segment by index — {{$pathSegments '1'}}" },
   { name: '$pathParams', description: "Path parameter — {{$pathParams 'id'}}" },
   { name: '$headers', description: "Request header — {{$headers 'authorization'}}" },
+  // STOMP (Mocka-stomp message variants)
+  { name: '$destCapture', description: "STOMP: N-th wildcard capture of the destination pattern (1-based) — {{$destCapture '1'}}" },
+  { name: '$destSeg', description: "STOMP: N-th destination segment (0-based) — {{$destSeg '2'}}" },
+  { name: '$stompHeader', description: "STOMP: header of the triggering frame — {{$stompHeader 'receipt'}}" },
+  { name: '$connectHeader', description: "STOMP: CONNECT header of the session — {{$connectHeader 'x-client-type'}}" },
+];
+
+const STOMP_VARIABLES = [
+  { name: '$destination', description: 'STOMP: destination that triggered the fire' },
+  { name: '$sessionId', description: 'STOMP: target session id' },
+  { name: '$subscriptionId', description: 'STOMP: target subscription id' },
 ];
 
 let completionRegistered = false;
@@ -72,7 +83,7 @@ function registerTemplateCompletion(monaco: Monaco) {
         endColumn: position.column,
       };
 
-      const varSuggestions = TEMPLATE_VARIABLES.map(v => ({
+      const varSuggestions = [...TEMPLATE_VARIABLES, ...STOMP_VARIABLES].map(v => ({
         label: v.name,
         kind: monaco.languages.CompletionItemKind.Variable,
         insertText: v.name + '}}',
