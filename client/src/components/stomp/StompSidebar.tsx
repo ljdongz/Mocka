@@ -75,7 +75,7 @@ export function StompSidebar() {
           </span>
         </div>
         <div className="flex items-center justify-between mt-3">
-          <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{t.stomp.connections}</span>
+          <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{t.stomp.title} · {t.stomp.connections}</span>
           <button
             onClick={() => setShowNewStompConnection(true)}
             className="flex items-center rounded p-0.5 text-text-muted hover:bg-bg-hover hover:text-text-secondary"
