@@ -15,6 +15,9 @@ function makeRecord(overrides: Partial<RequestRecord> = {}): RequestRecord {
     requestHeaders: '{"accept":"application/json"}',
     responseBody: '{"ok":true}',
     timestamp: '2026-06-14T00:00:00.000Z',
+    protocol: 'http',
+    direction: null,
+    sessionId: null,
     ...overrides,
   };
 }
@@ -61,21 +64,25 @@ describe('record.repo', () => {
       expect(row.timestamp.length).toBeGreaterThan(0);
     });
 
-    it('does NOT expose a protocol property', () => {
+    it('HTTP rows default to protocol http with no frame direction or session', () => {
       create(makeRecord());
       const row = findAll()[0];
 
-      expect('protocol' in row).toBe(false);
-      expect(row).not.toHaveProperty('protocol');
+      expect(row.protocol).toBe('http');
+      expect(row.direction).toBeNull();
+      expect(row.sessionId).toBeNull();
       // exact set of keys, no extras
       expect(Object.keys(row).sort()).toEqual(
         [
           'bodyOrParams',
+          'direction',
           'id',
           'method',
           'path',
+          'protocol',
           'requestHeaders',
           'responseBody',
+          'sessionId',
           'statusCode',
           'timestamp',
         ].sort(),

@@ -3,10 +3,11 @@ import * as historyService from '../services/history.service.js';
 
 export async function historyRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/history', async (req) => {
-    const query = req.query as { method?: string; search?: string; limit?: string; offset?: string };
+    const query = req.query as { method?: string; search?: string; protocol?: string; limit?: string; offset?: string };
     return historyService.getAll({
       method: query.method,
       search: query.search,
+      protocol: query.protocol,
       limit: query.limit ? parseInt(query.limit) : undefined,
       offset: query.offset ? parseInt(query.offset) : undefined,
     });

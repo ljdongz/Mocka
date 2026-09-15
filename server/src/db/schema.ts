@@ -110,6 +110,68 @@ export function initSchema(): void {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS stomp_connections (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL DEFAULT '',
+      path TEXT NOT NULL UNIQUE,
+      is_enabled INTEGER NOT NULL DEFAULT 1,
+      connect_policy TEXT NOT NULL DEFAULT 'accept' CHECK(connect_policy IN ('accept','validate','reject')),
+      required_headers TEXT NOT NULL DEFAULT '[]',
+      reject_message TEXT NOT NULL DEFAULT 'Connection rejected',
+      heartbeat_outgoing INTEGER NOT NULL DEFAULT 10000,
+      heartbeat_incoming INTEGER NOT NULL DEFAULT 10000,
+      stomp_version TEXT NOT NULL DEFAULT '1.2',
+      default_delay REAL,
+      replay_buffer_size INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS stomp_destinations (
+      id TEXT PRIMARY KEY,
+      connection_id TEXT NOT NULL REFERENCES stomp_connections(id) ON DELETE CASCADE,
+      name TEXT NOT NULL DEFAULT '',
+      pattern TEXT NOT NULL,
+      trigger_type TEXT NOT NULL DEFAULT 'send' CHECK(trigger_type IN ('send','subscribe','manual')),
+      is_enabled INTEGER NOT NULL DEFAULT 1,
+      active_variant_id TEXT,
+      active_preset_id TEXT,
+      sequence_mode TEXT NOT NULL DEFAULT 'off',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS stomp_presets (
+      id TEXT PRIMARY KEY,
+      destination_id TEXT NOT NULL REFERENCES stomp_destinations(id) ON DELETE CASCADE,
+      name TEXT NOT NULL DEFAULT 'Default',
+      mode TEXT NOT NULL DEFAULT 'sequential',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS stomp_message_variants (
+      id TEXT PRIMARY KEY,
+      destination_id TEXT NOT NULL REFERENCES stomp_destinations(id) ON DELETE CASCADE,
+      description TEXT NOT NULL DEFAULT 'Message',
+      kind TEXT NOT NULL DEFAULT 'message' CHECK(kind IN ('message','error','receipt','disconnect')),
+      target_destination TEXT NOT NULL DEFAULT '',
+      scope TEXT NOT NULL DEFAULT 'broadcast' CHECK(scope IN ('broadcast','echo','user')),
+      body TEXT NOT NULL DEFAULT '{}',
+      headers TEXT NOT NULL DEFAULT '{}',
+      delay REAL,
+      repeat_interval_ms INTEGER,
+      repeat_count INTEGER,
+      match_rules TEXT,
+      dataset_binding TEXT,
+      variant_group TEXT NOT NULL DEFAULT 'standard',
+      preset_id TEXT REFERENCES stomp_presets(id) ON DELETE CASCADE,
+      memo TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+
     INSERT OR IGNORE INTO settings VALUES ('port', '4650');
     INSERT OR IGNORE INTO settings VALUES ('response_delay', '0');
     INSERT OR IGNORE INTO settings VALUES ('auto_save_endpoints', 'true');
@@ -256,9 +318,26 @@ export function initSchema(): void {
     console.log(`[Mocka] Path normalization complete.`);
   }
 
+  // Migration: frame-log columns on request_records (STOMP frames share the history table)
+  const recCols = db.prepare("PRAGMA table_info(request_records)").all() as { name: string }[];
+  if (!recCols.some(c => c.name === 'protocol')) {
+    db.exec("ALTER TABLE request_records ADD COLUMN protocol TEXT NOT NULL DEFAULT 'http'");
+  }
+  if (!recCols.some(c => c.name === 'direction')) {
+    db.exec("ALTER TABLE request_records ADD COLUMN direction TEXT");
+  }
+  if (!recCols.some(c => c.name === 'session_id')) {
+    db.exec("ALTER TABLE request_records ADD COLUMN session_id TEXT");
+  }
+
   // Indexes on foreign-key and hot-path columns (idempotent; created after all
   // migrations so ALTER-added columns such as preset_id exist).
   db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_stomp_destinations_connection ON stomp_destinations(connection_id);
+    CREATE INDEX IF NOT EXISTS idx_stomp_variants_destination ON stomp_message_variants(destination_id);
+    CREATE INDEX IF NOT EXISTS idx_stomp_variants_preset ON stomp_message_variants(preset_id);
+    CREATE INDEX IF NOT EXISTS idx_stomp_presets_destination ON stomp_presets(destination_id);
+    CREATE INDEX IF NOT EXISTS idx_request_records_protocol ON request_records(protocol);
     CREATE INDEX IF NOT EXISTS idx_response_variants_endpoint ON response_variants(endpoint_id);
     CREATE INDEX IF NOT EXISTS idx_response_variants_preset ON response_variants(preset_id);
     CREATE INDEX IF NOT EXISTS idx_query_params_endpoint ON query_params(endpoint_id);

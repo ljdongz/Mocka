@@ -14,10 +14,21 @@ function rowToRecord(row: any): RequestRecord {
     requestHeaders: row.request_headers,
     responseBody: row.response_body,
     timestamp: row.timestamp,
+    protocol: row.protocol ?? 'http',
+    direction: row.direction ?? null,
+    sessionId: row.session_id ?? null,
   };
 }
 
-export function findAll(opts: { method?: string; search?: string; limit?: number; offset?: number } = {}): RequestRecord[] {
+export interface RecordQuery {
+  method?: string;
+  search?: string;
+  protocol?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export function findAll(opts: RecordQuery = {}): RequestRecord[] {
   const db = getDb();
   const conditions: string[] = [];
   const params: any[] = [];
@@ -25,6 +36,10 @@ export function findAll(opts: { method?: string; search?: string; limit?: number
   if (opts.method) {
     conditions.push('method = ?');
     params.push(opts.method);
+  }
+  if (opts.protocol) {
+    conditions.push('protocol = ?');
+    params.push(opts.protocol);
   }
   if (opts.search) {
     conditions.push('path LIKE ?');
@@ -43,9 +58,10 @@ export function findAll(opts: { method?: string; search?: string; limit?: number
 export function create(record: RequestRecord): RequestRecord {
   const db = getDb();
   db.prepare(`
-    INSERT INTO request_records (id, method, path, status_code, body_or_params, request_headers, response_body)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(record.id, record.method, record.path, record.statusCode, record.bodyOrParams, record.requestHeaders, record.responseBody);
+    INSERT INTO request_records (id, method, path, status_code, body_or_params, request_headers, response_body, protocol, direction, session_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(record.id, record.method, record.path, record.statusCode, record.bodyOrParams, record.requestHeaders, record.responseBody,
+    record.protocol ?? 'http', record.direction ?? null, record.sessionId ?? null);
 
   // Periodically prune to bound history growth (~1% of inserts; cheap, keeps the cap soft).
   if (Math.random() < 0.01) {
