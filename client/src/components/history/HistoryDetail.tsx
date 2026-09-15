@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
+import { StompCommandBadge } from '../shared/StompCommandBadge';
 import { CodeEditor } from '../shared/CodeEditor';
 import { useTranslation } from '../../i18n';
 import { formatJson } from '../../utils/json';
+import { DirectionArrow } from './HistoryView';
 import type { RequestRecord, HttpMethod } from '../../types';
 import clsx from 'clsx';
 
@@ -33,26 +35,35 @@ function parsePathParams(bodyOrParams: string): Record<string, string> | null {
 
 export function HistoryDetail({ record, onClose }: { record: RequestRecord; onClose: () => void }) {
   const t = useTranslation();
-  const [tab, setTab] = useState<DetailTab>('response');
+  const isStomp = record.protocol === 'stomp';
+  const [tab, setTab] = useState<DetailTab>(isStomp ? 'body' : 'response');
 
   const headers = (() => {
     try { return JSON.parse(record.requestHeaders); } catch { return {}; }
   })();
 
-  const pathParams = parsePathParams(record.bodyOrParams);
+  const pathParams = isStomp ? null : parsePathParams(record.bodyOrParams);
 
-  const tabLabels: Record<DetailTab, string> = {
-    response: t.historyDetail.responseBody,
-    headers: t.historyDetail.requestHeaders,
-    body: t.historyDetail.requestBody,
-  };
+  const tabs: DetailTab[] = isStomp ? ['body', 'headers'] : ['response', 'headers', 'body'];
+  const tabLabels: Record<DetailTab, string> = isStomp
+    ? { response: '', headers: t.historyDetail.frameHeaders, body: t.historyDetail.frameBody }
+    : { response: t.historyDetail.responseBody, headers: t.historyDetail.requestHeaders, body: t.historyDetail.requestBody };
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between border-b border-border-primary px-4 py-3">
         <div className="flex items-center gap-2">
-          {record.method && <HttpMethodBadge method={record.method as HttpMethod} />}
-          {record.statusCode != null && <StatusCodeBadge code={record.statusCode} />}
+          {isStomp ? (
+            <>
+              <DirectionArrow record={record} />
+              {record.method && <StompCommandBadge command={record.method} />}
+            </>
+          ) : (
+            <>
+              {record.method && <HttpMethodBadge method={record.method as HttpMethod} />}
+              {record.statusCode != null && <StatusCodeBadge code={record.statusCode} />}
+            </>
+          )}
         </div>
         <button onClick={onClose} className="text-text-muted hover:text-text-secondary text-xl leading-none px-1">&times;</button>
       </div>
@@ -60,6 +71,9 @@ export function HistoryDetail({ record, onClose }: { record: RequestRecord; onCl
       <div className="px-4 py-2 border-b border-border-primary">
         <div className="text-sm text-text-tertiary font-mono break-all">{record.path}</div>
         <div className="text-xs text-text-muted font-mono mt-1">{formatDetailTime(record.timestamp)}</div>
+        {isStomp && record.sessionId && (
+          <div className="text-xs text-text-muted font-mono mt-1">{t.historyDetail.session} {record.sessionId}</div>
+        )}
       </div>
 
       {/* Path Parameters badge */}
@@ -78,7 +92,7 @@ export function HistoryDetail({ record, onClose }: { record: RequestRecord; onCl
       )}
 
       <div className="flex border-b border-border-primary">
-        {(['response', 'headers', 'body'] as DetailTab[]).map(tabKey => (
+        {tabs.map(tabKey => (
           <button
             key={tabKey}
             onClick={() => setTab(tabKey)}
@@ -104,6 +118,7 @@ export function HistoryDetail({ record, onClose }: { record: RequestRecord; onCl
                 <span className="text-text-secondary font-mono break-all">{String(v)}</span>
               </div>
             ))}
+            {Object.keys(headers).length === 0 && <span className="text-xs text-text-muted">—</span>}
           </div>
         )}
         {tab === 'body' && (

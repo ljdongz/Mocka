@@ -3,8 +3,12 @@ import { IconRail } from './components/sidebar/IconRail';
 import { Sidebar } from './components/sidebar/Sidebar';
 import { EndpointEditor } from './components/editor/EndpointEditor';
 import { HistoryView } from './components/history/HistoryView';
+import { StompSidebar } from './components/stomp/StompSidebar';
+import { StompEditor } from './components/stomp/StompEditor';
 import { NewEndpointModal } from './components/modals/NewEndpointModal';
 import { NewCollectionModal } from './components/modals/NewCollectionModal';
+import { NewStompConnectionModal } from './components/modals/NewStompConnectionModal';
+import { NewStompDestinationModal } from './components/modals/NewStompDestinationModal';
 import { SettingsModal } from './components/modals/SettingsModal';
 import { ImportExportModal } from './components/modals/ImportExportModal';
 import { EnvironmentModal } from './components/modals/EnvironmentModal';
@@ -14,6 +18,7 @@ import { ResizableDivider } from './components/layout/ResizableDivider';
 import { useEndpointStore } from './stores/endpoint.store';
 import { useCollectionStore } from './stores/collection.store';
 import { useSettingsStore } from './stores/settings.store';
+import { useStompStore } from './stores/stomp.store';
 import { useUIStore } from './stores/ui.store';
 import { useWebSocket } from './hooks/useWebSocket';
 import { initWebSocket } from './api/websocket';
@@ -24,7 +29,10 @@ export default function App() {
   const fetchCollections = useCollectionStore(s => s.fetch);
   const fetchSettings = useSettingsStore(s => s.fetch);
   const fetchServerStatus = useSettingsStore(s => s.fetchServerStatus);
+  const fetchStomp = useStompStore(s => s.fetch);
+  const fetchStompSessions = useStompStore(s => s.fetchSessions);
   const showHistory = useUIStore(s => s.showHistory);
+  const showStomp = useUIStore(s => s.showStomp);
   const sidebarWidth = useUIStore(s => s.sidebarWidth);
 
   useWebSocket();
@@ -35,10 +43,13 @@ export default function App() {
     fetchCollections();
     fetchSettings();
     fetchServerStatus();
-  }, [fetchEndpoints, fetchCollections, fetchSettings, fetchServerStatus]);
+    fetchStomp();
+    fetchStompSessions();
+  }, [fetchEndpoints, fetchCollections, fetchSettings, fetchServerStatus, fetchStomp, fetchStompSessions]);
 
   const mainContent = () => {
     if (showHistory) return <HistoryView />;
+    if (showStomp) return <StompEditor />;
     return <EndpointEditor />;
   };
 
@@ -49,7 +60,7 @@ export default function App() {
       {!showHistory && (
         <>
           <div style={{ width: sidebarWidth, minWidth: sidebarWidth }} className="flex-shrink-0 border-r border-border-primary">
-            <Sidebar />
+            {showStomp ? <StompSidebar /> : <Sidebar />}
           </div>
           <ResizableDivider />
         </>
@@ -63,6 +74,8 @@ export default function App() {
       {/* Modals */}
       <NewEndpointModal />
       <NewCollectionModal />
+      <NewStompConnectionModal />
+      <NewStompDestinationModal />
       <SettingsModal />
       <ImportExportModal />
       <EnvironmentModal />

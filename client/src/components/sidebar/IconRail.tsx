@@ -1,4 +1,4 @@
-import { Folder, History, Layers, ArrowUpDown, Settings, BookOpen, Database, LucideIcon } from 'lucide-react';
+import { Folder, History, Layers, ArrowUpDown, Settings, BookOpen, Database, RadioTower, LucideIcon } from 'lucide-react';
 import { useUIStore } from '../../stores/ui.store';
 import { useTranslation } from '../../i18n';
 
@@ -32,6 +32,8 @@ export function IconRail() {
   const t = useTranslation();
   const showHistory = useUIStore(s => s.showHistory);
   const setShowHistory = useUIStore(s => s.setShowHistory);
+  const showStomp = useUIStore(s => s.showStomp);
+  const setShowStomp = useUIStore(s => s.setShowStomp);
   const showOnboarding = useUIStore(s => s.showOnboarding);
   const setShowOnboarding = useUIStore(s => s.setShowOnboarding);
   const showEnvironments = useUIStore(s => s.showEnvironments);
@@ -48,8 +50,14 @@ export function IconRail() {
         <RailButton
           icon={Folder}
           label={t.sidebar.collections}
-          active={!showHistory}
-          onClick={() => setShowHistory(false)}
+          active={!showHistory && !showStomp}
+          onClick={() => { setShowHistory(false); setShowStomp(false); }}
+        />
+        <RailButton
+          icon={RadioTower}
+          label={t.sidebar.stomp}
+          active={!showHistory && showStomp}
+          onClick={() => { setShowHistory(false); setShowStomp(true); }}
         />
         <RailButton
           icon={History}

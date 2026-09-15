@@ -4,6 +4,7 @@ import { useEndpointStore } from '../stores/endpoint.store';
 import { useCollectionStore } from '../stores/collection.store';
 import { useHistoryStore } from '../stores/history.store';
 import { useSettingsStore } from '../stores/settings.store';
+import { useStompStore } from '../stores/stomp.store';
 import { useToastStore } from '../components/shared/Toast';
 
 export function useWebSocket() {
@@ -37,7 +38,8 @@ export function useWebSocket() {
           break;
         case 'history:new':
           addRecord(data);
-          if (useSettingsStore.getState().settings.historyToast && data.method && data.statusCode != null) {
+          // STOMP frames arrive continuously (heartbeat-driven pushes, repeats); no toast per frame.
+          if (data.protocol !== 'stomp' && useSettingsStore.getState().settings.historyToast && data.method && data.statusCode != null) {
             useToastStore.getState().addToast({
               method: data.method,
               path: data.path,
@@ -50,6 +52,20 @@ export function useWebSocket() {
           break;
         case 'server:status':
           setServerStatus(data);
+          // a restarted mock server starts with no sessions
+          useStompStore.getState().fetchSessions();
+          break;
+        case 'stomp:changed':
+          useStompStore.getState().fetch();
+          break;
+        case 'stomp:session:opened':
+        case 'stomp:session:updated':
+          useStompStore.getState().upsertSession(data);
+          useStompStore.getState().fetchStats(data.connectionId);
+          break;
+        case 'stomp:session:closed':
+          useStompStore.getState().removeSession(data.id);
+          useStompStore.getState().fetchStats(data.connectionId);
           break;
       }
     });

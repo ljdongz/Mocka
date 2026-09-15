@@ -1,16 +1,18 @@
 import { useEffect } from 'react';
-import { useHistoryStore } from '../../stores/history.store';
+import { ArrowDown, ArrowUp } from 'lucide-react';
+import { useHistoryStore, type HistoryFilter } from '../../stores/history.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
 import { useResizable } from '../../hooks/useResizable';
 import { useTranslation } from '../../i18n';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
+import { StompCommandBadge } from '../shared/StompCommandBadge';
 import { HistoryDetail } from './HistoryDetail';
-import type { HttpMethod } from '../../types';
+import type { HttpMethod, RequestRecord } from '../../types';
 import clsx from 'clsx';
 
-const METHODS = ['', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+const FILTERS: HistoryFilter[] = ['', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'stomp'];
 
 function formatHistoryTime(timestamp: string): string {
   const d = new Date(timestamp);
@@ -22,14 +24,21 @@ function formatHistoryTime(timestamp: string): string {
   return `${mm}.${dd} ${hh}:${min}:${ss}`;
 }
 
+/** Direction from the client's point of view: ↑ client → server, ↓ server → client. */
+export function DirectionArrow({ record }: { record: RequestRecord }) {
+  if (record.direction === 'in') return <ArrowUp size={12} strokeWidth={2.5} className="text-text-muted" />;
+  if (record.direction === 'out') return <ArrowDown size={12} strokeWidth={2.5} className="text-accent-primary" />;
+  return null;
+}
+
 export function HistoryView() {
   const t = useTranslation();
   const records = useHistoryStore(s => s.records);
   const selectedRecord = useHistoryStore(s => s.selectedRecord);
   const selectRecord = useHistoryStore(s => s.selectRecord);
-  const filterMethod = useHistoryStore(s => s.filterMethod);
+  const filter = useHistoryStore(s => s.filter);
   const search = useHistoryStore(s => s.search);
-  const setFilterMethod = useHistoryStore(s => s.setFilterMethod);
+  const setFilter = useHistoryStore(s => s.setFilter);
   const setSearch = useHistoryStore(s => s.setSearch);
   const clearAll = useHistoryStore(s => s.clearAll);
   const fetch = useHistoryStore(s => s.fetch);
@@ -39,6 +48,8 @@ export function HistoryView() {
   const { onMouseDown } = useResizable(historyDetailWidth, setHistoryDetailWidth, 300, 700, true);
 
   useEffect(() => { fetch(); }, [fetch]);
+
+  const filterLabel = (f: HistoryFilter) => f === '' ? t.history.allMethods : f === 'stomp' ? t.history.stomp : f;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -69,12 +80,12 @@ export function HistoryView() {
           className="flex-1 rounded border border-border-secondary bg-bg-input px-3 py-1.5 text-sm text-text-primary outline-none focus:border-accent-primary"
         />
         <select
-          value={filterMethod}
-          onChange={e => setFilterMethod(e.target.value)}
+          value={filter}
+          onChange={e => setFilter(e.target.value as HistoryFilter)}
           className="rounded border border-border-secondary bg-bg-input px-2 py-1.5 text-sm text-text-primary outline-none"
         >
-          {METHODS.map(m => (
-            <option key={m} value={m}>{m || t.history.allMethods}</option>
+          {FILTERS.map(f => (
+            <option key={f} value={f}>{filterLabel(f)}</option>
           ))}
         </select>
       </div>
@@ -106,11 +117,22 @@ export function HistoryView() {
                     {formatHistoryTime(r.timestamp)}
                   </td>
                   <td className="px-4 py-2">
-                    {r.method ? <HttpMethodBadge method={r.method as HttpMethod} /> : null}
+                    {r.protocol === 'stomp' ? (
+                      <span className="inline-flex items-center gap-1">
+                        <DirectionArrow record={r} />
+                        {r.method && <StompCommandBadge command={r.method} />}
+                      </span>
+                    ) : (
+                      r.method ? <HttpMethodBadge method={r.method as HttpMethod} /> : null
+                    )}
                   </td>
-                  <td className="px-4 py-2 text-text-secondary font-mono truncate max-w-[400px]">{r.path}</td>
+                  <td className="px-4 py-2 text-text-secondary font-mono truncate max-w-[400px]">
+                    {r.path}
+                  </td>
                   <td className="px-4 py-2">
-                    {r.statusCode != null ? <StatusCodeBadge code={r.statusCode} /> : null}
+                    {r.protocol === 'stomp'
+                      ? <span className="font-mono text-xs text-text-muted" title={r.sessionId ?? ''}>{r.sessionId?.slice(0, 8)}</span>
+                      : (r.statusCode != null ? <StatusCodeBadge code={r.statusCode} /> : null)}
                   </td>
                 </tr>
               ))}

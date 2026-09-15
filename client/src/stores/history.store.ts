@@ -2,14 +2,17 @@ import { create } from 'zustand';
 import { historyApi } from '../api/history';
 import type { RequestRecord } from '../types';
 
+/** '' = everything, 'stomp' = frame log only, otherwise an HTTP method */
+export type HistoryFilter = '' | 'stomp' | 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+
 interface HistoryStore {
   records: RequestRecord[];
   selectedRecord: RequestRecord | null;
-  filterMethod: string;
+  filter: HistoryFilter;
   search: string;
   fetch: () => Promise<void>;
   clearAll: () => Promise<void>;
-  setFilterMethod: (method: string) => void;
+  setFilter: (filter: HistoryFilter) => void;
   setSearch: (search: string) => void;
   selectRecord: (record: RequestRecord | null) => void;
   addRecord: (record: RequestRecord) => void;
@@ -18,13 +21,14 @@ interface HistoryStore {
 export const useHistoryStore = create<HistoryStore>((set, get) => ({
   records: [],
   selectedRecord: null,
-  filterMethod: '',
+  filter: '',
   search: '',
 
   fetch: async () => {
-    const { filterMethod, search } = get();
+    const { filter, search } = get();
     const records = await historyApi.getAll({
-      method: filterMethod || undefined,
+      method: filter && filter !== 'stomp' ? filter : undefined,
+      protocol: filter === 'stomp' ? 'stomp' : filter ? 'http' : undefined,
       search: search || undefined,
     });
     set({ records });
@@ -35,8 +39,8 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
     set({ records: [], selectedRecord: null });
   },
 
-  setFilterMethod: (method) => {
-    set({ filterMethod: method });
+  setFilter: (filter) => {
+    set({ filter });
     get().fetch();
   },
 
@@ -48,6 +52,9 @@ export const useHistoryStore = create<HistoryStore>((set, get) => ({
   selectRecord: (record) => set({ selectedRecord: record }),
 
   addRecord: (record) => {
+    const { filter } = get();
+    if (filter === 'stomp' && record.protocol !== 'stomp') return;
+    if (filter && filter !== 'stomp' && (record.protocol === 'stomp' || record.method !== filter)) return;
     set(s => ({ records: [record, ...s.records] }));
   },
 }));
