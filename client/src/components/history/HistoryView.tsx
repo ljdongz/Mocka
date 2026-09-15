@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useHistoryStore, type HistoryFilter } from '../../stores/history.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
@@ -8,6 +7,7 @@ import { useTranslation } from '../../i18n';
 import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
 import { StompCommandBadge } from '../shared/StompCommandBadge';
+import { DirectionArrow } from '../shared/DirectionArrow';
 import { HistoryDetail } from './HistoryDetail';
 import type { HttpMethod, RequestRecord } from '../../types';
 import clsx from 'clsx';
@@ -22,13 +22,6 @@ function formatHistoryTime(timestamp: string): string {
   const min = String(d.getMinutes()).padStart(2, '0');
   const ss = String(d.getSeconds()).padStart(2, '0');
   return `${mm}.${dd} ${hh}:${min}:${ss}`;
-}
-
-/** Direction from the client's point of view: ↑ client → server, ↓ server → client. */
-export function DirectionArrow({ record }: { record: RequestRecord }) {
-  if (record.direction === 'in') return <ArrowUp size={12} strokeWidth={2.5} className="text-text-muted" />;
-  if (record.direction === 'out') return <ArrowDown size={12} strokeWidth={2.5} className="text-accent-primary" />;
-  return null;
 }
 
 export function HistoryView() {

@@ -5,7 +5,7 @@ import { StompCommandBadge } from '../shared/StompCommandBadge';
 import { CodeEditor } from '../shared/CodeEditor';
 import { useTranslation } from '../../i18n';
 import { formatJson } from '../../utils/json';
-import { DirectionArrow } from './HistoryView';
+import { DirectionArrow } from '../shared/DirectionArrow';
 import type { RequestRecord, HttpMethod } from '../../types';
 import clsx from 'clsx';
 
