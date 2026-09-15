@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import * as stompService from '../services/stomp.service.js';
+import { exportConnection, importConnection, isStompExport } from '../services/stomp-import-export.service.js';
 import {
   STOMP_CONNECT_POLICIES, STOMP_TRIGGERS, STOMP_SCOPES, STOMP_FIRE_KINDS,
   type StompConnection, type StompDestination, type StompMessageVariant,
@@ -221,5 +222,19 @@ export async function stompRoutes(app: FastifyInstance): Promise<void> {
     const { id } = req.params as { id: string };
     const { presetId } = (req.body as { presetId?: string } | undefined) ?? {};
     return stompService.resetSequence(id, presetId) ? { success: true } : notFound(reply);
+  });
+
+  // ── import / export (one connection per file) ──
+
+  app.post('/api/stomp/connections/:id/export', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    return exportConnection(id) ?? notFound(reply);
+  });
+
+  app.post('/api/stomp/import', async (req, reply) => {
+    const { data, conflictPolicy } = (req.body ?? {}) as { data?: unknown; conflictPolicy?: string };
+    if (!isStompExport(data)) return badRequest(reply, 'Invalid file: expected a Mocka STOMP connection export (kind mocka-stomp-connection, version 1)');
+    const policy = conflictPolicy === 'overwrite' ? 'overwrite' : 'skip';
+    return importConnection(data, policy);
   });
 }
