@@ -117,6 +117,7 @@ mocka start           # Start in foreground
 mocka start -d        # Start in background (daemon)
 mocka stop            # Stop the running instance
 mocka status          # Check if Mocka is running
+mocka --version       # Show the installed version
 ```
 
 The admin UI and mock server will be available at:
@@ -288,6 +289,7 @@ mocka/
 | `mocka mcp` | Start the MCP server (stdio) |
 | `mocka mcp install` | Register Mocka MCP with an AI client |
 | `mocka mcp uninstall` | Remove Mocka MCP from an AI client |
+| `mocka -v` / `--version` | Show the installed version |
 
 ### Development Scripts
 

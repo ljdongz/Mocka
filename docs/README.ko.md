@@ -117,6 +117,7 @@ mocka start           # 포그라운드로 시작
 mocka start -d        # 백그라운드로 시작 (데몬)
 mocka stop            # 실행 중인 인스턴스 종료
 mocka status          # 실행 상태 확인
+mocka --version       # 설치된 버전 확인
 ```
 
 관리 UI와 Mock 서버가 다음 주소에서 실행됩니다:
@@ -288,6 +289,7 @@ mocka/
 | `mocka mcp` | MCP 서버 시작 (stdio) |
 | `mocka mcp install` | AI 클라이언트에 Mocka MCP 등록 |
 | `mocka mcp uninstall` | AI 클라이언트에서 Mocka MCP 제거 |
+| `mocka -v` / `--version` | 설치된 버전 확인 |
 
 ### 개발용 스크립트
 

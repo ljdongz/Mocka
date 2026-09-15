@@ -86,6 +86,16 @@ function stop() {
   }, 1000);
 }
 
+function printVersion() {
+  // dist/cli.js and src/cli.ts both sit one level under the server workspace root.
+  try {
+    const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
+    console.log(`mocka ${pkg.version}`);
+  } catch {
+    console.log('mocka (version unknown)');
+  }
+}
+
 function status() {
   const pid = readPid();
   if (!pid || !isProcessAlive(pid)) {
@@ -152,6 +162,12 @@ switch (command) {
   case 'config':
     await config(flags);
     break;
+  case '-v':
+  case '-version':
+  case '--version':
+  case 'version':
+    printVersion();
+    break;
   case 'mcp': {
     const subCommand = process.argv[3];
     if (subCommand === 'install') {
@@ -187,5 +203,6 @@ switch (command) {
     console.log('  mcp             Start the MCP server (stdio)');
     console.log('  mcp install     Register Mocka MCP with an AI client');
     console.log('  mcp uninstall   Remove Mocka MCP from an AI client');
+    console.log('  -v, --version   Show the installed version');
     process.exit(command === undefined ? 0 : 1);
 }
