@@ -60,6 +60,8 @@ describe('failure injection', () => {
     expect(stompRuntime.inject(session.id, { kind: 'malformed' })).toBe(true);
     await sleep(50);
     expect(c.raw.some(r => r.startsWith('BOGUS'))).toBe(true);
+    // a real client's decoder rejects it; the connection itself must survive
+    expect(c.decodeErrors.length).toBeGreaterThan(0);
     expect(c.closed).toBeNull();
   });
 

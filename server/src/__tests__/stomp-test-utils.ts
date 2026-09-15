@@ -41,6 +41,8 @@ export class TestClient {
   /** every raw text message, heartbeats included */
   raw: string[] = [];
   closed: { code: number; reason: string } | null = null;
+  /** decode failures from deliberately malformed server output */
+  decodeErrors: Error[] = [];
   private dec = new StompFrameDecoder();
   private waiters: ((f: StompFrame) => void)[] = [];
 
@@ -54,7 +56,16 @@ export class TestClient {
     c.ws.on('message', (data) => {
       const text = data.toString();
       c.raw.push(text);
-      for (const f of c.dec.push(text)) {
+      // The malformed-injection tests deliberately push non-STOMP bytes at us;
+      // record the decode failure instead of throwing out of the ws event handler.
+      let decoded: StompFrame[];
+      try {
+        decoded = c.dec.push(text);
+      } catch (err) {
+        c.decodeErrors.push(err as Error);
+        return;
+      }
+      for (const f of decoded) {
         const waiter = c.waiters.shift();
         if (waiter) waiter(f); else c.frames.push(f);
       }
