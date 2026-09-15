@@ -10,7 +10,7 @@
 
 Mocka ships with a built-in [MCP](https://modelcontextprotocol.io/) (Model Context Protocol) server. Once registered with an AI client, agents like **Claude Code**, **Codex CLI**, and **Gemini CLI** can read your project's API calls and create matching mock endpoints, configure response sequences, manage collections, seed datasets — all through conversation, with no manual UI work.
 
-The MCP server exposes **43 tools** that map 1:1 to Mocka's admin REST API, so anything you can do in the web UI, an agent can do through MCP — under the exact same matching, precedence, and resolution rules.
+The MCP server exposes **60 tools** that map 1:1 to Mocka's admin REST API, so anything you can do in the web UI, an agent can do through MCP — under the exact same matching, precedence, and resolution rules.
 
 > Example prompt:
 > *"Set up mocks for my auth API — the first `/login` call returns 401, retrying returns 200. Then add a `/users/:id` endpoint backed by a shared dataset."*
@@ -122,7 +122,7 @@ After registering, start Mocka and ask your agent to call `get_server_status` (o
 
 ---
 
-## Tool reference (43 tools)
+## Tool reference (60 tools)
 
 All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned by the corresponding `list_*` / `get_*` / `create_*` tools.
 
@@ -223,6 +223,32 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 | `restart_server` | Restart the mock listener (after a port change) | — |
 
 ---
+
+### STOMP (17)
+
+Mock a STOMP-over-WebSocket backend. A **connection** is one WebSocket upgrade path with its own broker namespace; **destinations** are trigger rules (`send` = when the client SENDs to a matching pattern, `subscribe` = right after SUBSCRIBE, `manual` = fired by hand); **message variants** are what gets fired (kind × scope × payload). Map the app's `send(destination:)` calls to `send` rules and its `subscribe(destination:)` calls to `subscribe`/`manual` rules.
+
+| Tool | Description | Key params |
+|------|-------------|------------|
+| `list_connections` | List connections with destinations, variants and presets | — |
+| `create_stomp_connection` | Create a connection (WebSocket path, CONNECT policy, heartbeat, replay buffer) | `path`, `name?`, `connectPolicy?`, `requiredHeaders?`, `heartbeatOutgoing?`, `heartbeatIncoming?`, `defaultDelay?`, `replayBufferSize?` |
+| `update_stomp_connection` | Update a connection; disabling closes its sessions | `id`, …optional, `isEnabled?` |
+| `delete_stomp_connection` | Delete a connection and everything under it | `id` |
+| `create_destination` | Add a trigger rule (`*` one segment, `**` rest); a default broadcast variant is created | `connectionId`, `pattern`, `trigger`, `name?` |
+| `update_destination` | Change pattern/trigger/name/enabled/`sequenceMode` | `id`, …optional |
+| `delete_destination` | Delete a rule and its variants | `id` |
+| `add_message_variant` | Add a variant: `kind` (message/error/receipt/disconnect), `scope` (broadcast/echo/user), `targetDestination`, `body`, `headers`, `delay`, repeat, `matchRules`, `datasetBinding` | `destinationId`, `presetId?`, …optional |
+| `update_message_variant` | Update a variant | `id`, …optional |
+| `delete_message_variant` | Delete a variant | `id` |
+| `set_active_message_variant` | Default variant when no rule matches (standard mode) | `destinationId`, `variantId` (nullable) |
+| `push_message` | Deliver a message to subscribers right now (`times`, `delay`, `jitter`; echo/user need `sessionId`) | `connectionId`, `destination`, `body`, `scope?`, `sessionId?`, … |
+| `fire_destination` | Fire a destination's selected variant by hand | `destinationId`, `sessionId?` |
+| `list_sessions` | Live sessions with CONNECT headers, subscriptions and heartbeat state | `connectionId?` |
+| `inject_error` | Send ERROR and close (client sees `.serverError`) | `sessionId`, `message?`, `body?` |
+| `disconnect_session` | Close the socket with a code (client sees `.transportFailure`) | `sessionId`, `code?`, `reason?` |
+| `stop_heartbeat` | Stop server heartbeats but keep the socket open — zombie (client sees `.heartbeatTimeout`) | `sessionId` |
+
+> Templates in `targetDestination`, `body` and header values: `{{$destCapture 1}}` (1st `*` of the pattern), `{{$destSeg 2}}`, `{{$destination}}`, `{{$sessionId}}`, `{{$subscriptionId}}`, `{{$stompHeader 'x'}}`, `{{$connectHeader 'x-client-type'}}`, plus every HTTP helper and variable. Header match rules see SEND headers merged with the session's CONNECT headers, so `x-client-type` branching works per client type. See the [Usage Guide](../usage/README.md#stomp-mock) for the full model.
 
 ## Example agent workflows
 

@@ -310,7 +310,81 @@ LAYER 3 · pool에서 하나 선택, 엄격한 순서로:
 
 ---
 
+## STOMP mock
+
+Mocka는 **raw WebSocket 위의 STOMP 1.2 브로커**도 mock합니다 (SockJS 없이 띄운 Spring `@EnableWebSocketMessageBroker` 백엔드의 형태). HTTP mock은 그대로 동작하며 둘 다 mock 서버 포트에서 서비스됩니다.
+
+```
+Connection (WebSocket 경로)  ──has many──►  Destination (트리거 + 패턴)  ──has many──►  Message Variant
+ /api/app/ws/chat                            send  /app/rooms/*/message                  종류 × 범위 × 페이로드
+ CONNECT 정책 · heartbeat                    subscribe /topic/rooms/*                     target /topic/rooms/{{$destCapture 1}}
+ replay 버퍼                                 manual /topic/rooms/88
+```
+
+### Connection
+
+WebSocket 경로 하나가 Connection 하나입니다. 앱을 `ws://<host>:4650<path>` 에 연결하세요. 알 수 없거나 비활성인 경로는 업그레이드 시점에 HTTP 404로 거절됩니다. Connection마다 브로커 네임스페이스가 독립적이라 두 프로젝트가 같은 `/topic/rooms/*` 를 정의해도 구독자를 공유하지 않습니다.
+
+| 설정 | 의미 |
+|---|---|
+| `connectPolicy` | `accept` 모든 CONNECT 수락; `validate` `requiredHeaders` 중 비어 있는 것이 있으면 거절; `reject` 모든 CONNECT에 ERROR |
+| `heartbeatOutgoing,heartbeatIncoming` | CONNECTED에 광고. 실제 간격은 STOMP 1.2 협상(양쪽 max, 0이면 없음). Heartbeat는 `\n` 프레임이며 클라이언트가 간격의 3배 동안 침묵하면 종료 |
+| `defaultDelay` | 모든 variant의 기본 발사 지연(**ms**) |
+| `replayBufferSize` | 구독자가 없을 때 destination별로 최근 N개 broadcast 메시지를 보관하고 SUBSCRIBE 시 재생. `0`이면 실제 브로커처럼 드롭 |
+
+### Destination (트리거)
+
+| 트리거 | 발화 시점 | 대표 패턴 |
+|---|---|---|
+| `send` | 클라이언트가 패턴에 맞는 destination으로 SEND | `/app/rooms/*/message` — variant target `/topic/rooms/{{$destCapture 1}}` 로 방 전체에 되돌림 |
+| `subscribe` | 클라이언트가 SUBSCRIBE한 직후 | `/topic/rooms/*` — 초기 스냅샷 |
+| `manual` | **지금 발사** 버튼, `fire_destination`, `push_message` | `/topic/rooms/88` — 서버발 push |
+
+패턴 문법(Spring `AntPathMatcher` 방식): `*` 는 세그먼트 하나, `**` 는 나머지 전부, 리터럴은 정확히 일치. 구분자는 `/` 와 `.` 둘 다이므로 `/topic/rooms/88` 과 `/topic/rooms.88` 은 같은 destination입니다.
+
+### Message Variant
+
+Variant는 *무엇을* 발사할지입니다. 트리거당 선택 순서: **match rules → sequence preset → active variant → 첫 variant**.
+
+| 필드 | 의미 |
+|---|---|
+| `kind` | `message`(MESSAGE 프레임), `error`(ERROR 후 종료), `receipt`(RECEIPT), `disconnect`(`headers.code`로 종료) |
+| `scope` | `broadcast` 대상의 모든 구독자; `echo` 트리거한 세션만; `user` 세션의 `/user/...` 큐(`/queue/inbox` → 클라이언트의 `/user/queue/inbox` 구독) |
+| `targetDestination` | 템플릿. 비우면 트리거된 destination |
+| `body`, `headers` | 템플릿(헤더는 JSON 객체) |
+| `delay`, `repeatIntervalMs`, `repeatCount` | ms. 반복은 매 틱마다 다시 템플릿을 해석하고 세션/Connection과 함께 멈춤 |
+| `matchRules` | Body 룰은 SEND body, 헤더 룰은 SEND 헤더와 **CONNECT 헤더를 병합**해 봄(`x-client-type` 분기 가능). Capture 룰은 패턴의 와일드카드를 `"1"`, `"2"`… 로 참조 |
+| `datasetBinding` | `{{$dataset}}` 위치에 dataset 주입(detail 조회는 capture를 키로 쓸 수 있음) |
+
+HTTP 헬퍼·변수에 더해 쓸 수 있는 STOMP 템플릿 헬퍼:
+
+| 헬퍼 | 값 |
+|---|---|
+| `{{$destCapture N}}` | 패턴의 N번째 와일드카드 캡처(1-based). `**` 는 나머지를 `/` 로 이어 하나로 잡음 |
+| `{{$destSeg N}}` | 트리거된 destination의 N번째 세그먼트(0-based) |
+| `{{$destination}}` | 트리거된 destination |
+| `{{$sessionId}}` / `{{$subscriptionId}}` | 수신 세션 / 구독 |
+| `{{$stompHeader 'x'}}` | 트리거 프레임의 헤더 |
+| `{{$connectHeader 'x-device-id'}}` | 세션의 CONNECT 헤더 |
+
+### 실패 주입
+
+세션 인스펙터, `POST /api/stomp/sessions/:id/inject`, 또는 MCP에서:
+
+| 주입 | 서버 동작 | 클라이언트 관측 |
+|---|---|---|
+| CONNECT 거절 (`connectPolicy: reject`) | ERROR, 종료 | `.rejected` |
+| ERROR 주입 | ERROR 프레임, close 1002 | `.serverError` |
+| Heartbeat 중단 | `\n` 송신 중단, 소켓 유지 | `.heartbeatTimeout` (좀비) |
+| 강제 종료 | 지정 code로 close | `.transportFailure` |
+| 깨진 프레임 | 비-STOMP 바이트 | `.protocolViolation` |
+| 지연 / 지터, `times` | push 시 | 레이턴시 스트레스, 중복 전달 |
+
+### 관찰
+
+모든 프레임(양방향, heartbeat 제외)이 명령·destination·세션 id와 함께 **History**에 기록됩니다. Connection 에디터는 접속 중인 세션과 그 CONNECT 헤더·구독을 보여주고, destination은 구독자가 없으면 경고합니다. 내장 **테스트 클라이언트**로 브라우저에서 mock에 직접 붙어 기기 빌드 없이 규칙을 확인할 수 있습니다. Export / import는 Connection 단위입니다.
+
 ## 함께 보기
 
-- [MCP 가이드](../mcp/README.ko.md) — 위의 모든 것을 AI 에이전트로 조작(43개 도구).
+- [MCP 가이드](../mcp/README.ko.md) — 위의 모든 것을 AI 에이전트로 조작(60개 도구).
 - [메인 README](../README.ko.md) — 설치, CLI 명령어, 아키텍처.

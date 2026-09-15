@@ -39,13 +39,20 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 ## Features
 
 ### AI-Driven Mock Setup
-- **MCP Server (43 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
+- **MCP Server (60 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
 - **Sequence Presets** — Named response scenarios (e.g. "Token Expired Flow") with sequential or loop modes. The AI can set up multi-step flows like `401 → token refresh → 200` in one conversation
 
 ### Manual Control
 - **Web UI** — Create and manage endpoints from your browser with a visual editor
 - **Multiple Response Variants** — Define multiple responses per endpoint and switch between them with a single click
 - **Conditional Matching** — Auto-select response variants based on request body, headers, query/path params with AND/OR rule logic
+
+### STOMP Mock (WebSocket)
+- **Protocol-aware socket mock** — a STOMP 1.2 broker over raw WebSocket: CONNECT/CONNECTED with heartbeat negotiation, SUBSCRIBE/UNSUBSCRIBE, SEND, RECEIPT, ERROR. Point your app's socket URL at Mocka and it connects without code changes
+- **Connections & destinations** — one connection per WebSocket path (`/api/app/ws/chat`) with its own broker namespace; destination rules fire on `SEND`, on `SUBSCRIBE`, or by hand, with `*` / `**` patterns and `{{$destCapture 1}}` templates
+- **Scopes** — broadcast to every subscriber, echo to the sender, or deliver to a session's `/user` queue; optional replay buffer for messages fired before anyone subscribed
+- **Failure injection** — reject CONNECT, send ERROR, stop heartbeats (zombie socket), close with a code, send a malformed frame, add delay/jitter or duplicate delivery — every client disconnect path is reproducible
+- **Session inspector & test client** — see live sessions with their CONNECT headers and subscriptions, push messages from the UI, and drive the mock from a built-in browser STOMP client
 
 ### Mock Server Capabilities
 - **Dynamic Templates** — 30+ built-in variables (`{{$randomUUID}}`, `{{$randomEmail}}`, etc.) and request context helpers (`{{$body 'field'}}`, `{{$pathParams 'id'}}`), with an offset suffix for arithmetic and relative time (`{{$body 'count' + 1}}`, `{{$isoTimestamp + 3h}}`)
@@ -67,9 +74,10 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
            ▼
 ┌──────────────────────┐       ┌──────────────────────┐
 │  Admin API (:4649)   │       │  Mock Server (:4650)  │
-│  - Endpoint CRUD     │       │  - Serves mock        │
-│  - Collection mgmt   │       │    responses (HTTP)    │
-│  - Settings          │       │  - Logs requests       │
+│  - Endpoint CRUD     │       │  - HTTP mock responses │
+│  - STOMP connections │       │  - STOMP over WebSocket│
+│  - Collection mgmt   │       │  - Frame / request log │
+│  - Settings          │       │  - Push / injection    │
 │  - Static files      │       │                        │
 └──────────┬───────────┘       └────────────────────────┘
            │
@@ -79,7 +87,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
     └──────────────┘
 ```
 
-The Admin API manages endpoint configurations and serves the frontend, while the Mock Server dynamically routes incoming requests to the appropriate configured responses.
+The Admin API manages endpoint and STOMP connection configurations and serves the frontend, while the Mock Server routes HTTP requests to the configured responses and accepts STOMP-over-WebSocket upgrades on the connection paths.
 
 ## Tech Stack
 
@@ -162,9 +170,9 @@ codex mcp add mocka -- mocka mcp
 
 Once configured, AI agents can create endpoints, set up sequence presets, configure response bodies, and manage collections — all through natural language.
 
-**Available tools (42):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, `create_dataset`, `update_dataset`, and more.
+**Available tools (60):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, `create_dataset`, `update_dataset`, `create_stomp_connection`, `create_destination`, `add_message_variant`, `push_message`, `list_sessions`, `inject_error`, `stop_heartbeat`, and more.
 
-> **Full MCP reference →** [docs/mcp](docs/mcp/README.md) (installation per client, the complete 42-tool catalog, example agent workflows, troubleshooting).
+> **Full MCP reference →** [docs/mcp](docs/mcp/README.md) (installation per client, the complete 60-tool catalog, example agent workflows, troubleshooting).
 
 ### Development
 
@@ -242,6 +250,15 @@ curl http://localhost:4650/api/users \
 > **Tip:** The mock server also listens on your local network IP (shown in the console on startup), so you can send requests from other devices on the same network — for example, `curl http://192.168.x.x:4650/api/users`. This is especially useful for testing mobile apps or other clients.
 
 8. **Monitor requests** in real time from the admin UI's request log
+
+9. **Mock a STOMP socket** — in the **STOMP** tab create a connection with your app's WebSocket path (e.g. `/api/app/ws/chat`) and point the app at `ws://<ip>:4650/api/app/ws/chat`. Add destination rules: a `SEND` rule `/app/rooms/*/message` whose variant targets `/topic/rooms/{{$destCapture 1}}` echoes chat messages back to every subscriber; a `manual` rule `/topic/rooms/88` can be fired from the UI or MCP at any time. The session inspector shows who is connected, and the built-in test client lets you connect, subscribe and send without a device build.
+
+```bash
+# push a server-originated message to everyone subscribed to /topic/rooms/88
+curl -X POST http://localhost:4649/api/stomp/connections/<connectionId>/push \
+  -H "Content-Type: application/json" \
+  -d '{"destination":"/topic/rooms/88","body":"{\"type\":\"NEW_MESSAGE\"}"}'
+```
 
 ## Project Structure
 

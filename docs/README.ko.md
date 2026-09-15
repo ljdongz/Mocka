@@ -39,13 +39,20 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
 ## 주요 기능
 
 ### AI 기반 Mock 구축
-- **MCP 서버 (43개 도구)** — AI 에이전트(Claude Code, Codex, Gemini 등)가 소스코드를 읽고 그에 맞는 mock endpoint를 생성, 응답 시퀀스 구성, collection 관리 — 자연어 한 문장으로
+- **MCP 서버 (60개 도구)** — AI 에이전트(Claude Code, Codex, Gemini 등)가 소스코드를 읽고 그에 맞는 mock endpoint를 생성, 응답 시퀀스 구성, collection 관리 — 자연어 한 문장으로
 - **Sequence Preset** — 이름 있는 응답 시나리오(예: "토큰 만료 플로우")를 sequential 또는 loop 모드로 구성. AI가 `401 → 토큰 갱신 → 200` 같은 다단계 플로우를 대화 한 번으로 셋업
 
 ### 수동 관리
 - **웹 UI** — 브라우저에서 비주얼 에디터로 endpoint를 직접 생성 및 관리
 - **다중 응답 변형** — endpoint당 여러 응답을 정의하고 클릭 한 번으로 전환
 - **조건부 매칭** — 요청 body, header, query/path param 기반으로 AND/OR 룰 로직을 통해 응답 자동 선택
+
+### STOMP Mock (WebSocket)
+- **프로토콜을 이해하는 소켓 mock** — raw WebSocket 위의 STOMP 1.2 브로커: heartbeat 협상을 포함한 CONNECT/CONNECTED, SUBSCRIBE/UNSUBSCRIBE, SEND, RECEIPT, ERROR. 앱 코드 수정 없이 소켓 URL만 Mocka로 바꾸면 붙습니다
+- **Connection & Destination** — WebSocket 경로(`/api/app/ws/chat`) 하나가 Connection 하나, 각자 독립된 브로커 네임스페이스. Destination 규칙은 `SEND` 시, `SUBSCRIBE` 시, 또는 수동으로 발사되며 `*` / `**` 패턴과 `{{$destCapture 1}}` 템플릿을 지원
+- **수신 범위** — 모든 구독자에게 broadcast, 보낸 세션에만 echo, 세션의 `/user` 큐로 전달. 구독자가 생기기 전에 발사한 메시지를 보관하는 replay 버퍼 옵션
+- **실패 주입** — CONNECT 거절, ERROR 프레임, heartbeat 중단(좀비 소켓), close code 지정 종료, 깨진 프레임, 지연/지터, 중복 전달 — 클라이언트의 모든 끊김 경로를 재현
+- **세션 인스펙터 & 테스트 클라이언트** — 접속 중인 세션의 CONNECT 헤더·구독 목록 확인, UI에서 메시지 push, 내장 브라우저 STOMP 클라이언트로 기기 빌드 없이 규칙 검증
 
 ### Mock 서버 기능
 - **동적 템플릿** — 30+ 내장 변수(`{{$randomUUID}}`, `{{$randomEmail}}` 등)와 요청 컨텍스트 헬퍼(`{{$body 'field'}}`, `{{$pathParams 'id'}}`), 그리고 산술·상대 시간 오프셋 접미사(`{{$body 'count' + 1}}`, `{{$isoTimestamp + 3h}}`)
@@ -67,9 +74,10 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
            ▼
 ┌──────────────────────┐       ┌──────────────────────┐
 │  Admin API (:4649)   │       │  Mock Server (:4650)  │
-│  - Endpoint CRUD     │       │  - Mock 응답 제공      │
-│  - Collection 관리    │       │    (HTTP)              │
-│  - 설정 관리          │       │  - 요청 기록           │
+│  - Endpoint CRUD     │       │  - HTTP mock 응답      │
+│  - STOMP Connection  │       │  - STOMP over WebSocket│
+│  - Collection 관리    │       │  - 프레임 / 요청 기록   │
+│  - 설정 관리          │       │  - Push / 실패 주입     │
 │  - 정적 파일 제공      │       │                        │
 └──────────┬───────────┘       └────────────────────────┘
            │
@@ -79,7 +87,7 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
     └──────────────┘
 ```
 
-Admin API가 endpoint 설정을 관리하고 프론트엔드를 제공하며, Mock Server는 수신 요청을 설정된 응답에 동적으로 라우팅합니다.
+Admin API가 endpoint와 STOMP Connection 설정을 관리하고 프론트엔드를 제공하며, Mock Server는 HTTP 요청을 설정된 응답으로 라우팅하고 Connection 경로로 들어오는 STOMP-over-WebSocket 업그레이드를 받습니다.
 
 ## 기술 스택
 
@@ -162,9 +170,9 @@ codex mcp add mocka -- mocka mcp
 
 설정 후 AI 에이전트가 자연어로 endpoint 생성, sequence preset 구성, 응답 본문 설정, collection 관리 등을 수행할 수 있습니다.
 
-**제공 도구 (43개):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data` 등.
+**제공 도구 (60개):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, `create_stomp_connection`, `create_destination`, `add_message_variant`, `push_message`, `list_sessions`, `inject_error`, `stop_heartbeat` 등.
 
-> **전체 MCP 레퍼런스 →** [docs/mcp](mcp/README.ko.md) (클라이언트별 설치, 43개 도구 전체 목록, 예시 에이전트 워크플로, 문제 해결).
+> **전체 MCP 레퍼런스 →** [docs/mcp](mcp/README.ko.md) (클라이언트별 설치, 60개 도구 전체 목록, 예시 에이전트 워크플로, 문제 해결).
 
 ### 개발 모드
 
@@ -242,6 +250,15 @@ curl http://localhost:4650/api/users \
 > **Tip:** Mock 서버는 로컬 네트워크 IP에서도 접근할 수 있습니다 (시작 시 콘솔에 표시). 같은 네트워크의 다른 기기에서도 요청을 보낼 수 있습니다 — 예: `curl http://192.168.x.x:4650/api/users`. 모바일 앱이나 다른 클라이언트를 테스트할 때 유용합니다.
 
 8. 관리 UI의 요청 기록에서 **수신 요청을 실시간으로 모니터링**합니다
+
+9. **STOMP 소켓 mock** — **STOMP** 탭에서 앱의 WebSocket 경로(예: `/api/app/ws/chat`)로 Connection을 만들고 앱을 `ws://<ip>:4650/api/app/ws/chat` 에 연결합니다. Destination 규칙을 추가하세요: `SEND` 규칙 `/app/rooms/*/message` 의 variant가 `/topic/rooms/{{$destCapture 1}}` 을 대상으로 하면 채팅 메시지가 모든 구독자에게 되돌아가고, `수동` 규칙 `/topic/rooms/88` 은 UI나 MCP에서 아무 때나 발사할 수 있습니다. 세션 인스펙터로 누가 붙어 있는지 확인하고, 내장 테스트 클라이언트로 기기 빌드 없이 connect·subscribe·send를 해볼 수 있습니다.
+
+```bash
+# /topic/rooms/88 구독자 전원에게 서버발 메시지 push
+curl -X POST http://localhost:4649/api/stomp/connections/<connectionId>/push \
+  -H "Content-Type: application/json" \
+  -d '{"destination":"/topic/rooms/88","body":"{\"type\":\"NEW_MESSAGE\"}"}'
+```
 
 ## 프로젝트 구조
 

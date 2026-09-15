@@ -310,7 +310,81 @@ After selection:
 
 ---
 
+## STOMP mock
+
+Mocka also mocks a **STOMP 1.2 broker over raw WebSocket** (the shape a Spring `@EnableWebSocketMessageBroker` backend exposes without SockJS). The HTTP mock keeps working alongside it — both live on the mock server port.
+
+```
+Connection (WebSocket path)  ──has many──►  Destination (trigger + pattern)  ──has many──►  Message Variant
+ /api/app/ws/chat                            send  /app/rooms/*/message                    kind × scope × payload
+ CONNECT policy · heartbeat                  subscribe /topic/rooms/*                       target /topic/rooms/{{$destCapture 1}}
+ replay buffer                               manual /topic/rooms/88
+```
+
+### Connections
+
+One connection per WebSocket path. Point the app at `ws://<host>:4650<path>`; an unknown or disabled path is refused with HTTP 404 at upgrade time. Each connection is its own broker namespace — two projects can both define `/topic/rooms/*` without sharing subscribers.
+
+| Setting | Meaning |
+|---|---|
+| `connectPolicy` | `accept` every CONNECT; `validate` rejects when a `requiredHeaders` entry is empty; `reject` answers every CONNECT with ERROR |
+| `heartbeatOutgoing,heartbeatIncoming` | Advertised in CONNECTED; the effective interval is the STOMP 1.2 negotiation (max of both sides, 0 disables). Heartbeats are `\n` frames; a client silent for 3× the interval is closed |
+| `defaultDelay` | Default fire delay in **ms** for every variant |
+| `replayBufferSize` | Keep the last N broadcast messages per destination while nobody is subscribed and replay them on SUBSCRIBE. `0` drops them like a real broker |
+
+### Destinations (triggers)
+
+| Trigger | Fires when | Typical pattern |
+|---|---|---|
+| `send` | the client SENDs to a matching destination | `/app/rooms/*/message` — variant target `/topic/rooms/{{$destCapture 1}}` echoes the message to the room |
+| `subscribe` | right after the client SUBSCRIBEs | `/topic/rooms/*` — initial snapshot |
+| `manual` | you press **Fire Now**, call `fire_destination`, or `push_message` | `/topic/rooms/88` — server-originated push |
+
+Pattern grammar (Spring `AntPathMatcher` style): `*` matches one segment, `**` the rest, a literal must match exactly. Separators are `/` and `.`, so `/topic/rooms/88` and `/topic/rooms.88` are the same destination.
+
+### Message variants
+
+A variant is *what* gets fired. Selection order per trigger: **match rules → sequence preset → active variant → first**.
+
+| Field | Meaning |
+|---|---|
+| `kind` | `message` (MESSAGE frame), `error` (ERROR then close), `receipt` (RECEIPT), `disconnect` (close with `headers.code`) |
+| `scope` | `broadcast` every subscriber of the target; `echo` only the triggering session; `user` the session's `/user/...` queue (`/queue/inbox` → the client's `/user/queue/inbox` subscription) |
+| `targetDestination` | Template; empty = the triggered destination |
+| `body`, `headers` | Templates (headers as a JSON object) |
+| `delay`, `repeatIntervalMs`, `repeatCount` | ms; repeats re-template every tick and stop with the session / connection |
+| `matchRules` | Body rules see the SEND body; header rules see SEND headers **merged with the CONNECT headers** (so `x-client-type` works); capture rules use `"1"`, `"2"`… for the pattern's wildcards |
+| `datasetBinding` | Inject a dataset where `{{$dataset}}` appears (detail lookups may key on a capture) |
+
+STOMP template helpers, on top of every HTTP helper and variable:
+
+| Helper | Value |
+|---|---|
+| `{{$destCapture N}}` | N-th wildcard capture of the pattern (1-based); `**` captures the rest joined with `/` |
+| `{{$destSeg N}}` | N-th segment of the triggered destination (0-based) |
+| `{{$destination}}` | the triggered destination |
+| `{{$sessionId}}` / `{{$subscriptionId}}` | the receiving session / subscription |
+| `{{$stompHeader 'x'}}` | header of the triggering frame |
+| `{{$connectHeader 'x-device-id'}}` | the session's CONNECT header |
+
+### Failure injection
+
+From the session inspector, `POST /api/stomp/sessions/:id/inject`, or MCP:
+
+| Injection | Server does | Client observes |
+|---|---|---|
+| Reject CONNECT (`connectPolicy: reject`) | ERROR, close | `.rejected` |
+| Inject ERROR | ERROR frame, close 1002 | `.serverError` |
+| Stop heartbeat | stops sending `\n`, keeps the socket | `.heartbeatTimeout` (zombie) |
+| Disconnect | close with the given code | `.transportFailure` |
+| Malformed frame | non-STOMP bytes | `.protocolViolation` |
+| Delay / jitter, `times` | on push | latency stress, duplicate delivery |
+
+### Observability
+
+Every frame (both directions, heartbeats excluded) lands in **History** with its command, destination and session id. The connection editor lists live sessions with their CONNECT headers and subscriptions; destinations warn when nobody is subscribed. The built-in **Test Client** connects to the mock from the browser so rules can be checked without a device build. Export / import works per connection.
+
 ## See also
 
-- [MCP Guide](../mcp/README.md) — drive all of the above from an AI agent (43 tools).
+- [MCP Guide](../mcp/README.md) — drive all of the above from an AI agent (60 tools).
 - [Main README](../../README.md) — install, CLI commands, architecture.
