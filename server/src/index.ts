@@ -4,6 +4,8 @@ import { createAdminServer } from './admin-server.js';
 import { createMockServer } from './mock-server.js';
 import * as settingsService from './services/settings.service.js';
 import * as endpointService from './services/endpoint.service.js';
+import * as stompService from './services/stomp.service.js';
+import * as stompRegistry from './services/stomp-registry.js';
 import { emit } from './services/domain-events.js';
 import { getLocalIp, checkPort, findAvailablePort } from './utils/network.js';
 import { closeDb } from './db/connection.js';
@@ -22,6 +24,7 @@ async function main() {
   // Initialize DB
   initSchema();
   reload(endpointService.getAll());
+  stompRegistry.reload(stompService.getAll());
 
   const settings = settingsService.getAll();
   const adminPort = parsePort(process.env.ADMIN_PORT) ?? settings.adminPort ?? 4649;

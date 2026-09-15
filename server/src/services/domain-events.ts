@@ -5,6 +5,7 @@ import type { Collection } from '../models/collection.js';
 import type { Environment } from '../models/environment.js';
 import type { RequestRecord } from '../models/request-record.js';
 import type { Dataset } from '../models/dataset.js';
+import type { StompSessionInfo } from '../models/stomp.js';
 
 const emitter = new EventEmitter();
 
@@ -28,6 +29,10 @@ export type DomainEvent =
   | { type: 'history:new'; payload: RequestRecord }
   | { type: 'history:cleared'; payload: null }
   | { type: 'import:completed'; payload: any }
+  | { type: 'stomp:changed'; payload: null }
+  | { type: 'stomp:session:opened'; payload: StompSessionInfo }
+  | { type: 'stomp:session:updated'; payload: StompSessionInfo }
+  | { type: 'stomp:session:closed'; payload: { id: string; connectionId: string } }
   | { type: 'server:status'; payload: { running: boolean; port: number } };
 
 /** Emit a domain event that will be broadcast to WebSocket clients */
