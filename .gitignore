@@ -16,3 +16,4 @@ ROADMAP.md
 scripts/
 .gstack/
 docs/superpowers/
+*.tsbuildinfo
