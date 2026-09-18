@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { Readable } from 'stream';
@@ -22,7 +22,7 @@ describe('media.service', () => {
     initSchema();
     sourceDir = mkdtempSync(join(tmpdir(), 'mocka-src-'));
   });
-  afterEach(() => { closeDb(); });
+  afterEach(() => { closeDb(); rmSync(sourceDir, { recursive: true, force: true }); });
 
   it('copies the file in, keeping its extension so the served URL has a real Content-Type', async () => {
     const media = await mediaService.registerFromPath({ path: sourceFile('clip.mp4') });
@@ -96,6 +96,23 @@ describe('media.service', () => {
     await expect(mediaService.registerFromStream({ stream, originalName: 'clip.mp4' }))
       .rejects.toMatchObject({ statusCode: 413 });
     expect(mediaService.getAll()).toHaveLength(0);
+  });
+
+  it('reads Content-Type from the same table the static server serves by', async () => {
+    const mkv = await mediaService.registerFromPath({ path: sourceFile('clip.mkv') });
+    expect(mkv.mimeType).toBe('video/x-matroska');
+    const heic = await mediaService.registerFromPath({ path: sourceFile('photo.heic') });
+    expect(heic.mimeType).toBe('image/heic');
+  });
+
+  it('still picks an extension when the reported type carries parameters', async () => {
+    const media = await mediaService.registerFromStream({
+      stream: Readable.from([Buffer.from('bytes')]),
+      originalName: 'clip',
+      mimeType: 'video/mp4; codecs="avc1.42E01E"',
+    });
+    expect(media.fileName).toBe(`${media.id}.mp4`);
+    expect(media.mimeType).toBe('video/mp4');
   });
 
   it('falls back to the reported Content-Type when the upload has no extension', async () => {

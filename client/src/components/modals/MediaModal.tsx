@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Check, Copy, Trash2, Upload } from 'lucide-react';
 import { useMediaStore } from '../../stores/media.store';
+import { PartialUploadError } from '../../api/media';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
 import { ModalOverlay } from '../shared/ModalOverlay';
@@ -25,7 +26,11 @@ function formatSize(bytes: number): string {
  * whether that is localhost or a LAN address.
  */
 function mediaUrl(media: Media, mockPort: number): string {
-  return `${window.location.protocol}//${window.location.hostname}:${mockPort}/__mocka/media/${media.fileName}`;
+  // encodeURIComponent to match what the server puts in a mock response: a file
+  // name with a space would otherwise make the URL shown and copied here differ
+  // from the one the app actually receives.
+  const path = `/__mocka/media/${encodeURIComponent(media.fileName)}`;
+  return `${window.location.protocol}//${window.location.hostname}:${mockPort}${path}`;
 }
 
 export function MediaModal() {
@@ -50,17 +55,28 @@ export function MediaModal() {
     if (!files || files.length === 0) return;
     setError('');
     try {
-      await upload(Array.from(files));
-      const all = useMediaStore.getState().media;
-      setSelectedId(all[all.length - 1]?.id ?? null);
+      selectLast(await upload(Array.from(files)));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      // A batch can fail partway; select what did register rather than nothing.
+      if (err instanceof PartialUploadError) selectLast(err.created);
     }
   };
 
+  // Select by id, not by list position: several files uploaded in the same
+  // second share a created_at, so "the last row" is not reliably the new one.
+  const selectLast = (created: Media[]) => {
+    if (created.length > 0) setSelectedId(created[created.length - 1].id);
+  };
+
   const handleDelete = async (id: string) => {
-    await remove(id);
-    setSelectedId(useMediaStore.getState().media[0]?.id ?? null);
+    setError('');
+    try {
+      await remove(id);
+      setSelectedId(useMediaStore.getState().media[0]?.id ?? null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   };
 
   return (

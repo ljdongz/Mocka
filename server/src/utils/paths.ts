@@ -34,13 +34,19 @@ export function resolveDataDir(): string {
   return cachedDataDir;
 }
 
-/**
- * Directory holding registered media files, created if missing.
- * The mock server serves this directory statically, and static registration
- * fails on a missing root — so creating it here keeps boot order from mattering.
- */
+/** Directory holding registered media files. Computing the path creates nothing. */
 export function resolveMediaDir(): string {
-  const dir = join(resolveDataDir(), 'media');
+  return join(resolveDataDir(), 'media');
+}
+
+/**
+ * The media directory, created if missing. Only the two callers that need it to
+ * exist pay for the syscall — the mock server, whose static registration fails on
+ * a missing root, and the service, before it writes a file. Asking for the path
+ * of a file about to be deleted should not create a directory on a slow mount.
+ */
+export function ensureMediaDir(): string {
+  const dir = resolveMediaDir();
   mkdirSync(dir, { recursive: true });
   return dir;
 }

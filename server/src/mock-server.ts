@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { handleMockRequest } from './services/mock-handler.service.js';
 import { MEDIA_URL_PREFIX } from './utils/template-media.js';
-import { resolveMediaDir } from './utils/paths.js';
+import { ensureMediaDir } from './utils/paths.js';
 
 /** Cap on accepted request body size — JSON via Fastify bodyLimit, multipart via manual counting. */
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MiB
@@ -19,7 +19,7 @@ export async function createMockServer(_port: number) {
   // 404. The wildcard it registers lives under this prefix and does not collide
   // with the catch-all mock routes below.
   await app.register(fastifyStatic, {
-    root: resolveMediaDir(),
+    root: ensureMediaDir(),
     prefix: MEDIA_URL_PREFIX,
   });
 

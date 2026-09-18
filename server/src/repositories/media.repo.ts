@@ -15,7 +15,10 @@ export function rowToMedia(row: any): Media {
 
 export function findAll(): Media[] {
   const db = getDb();
-  return db.prepare('SELECT * FROM media ORDER BY created_at').all().map(rowToMedia);
+  // created_at is datetime('now') — whole seconds, so a batch upload writes
+  // several rows with the same value. rowid breaks the tie in insertion order,
+  // which is what "the one I just added" means to a caller reading this list.
+  return db.prepare('SELECT * FROM media ORDER BY created_at, rowid').all().map(rowToMedia);
 }
 
 export function findById(id: string): Media | null {
