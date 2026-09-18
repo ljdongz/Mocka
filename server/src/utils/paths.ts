@@ -1,6 +1,6 @@
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { homedir, platform } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -32,4 +32,15 @@ export function resolveDataDir(): string {
   }
 
   return cachedDataDir;
+}
+
+/**
+ * Directory holding registered media files, created if missing.
+ * The mock server serves this directory statically, and static registration
+ * fails on a missing root — so creating it here keeps boot order from mattering.
+ */
+export function resolveMediaDir(): string {
+  const dir = join(resolveDataDir(), 'media');
+  mkdirSync(dir, { recursive: true });
+  return dir;
 }

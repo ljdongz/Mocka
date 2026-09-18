@@ -132,6 +132,17 @@ export interface Dataset {
   updatedAt: string;
 }
 
+export interface Media {
+  id: string;
+  /** name used in {{$media 'name'}} */
+  name: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  originalName: string;
+  createdAt: string;
+}
+
 export interface DatasetBinding {
   datasetId: string;
   mode: 'list' | 'detail';

@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
+import multipart from '@fastify/multipart';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
@@ -13,6 +14,8 @@ import { settingsRoutes } from './routes/settings.routes.js';
 import { importExportRoutes } from './routes/import-export.routes.js';
 import { environmentRoutes } from './routes/environment.routes.js';
 import { datasetRoutes } from './routes/dataset.routes.js';
+import { mediaRoutes } from './routes/media.routes.js';
+import { MAX_MEDIA_BYTES } from './services/media.service.js';
 import { addClient } from './plugins/websocket.js';
 import * as settingsService from './services/settings.service.js';
 
@@ -25,6 +28,9 @@ export async function createAdminServer(onRestart: RestartHandler) {
 
   await app.register(cors, { origin: true });
   await app.register(websocket);
+  // One byte above the service's own cap so the service is what rejects an
+  // oversized upload, with a clear 413, rather than the parser truncating first.
+  await app.register(multipart, { limits: { fileSize: MAX_MEDIA_BYTES + 1 } });
 
   app.register(async function (fastify) {
     fastify.get('/ws', { websocket: true }, (socket) => {
@@ -39,6 +45,7 @@ export async function createAdminServer(onRestart: RestartHandler) {
   await app.register(importExportRoutes);
   await app.register(environmentRoutes);
   await app.register(datasetRoutes);
+  await app.register(mediaRoutes);
 
   // Server status
   let mockServerRunning = false;

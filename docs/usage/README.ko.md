@@ -195,6 +195,32 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 > [!WARNING]
 > `{{$dataset}}`은 **마지막에** 해석되며, dataset이 없거나 매칭 record가 없으면 리터럴 `null`이 됩니다. Dataset과 dataset binding은 export/import에 **포함되지 않습니다** — export 후 다시 import하면 **모든 dataset 연결이 사라집니다.** `records`는 JSON 배열이어야 합니다.
 
+### Media & `{{$media 'name'}}`
+
+로컬 사진·영상·파일을 등록해 두면 응답이 그 파일의 URL을 내려줄 수 있습니다. 앱이 "이 파일 어디 있냐"를 API에 묻고 받은 주소에서 내려받는 흐름에 그대로 맞습니다.
+
+```jsonc
+// 등록 (MCP): register_media path="~/Movies/clip.mp4" name="chat-clip"
+// 또는 웹 UI의 Media 패널에 파일을 끌어다 놓기.
+
+// GET /chat/attachment/:idx/download-url 의 variant body
+{ "data": { "downloadUrl": "{{$media 'chat-clip'}}" } }
+
+// GET http://localhost:4650/chat/attachment/501/download-url
+// → { "data": { "downloadUrl": "http://localhost:4650/__mocka/media/<id>.mp4" } }
+
+// GET http://192.168.0.12:4650/chat/attachment/501/download-url   (실기기에서)
+// → { "data": { "downloadUrl": "http://192.168.0.12:4650/__mocka/media/<id>.mp4" } }
+```
+
+- **URL은 요청의 `Host` 헤더로 만들어집니다.** 그래서 localhost의 시뮬레이터와 같은 네트워크의 실기기가 각자 접근 가능한 주소를 받습니다. 환경별 설정이 필요 없습니다.
+- 파일은 **mock 포트**의 `/__mocka/media/…` 에서 서빙되며, 확장자로 `Content-Type`이 정해지고 **range 요청에 `206`으로 응답**합니다 — 영상 플레이어의 seek이 동작하는 이유입니다.
+- 등록하면 파일이 Mocka 데이터 디렉터리로 **복사**되므로, 이후 원본을 옮기거나 지워도 mock이 깨지지 않습니다.
+- 등록되지 않은 이름은 빈 문자열이 되는 대신 **응답에 그대로 남고**(`{{$media 'typo'}}`) 서버 로그에 기록됩니다.
+
+> [!WARNING]
+> 미디어는 export/import에 **포함되지 않습니다**. 파일 경로로 등록하는 것은 Mocka가 실행 중인 머신에서만 허용되며, 다른 기기는 웹 UI로 파일을 업로드해야 합니다.
+
 ### Environment & 변수
 
 **Environment**는 이름 있는 `key → value` 문자열 변수 집합입니다. 한 번에 정확히 **하나**의 environment만 활성이며, 그 변수가 `{{varName}}` 자리표시자를 채웁니다.
@@ -313,7 +339,7 @@ LAYER 3 · pool에서 하나 선택, 엄격한 순서로:
 
 선택 후:
   지연 적용(header > variant.delay ?? 전역, 단위 초)
-  → body 템플릿(env → 헬퍼 → 동적 → dataset)
+  → body 템플릿(env → 헬퍼 → 동적 → dataset → media)
   → header(env 변수만)
   → 전송 + history 기록
 ```
@@ -323,11 +349,12 @@ LAYER 3 · pool에서 하나 선택, 엄격한 순서로:
 - **header 오버라이드(1–2)가 모든 것을 이기며** sequence 카운터를 움직이지 않습니다.
 - **sequence 모드에서는 3단계가 항상 변형을 반환**하므로 4–5단계에 도달하지 못합니다. 그래서 **조건부 매칭은 standard 모드에서만 동작**합니다.
 - 매칭된 라우트인데 pool에 변형이 **하나도 없으면** `500 No response variant configured`를 반환합니다.
-- header는 오직 environment 변수 치환만 받습니다 — 헬퍼·동적 변수·dataset은 절대 받지 않습니다.
+- header는 오직 environment 변수 치환만 받습니다 — 헬퍼·동적 변수·dataset·미디어 URL은 절대 받지 않습니다.
+- `{{$media 'name'}}`은 **가장 마지막**에 요청의 `Host` 헤더를 써서 해석됩니다. `Host`가 없는 요청에서는 플레이스홀더가 그대로 남습니다.
 
 ---
 
 ## 함께 보기
 
-- [MCP 가이드](../mcp/README.ko.md) — 위의 모든 것을 AI 에이전트로 조작(43개 도구).
+- [MCP 가이드](../mcp/README.ko.md) — 위의 모든 것을 AI 에이전트로 조작(46개 도구).
 - [메인 README](../README.ko.md) — 설치, CLI 명령어, 아키텍처.

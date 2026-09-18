@@ -195,6 +195,32 @@ A **Dataset** is a reusable array of records with a `keyField`. A variant binds 
 > [!WARNING]
 > `{{$dataset}}` resolves **last** and becomes the literal `null` if the dataset is missing or no record matches. Datasets and dataset bindings are **not** included in export/import — exporting and re-importing **loses all dataset wiring**. `records` must be a JSON array.
 
+### Media & `{{$media 'name'}}`
+
+Register a local image, video, or file and a response can hand out a URL for it — the case where an app asks the API where a file lives, then downloads it from that address.
+
+```jsonc
+// Register (MCP): register_media path="~/Movies/clip.mp4" name="chat-clip"
+// Or drop the file into the Media panel in the web UI.
+
+// Variant body on GET /chat/attachment/:idx/download-url
+{ "data": { "downloadUrl": "{{$media 'chat-clip'}}" } }
+
+// GET http://localhost:4650/chat/attachment/501/download-url
+// → { "data": { "downloadUrl": "http://localhost:4650/__mocka/media/<id>.mp4" } }
+
+// GET http://192.168.0.12:4650/chat/attachment/501/download-url   (from a device)
+// → { "data": { "downloadUrl": "http://192.168.0.12:4650/__mocka/media/<id>.mp4" } }
+```
+
+- **The URL is built from the request's `Host` header**, so a simulator on localhost and a real device on your network each get an address that resolves for them. No per-environment configuration.
+- The file is served from `/__mocka/media/…` on the **mock port**, with `Content-Type` from its extension and **range requests answered with `206`** — which is what lets a video player seek.
+- Registering **copies** the file into Mocka's data directory, so moving or deleting the original afterwards does not break the mock.
+- A name that is not registered is **left in the response as-is** (`{{$media 'typo'}}`) and logged on the server, rather than silently becoming an empty string.
+
+> [!WARNING]
+> Media is **not** included in export/import. Registering by file path is only accepted from the machine Mocka runs on; other devices upload the file through the web UI instead.
+
 ### Environments & Variables
 
 An **Environment** is a named set of `key → value` string variables. Exactly **one** environment is active at a time; its variables fill `{{varName}}` placeholders.
@@ -313,7 +339,7 @@ LAYER 3 · Pick one from the pool, in strict order:
 
 After selection:
   delay (header > variant.delay ?? global, in seconds)
-  → body templates (env → helpers → dynamic → dataset)
+  → body templates (env → helpers → dynamic → dataset → media)
   → headers (env vars only)
   → send + record to history
 ```
@@ -323,11 +349,12 @@ After selection:
 - **Header overrides (1–2) beat everything** and do not move the sequence counter.
 - **In sequence mode, step 3 always returns a variant** — so steps 4–5 are unreachable. That's why **conditional matching only works in standard mode**.
 - A matched route whose pool has **no variant** returns `500 No response variant configured`.
-- Headers only ever get environment-variable substitution — never helpers, dynamic vars, or datasets.
+- Headers only ever get environment-variable substitution — never helpers, dynamic vars, datasets, or media URLs.
+- `{{$media 'name'}}` resolves **after** everything else, using the request's `Host` header; a request that arrives without one leaves the placeholder untouched.
 
 ---
 
 ## See also
 
-- [MCP Guide](../mcp/README.md) — drive all of the above from an AI agent (43 tools).
+- [MCP Guide](../mcp/README.md) — drive all of the above from an AI agent (46 tools).
 - [Main README](../../README.md) — install, CLI commands, architecture.

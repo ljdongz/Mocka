@@ -110,6 +110,16 @@ export function initSchema(): void {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS media (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      file_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL DEFAULT 'application/octet-stream',
+      size INTEGER NOT NULL DEFAULT 0,
+      original_name TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     INSERT OR IGNORE INTO settings VALUES ('port', '4650');
     INSERT OR IGNORE INTO settings VALUES ('response_delay', '0');
     INSERT OR IGNORE INTO settings VALUES ('auto_save_endpoints', 'true');
