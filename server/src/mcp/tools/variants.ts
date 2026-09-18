@@ -53,7 +53,9 @@ export function registerVariantTools(server: McpServer) {
       body: z.string().optional().describe("Response body (JSON string). Supports request-context helpers — {{$body 'field.path' 'default'}}, " +
         "{{$queryParams 'key'}}, {{$pathParams 'id'}}, {{$headers 'name'}}, {{$pathSegments '0'}} — dynamic variables " +
         "like {{$randomUUID}} / {{$isoTimestamp}}, and an offset suffix on either for arithmetic or relative time: " +
-        "{{$body 'count' + 1}}, {{$isoTimestamp + 3h}}, {{$timestamp - 7d}} (units s/m/h/d/w)"),
+        "{{$body 'count' + 1}}, {{$isoTimestamp + 3h}}, {{$timestamp - 7d}} (units s/m/h/d/w). " +
+        "{{$media 'name'}} becomes the URL of a registered media file, served by the mock server itself — use it " +
+        "wherever a response hands out an image, video or file address (see register_media)"),
       headers: z.string().optional().describe('Response headers as JSON string (e.g. {"Content-Type":"application/json"})'),
       delay: z.number().min(0).nullable().optional().describe('Response delay in seconds'),
       memo: z.string().optional(),

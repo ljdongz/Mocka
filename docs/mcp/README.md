@@ -210,7 +210,7 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 | `register_media` | Copy a local image/video/file in so responses can hand out a URL for it | `path`, `name?` |
 | `delete_media` | Delete a registered file, record and copy both | `id` |
 
-> `path` is an absolute path on the machine running Mocka (`~` is expanded). The file is **copied** into Mocka's data directory, so moving the original afterwards is safe. Reference it from a response body with `{{$media 'name'}}`; the mock server replaces it with a URL it serves the file from. Media is **not** included in export/import.
+> `path` is an absolute path on the machine running Mocka (`~` is expanded). The file is **copied** into Mocka's data directory, so moving the original afterwards is safe. Reference it from a response body with `{{$media 'name'}}`; the mock server replaces it with a URL it serves the file from — built from the host the request arrived on, so a simulator and a device on the LAN each get an address that resolves. `register_media` works because the MCP server is a local non-browser client; the route refuses anything sent by a browser. Media is **not** included in export/import.
 
 ### Import / Export (2)
 
@@ -257,7 +257,17 @@ create_endpoint(GET /api/users)        → add_variant + update_variant(datasetB
 create_endpoint(GET /api/users/:id)    → add_variant + update_variant(datasetBinding {mode:"detail", keySource:{from:"path", field:"id"}})
 ```
 
-**3. "Show me what my app has been hitting."**
+**3. "Mock the attachment download API with this video."**
+```
+register_media(path="~/Movies/clip.mp4", name="chat-clip")
+create_endpoint(GET /api/chat/attachment/:idx/download-url)
+add_variant(body='{"data":{"downloadUrl":"{{$media \'chat-clip\'}}"}}')
+```
+The app receives a URL the mock server itself serves the file from, addressed to
+whichever host the request came in on — so the simulator and a real device on the
+network both get one that resolves.
+
+**4. "Show me what my app has been hitting."**
 ```
 get_history(limit=50)                  # inspect recent requests, statuses, resolved bodies
 ```

@@ -46,6 +46,7 @@ const TEMPLATE_HELPERS = [
   { name: '$pathSegments', description: "URL path segment by index — {{$pathSegments '1'}}" },
   { name: '$pathParams', description: "Path parameter — {{$pathParams 'id'}}" },
   { name: '$headers', description: "Request header — {{$headers 'authorization'}}" },
+  { name: '$media', description: "URL of a registered media file — {{$media 'chat-clip'}}" },
 ];
 
 let completionRegistered = false;

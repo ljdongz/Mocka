@@ -1,4 +1,4 @@
-import { Braces, SlidersHorizontal, Layers, Reply, Route, ArrowUpDown, X, Sparkles, Info, Check, Bot, ListOrdered, Database, Power } from 'lucide-react';
+import { Braces, SlidersHorizontal, Layers, Reply, Route, ArrowUpDown, X, Sparkles, Info, Check, Bot, ListOrdered, Database, Power, Image } from 'lucide-react';
 import { useUIStore } from '../../stores/ui.store';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
 import { ModalOverlay } from '../shared/ModalOverlay';
@@ -56,6 +56,15 @@ export function OnboardingPage() {
       title: t.onboarding.sharedDatasets,
       description: t.onboarding.sharedDatasetsDesc,
       preview: DatasetPreview,
+    },
+    {
+      key: 'mediaResponses',
+      icon: Image,
+      iconColor: 'text-method-put',
+      iconBg: 'bg-method-put/10',
+      title: t.onboarding.mediaResponses,
+      description: t.onboarding.mediaResponsesDesc,
+      preview: MediaPreview,
     },
     {
       key: 'environmentVariables',
@@ -309,6 +318,23 @@ function DatasetPreview() {
       <CodeLine pairs={[['{', 'text-text-muted'], ['"id"', 'text-code-key'], [': 2,', 'text-text-muted'], ['"name"', 'text-code-key'], [':', 'text-text-muted'], ['"Linus"', 'text-code-string'], ['}', 'text-text-muted']]} />
       <div className="border-t border-border-secondary pt-1.5">
         <CodeLine pairs={[['"data"', 'text-code-key'], [':', 'text-text-muted'], ['"{{$dataset}}"', 'text-code-string']]} />
+      </div>
+    </div>
+  );
+}
+
+function MediaPreview() {
+  const t = useTranslation();
+  return (
+    <div className="flex flex-col gap-1.5 p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] font-semibold tracking-wider text-text-tertiary uppercase">{t.onboarding.previewMedia}</span>
+        <span className="font-mono text-[9px] text-text-muted">clip.mp4 · 4.2 MB</span>
+      </div>
+      <CodeLine pairs={[['"downloadUrl"', 'text-code-key'], [':', 'text-text-muted'], ['"{{$media \'chat-clip\'}}"', 'text-code-string']]} />
+      <div className="border-t border-border-secondary pt-1.5">
+        <span className="text-[8px] font-semibold tracking-wider text-text-muted uppercase">{t.onboarding.previewServedAs}</span>
+        <div className="mt-1 font-mono text-[9px] break-all text-text-secondary">http://192.168.0.12:4650/__mocka/media/…mp4</div>
       </div>
     </div>
   );
