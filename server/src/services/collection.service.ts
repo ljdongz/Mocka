@@ -34,18 +34,25 @@ export function update(id: string, data: { name?: string }): Collection | null {
 export function remove(id: string): boolean {
   const collection = collectionRepo.findById(id);
   if (!collection) return false;
-  const endpointIds = collection.endpointIds ?? [];
+
+  // collection_endpoints is keyed on (collection, endpoint), so an endpoint can
+  // sit in more than one collection — move_endpoint with a null source leaves it
+  // in both. Only take the ones this collection alone holds; deleting a shared
+  // endpoint would empty a slot another collection still lists.
+  const ownedEndpointIds = (collection.endpointIds ?? []).filter(endpointId =>
+    collectionRepo.findMembershipsByEndpointId(endpointId).every(m => m.collectionId === id),
+  );
 
   // Tear down in-memory state before the rows go, while the paths are still readable.
-  for (const endpointId of endpointIds) {
+  for (const endpointId of ownedEndpointIds) {
     const ep = endpointRepo.findById(endpointId);
     if (ep) routeRegistry.remove(ep.method, ep.path);
     sequenceCounter.cleanup(endpointId);
   }
 
-  const ok = collectionRepo.removeWithEndpoints(id, endpointIds);
+  const ok = collectionRepo.removeWithEndpoints(id, ownedEndpointIds);
   if (ok) {
-    for (const endpointId of endpointIds) emit('endpoint:deleted', { id: endpointId });
+    for (const endpointId of ownedEndpointIds) emit('endpoint:deleted', { id: endpointId });
     emit('collection:deleted', { id });
   }
   return ok;
