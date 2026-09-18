@@ -43,6 +43,8 @@ const en = {
     clickToEditPath: 'Click to edit path',
     alias: 'Alias',
     enterAlias: 'Enter alias...',
+    enabled: 'Enabled',
+    disabledHint: 'Disabled \u2014 the mock server responds 404 for this endpoint.',
     params: 'Params',
     headers: 'Headers',
     body: 'Body',
@@ -54,6 +56,8 @@ const en = {
     moveToCollection: 'Move to Collection',
     deleteEndpoint: 'Delete Endpoint',
     uncollected: 'Uncollected',
+    enable: 'Enable endpoint',
+    disable: 'Disable endpoint',
   },
 
   newEndpoint: {

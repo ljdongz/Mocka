@@ -24,6 +24,7 @@ export function EndpointEditor() {
   const endpoints = useEndpointStore(s => s.endpoints);
   const selectedId = useEndpointStore(s => s.selectedId);
   const updateEndpoint = useEndpointStore(s => s.updateEndpoint);
+  const toggleEnabled = useEndpointStore(s => s.toggleEnabled);
   const detailTab = useUIStore(s => s.detailTab);
   const setDetailTab = useUIStore(s => s.setDetailTab);
   const serverStatus = useSettingsStore(s => s.serverStatus);
@@ -209,7 +210,33 @@ export function EndpointEditor() {
           </span>
         )}
         {error && <span className="text-xs text-method-delete">{error}</span>}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <span className={clsx('text-[11px] uppercase tracking-wider', endpoint.isEnabled ? 'text-text-tertiary' : 'text-method-delete')}>
+            {t.editor.enabled}
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={endpoint.isEnabled}
+            onClick={() => toggleEnabled(endpoint.id)}
+            title={endpoint.isEnabled ? t.endpointItem.disable : t.endpointItem.enable}
+            className={clsx(
+              'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
+              endpoint.isEnabled ? 'bg-accent-primary' : 'bg-border-secondary',
+            )}
+          >
+            <span className={clsx(
+              'inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform',
+              endpoint.isEnabled ? 'translate-x-[18px]' : 'translate-x-[3px]',
+            )} />
+          </button>
+        </div>
       </div>
+      {!endpoint.isEnabled && (
+        <div className="border-b border-border-primary bg-method-delete-bg px-6 py-1.5 text-xs text-method-delete">
+          {t.editor.disabledHint}
+        </div>
+      )}
       <div className="flex items-center gap-3 px-6 py-1.5 border-b border-border-primary">
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="text-[10px] text-text-muted uppercase tracking-wider">{t.editor.alias}</span>
