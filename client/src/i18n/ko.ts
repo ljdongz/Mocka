@@ -45,6 +45,8 @@ const ko: Translations = {
     clickToEditPath: '클릭하여 Path 편집',
     alias: 'Alias',
     enterAlias: 'Alias 입력...',
+    enabled: '활성',
+    disabledHint: '비활성 \u2014 Mock Server가 이 Endpoint에 404를 반환합니다.',
     params: 'Params',
     headers: 'Headers',
     body: 'Body',
@@ -56,6 +58,8 @@ const ko: Translations = {
     moveToCollection: 'Collection으로 이동',
     deleteEndpoint: 'Endpoint 삭제',
     uncollected: '미분류',
+    enable: 'Endpoint 활성화',
+    disable: 'Endpoint 비활성화',
   },
 
   newEndpoint: {
