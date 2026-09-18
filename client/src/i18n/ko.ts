@@ -37,6 +37,15 @@ const ko: Translations = {
     settings: '설정',
     addEndpoint: 'Endpoint 추가',
     rename: '이름 변경',
+    editMode: '선택 삭제',
+    exitEditMode: '완료',
+    selectedCount: '{0}개 선택됨',
+    deleteSelected: '삭제',
+    confirmDeleteTitle: '선택한 항목을 삭제할까요?',
+    confirmDeleteCollections: 'Collection {0}개',
+    confirmDeleteEndpoints: 'Endpoint {0}개',
+    confirmDeleteNote: 'Collection을 삭제하면 하위 Endpoint도 함께 삭제됩니다.',
+    deleteFailed: '{0}개 항목 삭제에 실패했습니다.',
   },
 
   editor: {

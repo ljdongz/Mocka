@@ -35,6 +35,15 @@ const en = {
     settings: 'Settings',
     addEndpoint: 'Add Endpoint',
     rename: 'Rename',
+    editMode: 'Select to delete',
+    exitEditMode: 'Done',
+    selectedCount: '{0} selected',
+    deleteSelected: 'Delete',
+    confirmDeleteTitle: 'Delete selected items?',
+    confirmDeleteCollections: '{0} collection(s)',
+    confirmDeleteEndpoints: '{0} endpoint(s)',
+    confirmDeleteNote: 'Deleting a collection also deletes the endpoints inside it.',
+    deleteFailed: 'Failed to delete {0} item(s).',
   },
 
   editor: {

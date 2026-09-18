@@ -18,6 +18,9 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
   const updateEndpoint = useEndpointStore(s => s.updateEndpoint);
   const toggleEnabled = useEndpointStore(s => s.toggleEnabled);
   const setShowHistory = useUIStore(s => s.setShowHistory);
+  const editMode = useUIStore(s => s.editMode);
+  const isChecked = useUIStore(s => s.selectedEndpointIds.includes(endpoint.id));
+  const toggleEndpointSelection = useUIStore(s => s.toggleEndpointSelection);
   const collections = useCollectionStore(s => s.collections);
   const moveEndpoint = useCollectionStore(s => s.moveEndpoint);
   const removeEndpointFromCollection = useCollectionStore(s => s.removeEndpointFromCollection);
@@ -79,6 +82,40 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showMoveMenu]);
+
+  // Leaving edit mode should never strand an open popover / inline editor.
+  useEffect(() => {
+    if (editMode) {
+      setShowMoveMenu(false);
+      setIsEditing(false);
+    }
+  }, [editMode]);
+
+  if (editMode) {
+    return (
+      <div
+        onClick={() => toggleEndpointSelection(endpoint.id, currentCollId)}
+        className={clsx(
+          'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left cursor-pointer',
+          isChecked ? 'bg-bg-hover' : 'hover:bg-bg-hover',
+        )}
+      >
+        <input
+          type="checkbox"
+          checked={isChecked}
+          onChange={() => toggleEndpointSelection(endpoint.id, currentCollId)}
+          onClick={e => e.stopPropagation()}
+          className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-accent-primary"
+        />
+        <div className={clsx('flex min-w-0 flex-1 items-center gap-2', !endpoint.isEnabled && 'opacity-40')}>
+          <HttpMethodBadge method={endpoint.method} />
+          <span className={clsx('flex-1 truncate text-sm text-text-secondary', !endpoint.name && 'font-mono')}>
+            {label}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (isEditing) {
     return (
