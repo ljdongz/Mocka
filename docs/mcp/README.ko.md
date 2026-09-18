@@ -210,7 +210,7 @@ Gemini에는 `mcp add` 명령이 없어 Mocka가 설정을 직접 작성합니�
 | `register_media` | 로컬 사진·영상·파일을 복사해 등록. 응답이 그 URL을 내려줄 수 있게 함 | `path`, `name?` |
 | `delete_media` | 등록된 파일 삭제 (레코드와 복사본 모두) | `id` |
 
-> `path`는 Mocka가 실행 중인 머신의 절대 경로입니다(`~` 확장 지원). 파일은 Mocka 데이터 디렉터리로 **복사**되므로 원본을 옮기거나 지워도 mock이 깨지지 않습니다. 응답 body에서 `{{$media 'name'}}`으로 참조하면 mock 서버가 해당 파일을 서빙하는 URL로 치환합니다. 미디어는 export/import에 **포함되지 않습니다**.
+> `path`는 Mocka가 실행 중인 머신의 절대 경로입니다(`~` 확장 지원). 파일은 Mocka 데이터 디렉터리로 **복사**되므로 원본을 옮기거나 지워도 mock이 깨지지 않습니다. 응답 body에서 `{{$media 'name'}}`으로 참조하면 mock 서버가 해당 파일을 서빙하는 URL로 치환하며, 요청이 들어온 host로 주소를 만들기 때문에 시뮬레이터와 LAN의 실기기가 각각 접근 가능한 주소를 받습니다. `register_media`가 동작하는 것은 MCP 서버가 로컬 비브라우저 클라이언트이기 때문이고, 이 라우트는 브라우저가 보낸 요청을 거부합니다. 미디어는 export/import에 **포함되지 않습니다**.
 
 ### Import / Export (2)
 
@@ -257,7 +257,16 @@ create_endpoint(GET /api/users)        → add_variant + update_variant(datasetB
 create_endpoint(GET /api/users/:id)    → add_variant + update_variant(datasetBinding {mode:"detail", keySource:{from:"path", field:"id"}})
 ```
 
-**3. "내 앱이 뭘 호출했는지 보여줘."**
+**3. "첨부파일 다운로드 API를 이 영상으로 mock해줘."**
+```
+register_media(path="~/Movies/clip.mp4", name="chat-clip")
+create_endpoint(GET /api/chat/attachment/:idx/download-url)
+add_variant(body='{"data":{"downloadUrl":"{{$media \'chat-clip\'}}"}}')
+```
+앱은 mock 서버가 직접 서빙하는 URL을 받습니다. 주소는 요청이 들어온 host로 만들어지므로
+시뮬레이터와 같은 네트워크의 실기기가 각각 접근 가능한 주소를 받습니다.
+
+**4. "내 앱이 뭘 호출했는지 보여줘."**
 ```
 get_history(limit=50)                  # 최근 요청·상태·해석된 응답 본문 확인
 ```

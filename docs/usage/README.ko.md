@@ -98,7 +98,7 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 
 ### 동적 템플릿
 
-응답 body는 요청 시 **고정된 4단계 패스**로 해석되는 템플릿입니다:
+응답 body는 요청 시 **고정된 5단계 패스**로 해석되는 템플릿입니다:
 
 | # | 패스 | 문법 | 예시 |
 |---|------|------|------|
@@ -106,6 +106,7 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 | 2 | 요청 컨텍스트 헬퍼 | `{{$helper 'arg' 'default'}}` | `{{$body 'user.name' 'anon'}}` |
 | 3 | 동적 변수 | `{{$variable}}` | `{{$randomUUID}}` |
 | 4 | Dataset 토큰 | `{{$dataset}}` | `{{$dataset}}` |
+| 5 | 미디어 URL | `{{$media 'name'}}` | `{{$media 'chat-clip'}}` |
 
 ```json
 {
@@ -118,7 +119,7 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 ```
 
 > [!NOTE]
-> 순서가 중요합니다. env 치환이 먼저이므로, `{{$randomUUID}}`를 *포함한* env 값은 패스 3에서 확장됩니다. 알 수 없는 `{{$foo}}` 토큰은 출력에 **그대로** 남습니다. **응답 header는 패스 1만 받습니다** — header에서는 env 변수는 동작하지만 헬퍼·동적 변수·dataset은 동작하지 않습니다.
+> 순서가 중요합니다. env 치환이 먼저이므로, `{{$randomUUID}}`를 *포함한* env 값은 패스 3에서 확장됩니다. 알 수 없는 `{{$foo}}` 토큰은 출력에 **그대로** 남습니다. **응답 header는 패스 1만 받습니다** — header에서는 env 변수는 동작하지만 헬퍼·동적 변수·dataset·미디어 URL은 동작하지 않습니다.
 
 #### 내장 동적 변수 (33개)
 
@@ -133,6 +134,8 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 | `{{$pathParams 'name' 'default'}}` | 캡처된 path parameter(`:name` / `{name}`) |
 | `{{$pathSegments 'index' 'default'}}` | 0-기반 숫자 인덱스 위치의 raw URL 세그먼트 |
 | `{{$headers 'Header-Name' 'default'}}` | request header(대소문자 무시) |
+
+`{{$media 'name'}}`도 같은 방식으로 인자를 받지만, 요청이 아니라 등록된 미디어 파일을 보고 자기 패스에서 해석됩니다 — [Media](#media--media-name) 참고.
 
 #### 오프셋 접미사 — 산술 & 상대 시간
 
@@ -219,7 +222,9 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 - 등록되지 않은 이름은 빈 문자열이 되는 대신 **응답에 그대로 남고**(`{{$media 'typo'}}`) 서버 로그에 기록됩니다.
 
 > [!WARNING]
-> 미디어는 export/import에 **포함되지 않습니다**. 파일 경로로 등록하는 것은 Mocka가 실행 중인 머신에서만 허용되며, 다른 기기는 웹 UI로 파일을 업로드해야 합니다.
+> 미디어는 export/import에 **포함되지 않습니다**.
+>
+> **파일 경로**로 등록하는 것은 admin API가 임의의 로컬 파일을 읽는 동작이라, 로컬의 비(非)브라우저 클라이언트 — MCP 서버나 `curl` — 에서만 허용됩니다. `Origin`이나 `Sec-Fetch-Site`가 붙은 요청은 403으로 거부합니다. 사용자가 방문만 한 페이지도 같은 머신에서 도는 터라 IP 검사만으로는 통과하기 때문입니다. 웹 UI와 다른 기기는 **업로드**를 쓰며, 여기에는 이런 제약이 없습니다.
 
 ### Environment & 변수
 

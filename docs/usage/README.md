@@ -98,7 +98,7 @@ Make a variant respond only when the incoming request looks a certain way. A var
 
 ### Dynamic Templates
 
-Response bodies are templates resolved at request time in **four fixed passes**:
+Response bodies are templates resolved at request time in **five fixed passes**:
 
 | # | Pass | Syntax | Example |
 |---|------|--------|---------|
@@ -106,6 +106,7 @@ Response bodies are templates resolved at request time in **four fixed passes**:
 | 2 | Request-context helpers | `{{$helper 'arg' 'default'}}` | `{{$body 'user.name' 'anon'}}` |
 | 3 | Dynamic variables | `{{$variable}}` | `{{$randomUUID}}` |
 | 4 | Dataset token | `{{$dataset}}` | `{{$dataset}}` |
+| 5 | Media URL | `{{$media 'name'}}` | `{{$media 'chat-clip'}}` |
 
 ```json
 {
@@ -118,7 +119,7 @@ Response bodies are templates resolved at request time in **four fixed passes**:
 ```
 
 > [!NOTE]
-> Order matters. Because env substitution runs first, an env value that *contains* a `{{$randomUUID}}` will be expanded by pass 3. Unknown `{{$foo}}` tokens are left **literally** in the output. **Response headers receive pass 1 only** — env variables work in headers, but helpers / dynamic vars / dataset do not.
+> Order matters. Because env substitution runs first, an env value that *contains* a `{{$randomUUID}}` will be expanded by pass 3. Unknown `{{$foo}}` tokens are left **literally** in the output. **Response headers receive pass 1 only** — env variables work in headers, but helpers / dynamic vars / dataset / media URLs do not.
 
 #### Built-in dynamic variables (33)
 
@@ -133,6 +134,8 @@ Response bodies are templates resolved at request time in **four fixed passes**:
 | `{{$pathParams 'name' 'default'}}` | Captured path parameter (from `:name` / `{name}`) |
 | `{{$pathSegments 'index' 'default'}}` | Raw URL segment at a 0-based numeric index |
 | `{{$headers 'Header-Name' 'default'}}` | Request header (case-insensitive) |
+
+`{{$media 'name'}}` takes an argument the same way but resolves in its own pass, against the registered media files rather than the request — see [Media](#media--media-name).
 
 #### Offset suffix — arithmetic & relative time
 
@@ -219,7 +222,9 @@ Register a local image, video, or file and a response can hand out a URL for it 
 - A name that is not registered is **left in the response as-is** (`{{$media 'typo'}}`) and logged on the server, rather than silently becoming an empty string.
 
 > [!WARNING]
-> Media is **not** included in export/import. Registering by file path is only accepted from the machine Mocka runs on; other devices upload the file through the web UI instead.
+> Media is **not** included in export/import.
+>
+> Registering by **file path** makes the admin API read an arbitrary local file, so it is accepted only from a local, non-browser client — the MCP server or `curl`. A request carrying `Origin` or `Sec-Fetch-Site` is refused with a 403, because a page you merely visit runs on your machine too and would otherwise pass an IP check. The web UI and other devices **upload** the bytes instead, which has no such restriction.
 
 ### Environments & Variables
 
