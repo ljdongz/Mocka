@@ -46,6 +46,8 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
 - **웹 UI** — 브라우저에서 비주얼 에디터로 endpoint를 직접 생성 및 관리
 - **다중 응답 변형** — endpoint당 여러 응답을 정의하고 클릭 한 번으로 전환
 - **조건부 매칭** — 요청 body, header, query/path param 기반으로 AND/OR 룰 로직을 통해 응답 자동 선택
+- **Endpoint 활성 / 비활성** — 스위치 하나로 특정 endpoint를 라우트 테이블에서 제외. 다시 켤 때까지 404를 반환
+- **일괄 편집** — 선택 삭제 모드로 Collection과 endpoint를 한 번의 확인으로 정리
 
 ### Mock 서버 기능
 - **동적 템플릿** — 30+ 내장 변수(`{{$randomUUID}}`, `{{$randomEmail}}` 등)와 요청 컨텍스트 헬퍼(`{{$body 'field'}}`, `{{$pathParams 'id'}}`), 그리고 산술·상대 시간 오프셋 접미사(`{{$body 'count' + 1}}`, `{{$isoTimestamp + 3h}}`)

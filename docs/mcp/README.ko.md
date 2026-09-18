@@ -189,6 +189,9 @@ Gemini에는 `mcp add` 명령이 없어 Mocka가 설정을 직접 작성합니�
 | `move_endpoint` | endpoint를 다른 collection으로 이동 | `endpointId`, `fromCollectionId`, `toCollectionId`, `sortOrder?` |
 | `remove_endpoint_from_collection` | 삭제 없이 그룹만 해제 | `collectionId`, `endpointId` |
 
+> [!WARNING]
+> `delete_collection`은 파괴적입니다. Collection 안의 endpoint를 트랜잭션 하나로 함께 삭제합니다. 남기려면 `remove_endpoint_from_collection` 또는 `move_endpoint`로 먼저 빼내세요. 다른 Collection에도 속한 endpoint는 삭제되지 않습니다.
+
 ### Datasets (5)
 
 | 도구 | 설명 | 주요 파라미터 |

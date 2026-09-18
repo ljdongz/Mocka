@@ -189,6 +189,9 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 | `move_endpoint` | Move an endpoint between collections | `endpointId`, `fromCollectionId`, `toCollectionId`, `sortOrder?` |
 | `remove_endpoint_from_collection` | Ungroup without deleting | `collectionId`, `endpointId` |
 
+> [!WARNING]
+> `delete_collection` is destructive: it deletes the endpoints inside the collection, in one transaction. Use `remove_endpoint_from_collection` or `move_endpoint` to take an endpoint out first if you want to keep it. An endpoint that a second collection also holds is left alone.
+
 ### Datasets (5)
 
 | Tool | Description | Key params |
