@@ -203,7 +203,7 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 
 | Tool | Description | Key params |
 |------|-------------|------------|
-| `export_data` | Export endpoints + collections as JSON (optionally filtered) | `collectionIds?` |
+| `export_data` | Export endpoints + collections + STOMP connections as JSON (optionally filtered; a filtered export carries HTTP endpoints only) | `collectionIds?` |
 | `import_data` | Import an exported JSON with a conflict policy | `data`, `conflictPolicy?` |
 
 > `conflictPolicy` ∈ `overwrite｜skip｜merge` (default `skip`). Datasets, dataset bindings, environments, and history are **not** included in export/import.

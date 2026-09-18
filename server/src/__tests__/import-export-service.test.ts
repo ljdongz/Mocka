@@ -4,24 +4,27 @@ import { initDb } from '../db/connection.js';
 import { initSchema } from '../db/schema.js';
 import * as endpointService from '../services/endpoint.service.js';
 import * as endpointRepo from '../repositories/endpoint.repo.js';
+import * as stompService from '../services/stomp.service.js';
+import * as stompRegistry from '../services/stomp-registry.js';
 import { exportData, importData, EXPORT_VERSION } from '../services/import-export.service.js';
 
 beforeEach(() => {
   initDb(':memory:');
   initSchema();
+  stompRegistry.reload([]);
 });
 
 describe('import-export service (post WebSocket removal)', () => {
   describe('exportData', () => {
-    it('uses EXPORT_VERSION 3 and carries NO wsEndpoints key', () => {
+    it('uses EXPORT_VERSION 4 and carries NO wsEndpoints key', () => {
       // Create an endpoint (it ships with one standard "Success" variant).
       const created = endpointService.create({ method: 'GET', path: '/api/users', name: 'Users' });
       expect(created.responseVariants?.length).toBeGreaterThanOrEqual(1);
 
       const data = exportData();
 
-      expect(EXPORT_VERSION).toBe(3);
-      expect(data.version).toBe(3);
+      expect(EXPORT_VERSION).toBe(4);
+      expect(data.version).toBe(4);
 
       // The endpoint is present in the export.
       expect(data.endpoints.length).toBe(1);
@@ -38,7 +41,7 @@ describe('import-export service (post WebSocket removal)', () => {
       expect(Object.prototype.hasOwnProperty.call(data, 'wsEndpoints')).toBe(false);
       // Be explicit: the exported shape only has the expected keys.
       expect(Object.keys(data).sort()).toEqual(
-        ['collections', 'endpoints', 'exportedAt', 'version'].sort(),
+        ['collections', 'endpoints', 'exportedAt', 'stompConnections', 'version'].sort(),
       );
     });
 
@@ -173,6 +176,158 @@ describe('import-export service (post WebSocket removal)', () => {
       expect(ep.name).toBe('Legacy');
       expect(ep.responseVariants?.length).toBe(1);
       expect(ep.responseVariants?.[0].body).toBe('{"ok":true}');
+    });
+  });
+
+  describe('STOMP connections in the combined export', () => {
+    function seedStomp() {
+      const c = stompService.createConnection({ name: 'chat', path: '/api/app/ws/chat', connectPolicy: 'validate', requiredHeaders: ['Authorization'], replayBufferSize: 5 });
+      const send = stompService.createDestination(c.id, { name: 'room msg', pattern: '/app/rooms/*/message', trigger: 'send' })!.destinations![0];
+      stompService.updateVariant(send.variants![0].id, { targetDestination: '/topic/rooms/1', body: '{"echo":true}' });
+      return c;
+    }
+
+    it('export-all carries STOMP connections alongside the HTTP endpoints', () => {
+      endpointService.create({ method: 'GET', path: '/api/users', name: 'Users' });
+      seedStomp();
+
+      const data = exportData() as any;
+
+      expect(data.endpoints).toHaveLength(1);
+      expect(data.stompConnections).toHaveLength(1);
+      expect(data.stompConnections[0].path).toBe('/api/app/ws/chat');
+      expect(data.stompConnections[0].requiredHeaders).toEqual(['Authorization']);
+      expect(data.stompConnections[0].destinations).toHaveLength(1);
+      expect(data.stompConnections[0].destinations[0].variants[0].body).toBe('{"echo":true}');
+    });
+
+    it('round-trips STOMP through export -> wipe -> import', () => {
+      endpointService.create({ method: 'GET', path: '/api/users', name: 'Users' });
+      seedStomp();
+      const data = JSON.parse(JSON.stringify(exportData()));
+
+      initDb(':memory:'); initSchema(); stompRegistry.reload([]);
+      const result = importData(data, 'skip');
+
+      expect(result.errors).toEqual([]);
+      expect(result.created).toBe(1);
+      expect(result.stompCreated).toBe(1);
+      expect(result.stompSkipped).toBe(0);
+
+      const [imported] = stompService.getAll();
+      expect(imported.path).toBe('/api/app/ws/chat');
+      expect(imported.replayBufferSize).toBe(5);
+      expect(imported.destinations![0].pattern).toBe('/app/rooms/*/message');
+      // The runtime registry must know about the imported connection.
+      expect(stompRegistry.getByPath('/api/app/ws/chat')?.id).toBe(imported.id);
+    });
+
+    it('skip keeps an existing connection, overwrite replaces it', () => {
+      seedStomp();
+      const data = JSON.parse(JSON.stringify(exportData()));
+      const originalId = stompService.getAll()[0].id;
+
+      const skipped = importData(data, 'skip');
+      expect(skipped.stompSkipped).toBe(1);
+      expect(skipped.stompCreated).toBe(0);
+      expect(stompService.getAll()).toHaveLength(1);
+      expect(stompService.getAll()[0].id).toBe(originalId);
+
+      data.stompConnections[0].name = 'renamed';
+      const over = importData(data, 'overwrite');
+      expect(over.stompOverwritten).toBe(1);
+      const all = stompService.getAll();
+      expect(all).toHaveLength(1);
+      expect(all[0].name).toBe('renamed');
+      expect(all[0].id).not.toBe(originalId);
+    });
+
+    it('merge falls back to skip for STOMP, since STOMP has no merge semantics', () => {
+      seedStomp();
+      const data = JSON.parse(JSON.stringify(exportData()));
+      const originalId = stompService.getAll()[0].id;
+
+      const result = importData(data, 'merge');
+
+      expect(result.stompSkipped).toBe(1);
+      expect(result.stompOverwritten).toBe(0);
+      expect(stompService.getAll()[0].id).toBe(originalId);
+    });
+
+    it('a collection-filtered export carries no STOMP connections', () => {
+      seedStomp();
+      const data = exportData([]) as any;
+      // No IDs given means "everything", so STOMP is present...
+      expect(data.stompConnections).toHaveLength(1);
+
+      const filtered = exportData(['does-not-exist']) as any;
+      expect(filtered.stompConnections).toEqual([]);
+    });
+
+    it('creates several connections in one pass, each getting its own sortOrder slot', () => {
+      stompService.createConnection({ name: 'chat', path: '/api/app/ws/chat' });
+      stompService.createConnection({ name: 'alerts', path: '/api/app/ws/alerts' });
+      stompService.createConnection({ name: 'presence', path: '/api/app/ws/presence' });
+      const data = JSON.parse(JSON.stringify(exportData()));
+
+      initDb(':memory:'); initSchema(); stompRegistry.reload([]);
+      const result = importData(data, 'skip');
+
+      expect(result.errors).toEqual([]);
+      expect(result.stompCreated).toBe(3);
+
+      const all = stompService.getAll();
+      expect(all.map(c => c.path).sort()).toEqual(
+        ['/api/app/ws/alerts', '/api/app/ws/chat', '/api/app/ws/presence'],
+      );
+      // Each create must see the previous one, so no two land in the same slot.
+      expect(new Set(all.map(c => c.sortOrder)).size).toBe(3);
+      for (const c of all) expect(stompRegistry.getByPath(c.path)?.id).toBe(c.id);
+    });
+
+    it('imports several connections in one pass, mixing skip and create', () => {
+      stompService.createConnection({ name: 'chat', path: '/api/app/ws/chat' });
+      stompService.createConnection({ name: 'alerts', path: '/api/app/ws/alerts' });
+      const data = JSON.parse(JSON.stringify(exportData()));
+
+      // Wipe, then re-seed only the first, so one clashes and one is new.
+      initDb(':memory:'); initSchema(); stompRegistry.reload([]);
+      const keptId = stompService.createConnection({ name: 'chat', path: '/api/app/ws/chat' }).id;
+
+      const result = importData(data, 'skip');
+
+      expect(result.errors).toEqual([]);
+      expect(result.stompSkipped).toBe(1);
+      expect(result.stompCreated).toBe(1);
+
+      const all = stompService.getAll();
+      expect(all.map(c => c.path).sort()).toEqual(['/api/app/ws/alerts', '/api/app/ws/chat']);
+      expect(new Set(all.map(c => c.sortOrder)).size).toBe(2);
+      // The registry has to hold both the untouched one and the freshly created one.
+      expect(stompRegistry.getByPath('/api/app/ws/chat')?.id).toBe(keptId);
+      expect(stompRegistry.getByPath('/api/app/ws/alerts')).toBeTruthy();
+    });
+
+    it('a v3 file without stompConnections still imports', () => {
+      const legacyV3 = {
+        version: 3,
+        exportedAt: new Date().toISOString(),
+        endpoints: [{
+          method: 'GET', path: '/api/legacy', name: 'Legacy', isEnabled: true,
+          requestBodyContentType: 'application/json', requestBodyRaw: '',
+          queryParams: [], requestHeaders: [],
+          responseVariants: [{ statusCode: 200, description: 'OK', body: '{}', headers: '{}', delay: null, memo: '', sortOrder: 0 }],
+          activeVariantIndex: 0,
+        }],
+        collections: [],
+      };
+
+      const result = importData(legacyV3 as unknown as Parameters<typeof importData>[0], 'skip');
+
+      expect(result.created).toBe(1);
+      expect(result.stompCreated).toBe(0);
+      expect(result.errors).toEqual([]);
+      expect(stompService.getAll()).toEqual([]);
     });
   });
 });

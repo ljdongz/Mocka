@@ -256,14 +256,16 @@ curl http://localhost:4650/users -H 'x-mock-response-name: error' -H 'x-mock-res
 
 ### Import / Export
 
-Export endpoints + collections to a versioned JSON document (current **version 3**) and re-import with a conflict policy:
+Export endpoints + collections + STOMP connections to a versioned JSON document (current **version 4**) and re-import with a conflict policy:
 
 - **skip** (default) — keep existing endpoints on a `method+path` clash.
 - **overwrite** — delete + recreate (collection memberships preserved).
 - **merge** — add only variants whose `statusCode:description` key is new.
 
 > [!WARNING]
-> Export/import covers endpoints, their variants (with match rules), and collections only. **Datasets, dataset bindings, environments, and history are NOT exported.** An invalid `conflictPolicy` silently defaults to `skip`.
+> Export/import covers endpoints, their variants (with match rules), collections, and STOMP connections (with their destinations, variants, and sequence presets). **Datasets, dataset bindings, environments, and history are NOT exported.** An invalid `conflictPolicy` silently defaults to `skip`.
+>
+> STOMP connections are matched by **path**, and only `skip` / `overwrite` apply — `merge` falls back to `skip`. A **collection-filtered** export carries HTTP endpoints only, since collections never hold STOMP connections. Older version 1–3 files import unchanged.
 
 ### Request History
 

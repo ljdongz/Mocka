@@ -80,7 +80,7 @@ const ko: Translations = {
     title: 'Import / Export',
     export: 'Export',
     import: 'Import',
-    exportAll: '모든 Endpoint 및 Collection Export',
+    exportAll: '모든 Endpoint, Collection 및 STOMP Connection Export',
     exportSelected: '선택한 Collection Export',
     noCollections: '사용 가능한 Collection이 없습니다.',
     countEndpoints: '{0}개 Endpoint',
@@ -105,6 +105,9 @@ const ko: Translations = {
     countMerged: '{0}개 병합',
     countCollectionsCreated: '{0}개 Collection 생성',
     countCollectionsSkipped: '{0}개 Collection 건너뜀',
+    countStompCreated: '{0}개 STOMP Connection 생성',
+    countStompSkipped: '{0}개 STOMP Connection 건너뜀',
+    countStompOverwritten: '{0}개 STOMP Connection 덮어쓰기',
     errors: '오류:',
   },
 

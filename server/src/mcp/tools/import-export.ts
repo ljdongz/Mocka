@@ -5,7 +5,7 @@ import { mockaFetch, toolResult, toolError } from '../client.js';
 export function registerImportExportTools(server: McpServer) {
   server.tool(
     'export_data',
-    'Export all mock endpoints and collections as JSON. Optionally filter by collection IDs.',
+    'Export all mock endpoints, collections and STOMP connections as JSON. Optionally filter by collection IDs (a filtered export carries HTTP endpoints only).',
     {
       collectionIds: z.array(z.string()).optional().describe('Export only these collections (omit for all)'),
     },
@@ -21,9 +21,9 @@ export function registerImportExportTools(server: McpServer) {
 
   server.tool(
     'import_data',
-    'Import mock data from a previously exported JSON. Supports conflict policies: overwrite (replace existing), skip (keep existing), merge (add missing variants).',
+    'Import mock data from a previously exported JSON, including any STOMP connections it carries. Supports conflict policies: overwrite (replace existing), skip (keep existing), merge (add missing variants; STOMP connections fall back to skip).',
     {
-      data: z.any().describe('The exported JSON data object (with version, endpoints, collections fields)'),
+      data: z.any().describe('The exported JSON data object (with version, endpoints, collections and optionally stompConnections fields)'),
       conflictPolicy: z.enum(['overwrite', 'skip', 'merge']).optional().describe('How to handle existing endpoints with same method+path (default: skip)'),
     },
     async ({ data, conflictPolicy }) => {

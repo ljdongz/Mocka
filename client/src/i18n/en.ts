@@ -78,7 +78,7 @@ const en = {
     title: 'Import / Export',
     export: 'Export',
     import: 'Import',
-    exportAll: 'Export all endpoints & collections',
+    exportAll: 'Export all endpoints, collections & STOMP connections',
     exportSelected: 'Export selected collections',
     noCollections: 'No collections available.',
     countEndpoints: '{0} endpoints',
@@ -103,6 +103,9 @@ const en = {
     countMerged: '{0} merged',
     countCollectionsCreated: '{0} collections created',
     countCollectionsSkipped: '{0} collections skipped',
+    countStompCreated: '{0} STOMP connections created',
+    countStompSkipped: '{0} STOMP connections skipped',
+    countStompOverwritten: '{0} STOMP connections overwritten',
     errors: 'Errors:',
   },
 

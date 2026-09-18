@@ -256,14 +256,16 @@ curl http://localhost:4650/users -H 'x-mock-response-name: error' -H 'x-mock-res
 
 ### Import / Export
 
-endpoint + collection을 버전이 있는 JSON 문서(현재 **버전 3**)로 export하고, conflict policy로 다시 import합니다:
+endpoint + collection + STOMP connection을 버전이 있는 JSON 문서(현재 **버전 4**)로 export하고, conflict policy로 다시 import합니다:
 
 - **skip**(기본) — `method+path` 충돌 시 기존 endpoint 유지.
 - **overwrite** — 삭제 후 재생성(collection 소속은 보존).
 - **merge** — `statusCode:description` 키가 새로운 변형만 추가.
 
 > [!WARNING]
-> Export/import는 endpoint, 그 변형(match rule 포함), collection만 다룹니다. **Dataset, dataset binding, environment, history는 export되지 않습니다.** 잘못된 `conflictPolicy`는 조용히 `skip`으로 기본 처리됩니다.
+> Export/import는 endpoint, 그 변형(match rule 포함), collection, 그리고 STOMP connection(destination·variant·sequence preset 포함)을 다룹니다. **Dataset, dataset binding, environment, history는 export되지 않습니다.** 잘못된 `conflictPolicy`는 조용히 `skip`으로 기본 처리됩니다.
+>
+> STOMP connection은 **path**로 매칭하며 `skip` / `overwrite`만 적용됩니다 — `merge`는 `skip`으로 처리됩니다. Collection으로 **필터링한** export에는 HTTP endpoint만 담깁니다(collection은 STOMP connection을 담지 않으므로). 버전 1~3 파일도 그대로 import됩니다.
 
 ### 요청 기록 (History)
 

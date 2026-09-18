@@ -10,8 +10,10 @@ import type { Endpoint } from '../models/endpoint.js';
 import type { Collection } from '../models/collection.js';
 import { HTTP_METHODS, type HttpMethod } from '../models/http-method.js';
 import { normalizePath } from '../models/route-path.js';
+import { exportAllConnections, importConnections } from './stomp-import-export.service.js';
+import type { StompExportConnection } from './stomp-import-export.service.js';
 
-export const EXPORT_VERSION = 3;
+export const EXPORT_VERSION = 4;
 
 interface ExportDataV1 {
   version: 1;
@@ -41,7 +43,16 @@ interface ExportDataV3 {
   collections: ExportCollection[];
 }
 
-export type ExportData = ExportDataV1 | ExportDataV2 | ExportDataV3;
+/** v4 adds STOMP connections alongside the HTTP endpoints. */
+interface ExportDataV4 {
+  version: 4;
+  exportedAt: string;
+  endpoints: ExportEndpoint[];
+  collections: ExportCollection[];
+  stompConnections: StompExportConnection[];
+}
+
+export type ExportData = ExportDataV1 | ExportDataV2 | ExportDataV3 | ExportDataV4;
 
 interface ExportEndpoint {
   method: string;
@@ -87,6 +98,9 @@ export interface ImportResult {
   merged: number;
   collectionsCreated: number;
   collectionsSkipped: number;
+  stompCreated: number;
+  stompSkipped: number;
+  stompOverwritten: number;
   errors: string[];
 }
 
@@ -98,7 +112,9 @@ export function exportData(collectionIds?: string[]): ExportData {
   let endpoints: Endpoint[];
   let collections: Collection[];
 
-  if (collectionIds && collectionIds.length > 0) {
+  const filteredByCollection = !!(collectionIds && collectionIds.length > 0);
+
+  if (filteredByCollection) {
     collections = allCollections.filter(c => collectionIds.includes(c.id));
     const includedEndpointIds = new Set<string>();
     for (const c of collections) {
@@ -175,6 +191,9 @@ export function exportData(collectionIds?: string[]): ExportData {
     exportedAt: new Date().toISOString(),
     endpoints: exportEndpoints,
     collections: exportCollections,
+    // Collections only ever hold HTTP endpoints, so a collection-filtered
+    // export has no meaningful STOMP subset to carry.
+    stompConnections: filteredByCollection ? [] : exportAllConnections(),
   };
 }
 
@@ -187,6 +206,9 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
     merged: 0,
     collectionsCreated: 0,
     collectionsSkipped: 0,
+    stompCreated: 0,
+    stompSkipped: 0,
+    stompOverwritten: 0,
     errors: [],
   };
 
@@ -315,6 +337,21 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
   });
 
   routeRegistry.reload(endpointRepo.findAll());
+
+  // STOMP runs in its own transaction, after the HTTP one has committed, so a
+  // bad connection cannot roll back already-imported endpoints.
+  const stompConnections = (data as { stompConnections?: StompExportConnection[] }).stompConnections;
+  if (Array.isArray(stompConnections) && stompConnections.length > 0) {
+    // STOMP has no merge semantics — treat it as skip.
+    const stompPolicy = conflictPolicy === 'overwrite' ? 'overwrite' : 'skip';
+    for (const r of importConnections(stompConnections, stompPolicy)) {
+      if (r.created) result.stompCreated++;
+      if (r.skipped) result.stompSkipped++;
+      if (r.overwritten) result.stompOverwritten++;
+      result.errors.push(...r.errors);
+    }
+  }
+
   emit('import:completed', result);
 
   return result;

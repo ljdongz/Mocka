@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useUIStore } from '../../stores/ui.store';
 import { useCollectionStore } from '../../stores/collection.store';
 import { useEndpointStore } from '../../stores/endpoint.store';
+import { useStompStore } from '../../stores/stomp.store';
 import { importExportApi, type ConflictPolicy, type ExportData } from '../../api/import-export';
 import { ModalOverlay } from '../shared/ModalOverlay';
 import { useTranslation, fmt } from '../../i18n';
@@ -16,6 +17,7 @@ export function ImportExportModal() {
   const collections = useCollectionStore(s => s.collections);
   const fetchEndpoints = useEndpointStore(s => s.fetch);
   const fetchCollections = useCollectionStore(s => s.fetch);
+  const fetchStomp = useStompStore(s => s.fetch);
 
   const [tab, setTab] = useState<Tab>('export');
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
@@ -74,6 +76,9 @@ export function ImportExportModal() {
       if (result.merged > 0) parts.push(fmt(t.importExport.countMerged, result.merged));
       if (result.collectionsCreated > 0) parts.push(fmt(t.importExport.countCollectionsCreated, result.collectionsCreated));
       if (result.collectionsSkipped > 0) parts.push(fmt(t.importExport.countCollectionsSkipped, result.collectionsSkipped));
+      if (result.stompCreated > 0) parts.push(fmt(t.importExport.countStompCreated, result.stompCreated));
+      if (result.stompSkipped > 0) parts.push(fmt(t.importExport.countStompSkipped, result.stompSkipped));
+      if (result.stompOverwritten > 0) parts.push(fmt(t.importExport.countStompOverwritten, result.stompOverwritten));
       let msg = `${t.importExport.importComplete} ${parts.join(', ')}`;
       setIsResultError(false);
 
@@ -84,7 +89,7 @@ export function ImportExportModal() {
       setImportResult(msg);
 
       // Refresh data
-      await Promise.all([fetchEndpoints(), fetchCollections()]);
+      await Promise.all([fetchEndpoints(), fetchCollections(), fetchStomp()]);
     } catch (e: any) {
       setImportResult(`${t.importExport.importFailed} ${e.message}`);
       setIsResultError(true);

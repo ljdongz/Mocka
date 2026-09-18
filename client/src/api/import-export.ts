@@ -5,6 +5,8 @@ export interface ExportData {
   exportedAt: string;
   endpoints: any[];
   collections: any[];
+  /** Present from export version 4 on. */
+  stompConnections?: any[];
 }
 
 export interface ImportResult {
@@ -14,6 +16,9 @@ export interface ImportResult {
   merged: number;
   collectionsCreated: number;
   collectionsSkipped: number;
+  stompCreated: number;
+  stompSkipped: number;
+  stompOverwritten: number;
   errors: string[];
 }
 

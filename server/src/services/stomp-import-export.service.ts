@@ -5,7 +5,7 @@ import * as destinationRepo from '../repositories/stomp-destination.repo.js';
 import * as variantRepo from '../repositories/stomp-variant.repo.js';
 import * as stompService from './stomp.service.js';
 import { normalizeStompPath } from '../models/stomp.js';
-import type { StompConnectPolicy, StompFireKind, StompMessageVariant, StompScope, StompTrigger } from '../models/stomp.js';
+import type { StompConnectPolicy, StompConnection, StompFireKind, StompMessageVariant, StompScope, StompTrigger } from '../models/stomp.js';
 import type { MatchRules } from '../models/response-variant.js';
 import type { DatasetBinding } from '../models/dataset.js';
 
@@ -47,24 +47,26 @@ export interface StompExportDestination {
   activePresetIndex: number;
 }
 
+export interface StompExportConnection {
+  name: string;
+  path: string;
+  isEnabled: boolean;
+  connectPolicy: StompConnectPolicy;
+  requiredHeaders: string[];
+  rejectMessage: string;
+  heartbeatOutgoing: number;
+  heartbeatIncoming: number;
+  stompVersion: string;
+  defaultDelay: number | null;
+  replayBufferSize: number;
+  destinations: StompExportDestination[];
+}
+
 export interface StompExportData {
   kind: 'mocka-stomp-connection';
   version: 1;
   exportedAt: string;
-  connection: {
-    name: string;
-    path: string;
-    isEnabled: boolean;
-    connectPolicy: StompConnectPolicy;
-    requiredHeaders: string[];
-    rejectMessage: string;
-    heartbeatOutgoing: number;
-    heartbeatIncoming: number;
-    stompVersion: string;
-    defaultDelay: number | null;
-    replayBufferSize: number;
-    destinations: StompExportDestination[];
-  };
+  connection: StompExportConnection;
 }
 
 export interface StompImportResult {
@@ -90,41 +92,50 @@ export function exportConnection(id: string): StompExportData | null {
     kind: 'mocka-stomp-connection',
     version: 1,
     exportedAt: new Date().toISOString(),
-    connection: {
-      name: c.name,
-      path: c.path,
-      isEnabled: c.isEnabled,
-      connectPolicy: c.connectPolicy,
-      requiredHeaders: c.requiredHeaders,
-      rejectMessage: c.rejectMessage,
-      heartbeatOutgoing: c.heartbeatOutgoing,
-      heartbeatIncoming: c.heartbeatIncoming,
-      stompVersion: c.stompVersion,
-      defaultDelay: c.defaultDelay,
-      replayBufferSize: c.replayBufferSize,
-      destinations: (c.destinations ?? []).map(d => {
-        const standard = (d.variants ?? []).filter(v => v.variantGroup === 'standard');
-        const activeVariantIndex = standard.findIndex(v => v.id === d.activeVariantId);
-        const presets = d.presets ?? [];
-        return {
-          name: d.name,
-          pattern: d.pattern,
-          trigger: d.trigger,
-          isEnabled: d.isEnabled,
-          sequenceMode: d.sequenceMode,
-          sortOrder: d.sortOrder,
-          variants: standard.map(toExportVariant),
-          activeVariantIndex: activeVariantIndex >= 0 ? activeVariantIndex : 0,
-          presets: presets.map(p => ({
-            name: p.name,
-            mode: p.mode,
-            sortOrder: p.sortOrder,
-            variants: (d.variants ?? []).filter(v => v.presetId === p.id).map(toExportVariant),
-          })),
-          activePresetIndex: presets.findIndex(p => p.id === d.activePresetId),
-        };
-      }),
-    },
+    connection: toExportConnection(c),
+  };
+}
+
+/** Every connection, in the shape the combined Mocka export embeds. */
+export function exportAllConnections(): StompExportConnection[] {
+  return connectionRepo.findAll().map(toExportConnection);
+}
+
+function toExportConnection(c: StompConnection): StompExportConnection {
+  return {
+    name: c.name,
+    path: c.path,
+    isEnabled: c.isEnabled,
+    connectPolicy: c.connectPolicy,
+    requiredHeaders: c.requiredHeaders,
+    rejectMessage: c.rejectMessage,
+    heartbeatOutgoing: c.heartbeatOutgoing,
+    heartbeatIncoming: c.heartbeatIncoming,
+    stompVersion: c.stompVersion,
+    defaultDelay: c.defaultDelay,
+    replayBufferSize: c.replayBufferSize,
+    destinations: (c.destinations ?? []).map(d => {
+      const standard = (d.variants ?? []).filter(v => v.variantGroup === 'standard');
+      const activeVariantIndex = standard.findIndex(v => v.id === d.activeVariantId);
+      const presets = d.presets ?? [];
+      return {
+        name: d.name,
+        pattern: d.pattern,
+        trigger: d.trigger,
+        isEnabled: d.isEnabled,
+        sequenceMode: d.sequenceMode,
+        sortOrder: d.sortOrder,
+        variants: standard.map(toExportVariant),
+        activeVariantIndex: activeVariantIndex >= 0 ? activeVariantIndex : 0,
+        presets: presets.map(p => ({
+          name: p.name,
+          mode: p.mode,
+          sortOrder: p.sortOrder,
+          variants: (d.variants ?? []).filter(v => v.presetId === p.id).map(toExportVariant),
+        })),
+        activePresetIndex: presets.findIndex(p => p.id === d.activePresetId),
+      };
+    }),
   };
 }
 
@@ -135,27 +146,42 @@ export function isStompExport(data: unknown): data is StompExportData {
 }
 
 export function importConnection(data: StompExportData, policy: 'skip' | 'overwrite'): StompImportResult {
-  const result: StompImportResult = { created: false, overwritten: false, skipped: false, destinations: 0, errors: [] };
-  const path = normalizeStompPath(data.connection.path);
-
-  withTransaction(() => {
-    const existing = connectionRepo.findByPath(path);
-    if (existing) {
-      if (policy === 'skip') { result.skipped = true; return; }
-      connectionRepo.remove(existing.id);
-      result.overwritten = true;
-    } else {
-      result.created = true;
-    }
-    result.destinations = createFromExport(data, path, result.errors, existing?.sortOrder);
-  });
-
+  const result = withTransaction(() => importOne(data.connection, policy));
   if (!result.skipped) stompService.syncRegistry();
   return result;
 }
 
-function createFromExport(data: StompExportData, path: string, errors: string[], sortOrder?: number): number {
-  const src = data.connection;
+/** Import several connections in one transaction, syncing the registry once at the end. */
+export function importConnections(connections: StompExportConnection[], policy: 'skip' | 'overwrite'): StompImportResult[] {
+  const results = withTransaction(() => connections.map(c => {
+    try {
+      return importOne(c, policy);
+    } catch (e: any) {
+      return { created: false, overwritten: false, skipped: false, destinations: 0, errors: [`STOMP ${c?.path}: ${e.message}`] };
+    }
+  }));
+  if (results.some(r => !r.skipped)) stompService.syncRegistry();
+  return results;
+}
+
+/** One connection, no transaction and no registry sync — callers own both. */
+function importOne(src: StompExportConnection, policy: 'skip' | 'overwrite'): StompImportResult {
+  const result: StompImportResult = { created: false, overwritten: false, skipped: false, destinations: 0, errors: [] };
+  const path = normalizeStompPath(src.path);
+
+  const existing = connectionRepo.findByPath(path);
+  if (existing) {
+    if (policy === 'skip') { result.skipped = true; return result; }
+    connectionRepo.remove(existing.id);
+    result.overwritten = true;
+  } else {
+    result.created = true;
+  }
+  result.destinations = createFromExport(src, path, result.errors, existing?.sortOrder);
+  return result;
+}
+
+function createFromExport(src: StompExportConnection, path: string, errors: string[], sortOrder?: number): number {
   const connectionId = uuid();
   connectionRepo.create({
     id: connectionId,
