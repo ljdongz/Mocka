@@ -57,7 +57,7 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 
 - **유일성:** `method + path`는 고유해야 합니다(충돌 시 `400 already exists`).
 - **정규화:** 끝의 슬래시는 제거되고(`/users/` → `/users`), 루트 `/`는 유지됩니다.
-- **활성/비활성:** 비활성 endpoint는 라우트 테이블에서 완전히 제거되어 **404**를 반환합니다(503 아님). UI 스위치 또는 `toggle_endpoint`로 토글.
+- **활성/비활성:** 비활성 endpoint는 라우트 테이블에서 완전히 제거되어 **404**를 반환합니다(503 아님). 에디터 상단바의 스위치, 사이드바 행의 전원 아이콘, 또는 `toggle_endpoint`로 토글합니다. 비활성 endpoint는 사이드바에서 흐리게 표시되고, 전원 아이콘은 계속 보이므로 hover 없이 바로 되돌릴 수 있습니다.
 - 설정된 요청 body 타입·query param·request header는 **문서/UI 보조 정보**일 뿐 매칭을 **제한하지 않습니다.** 해당 method+path로 들어온 어떤 요청이든 매칭됩니다.
 
 ### Response Variants
@@ -253,6 +253,23 @@ curl http://localhost:4650/users -H 'x-mock-response-name: error' -H 'x-mock-res
 
 > [!NOTE]
 > `x-mock-response-name`은 변형의 **description**에 매칭됩니다(별도의 "name" 필드 없음). 오버라이드는 sequence preset과 match rule을 이기며, sequence 카운터를 **전진시키지 않습니다.** 요청한 code/name에 맞는 변형이 없으면 해석은 그냥 일반 체인으로 넘어갑니다(에러 아님).
+
+### 일괄 편집 (편집 모드)
+
+사이드바 헤더의 **선택 삭제** 버튼으로 편집 모드에 들어갑니다. 편집 모드에서는 모든 Collection과 endpoint에 체크박스가 생기고, 드래그 핸들과 행별 액션은 비활성화되며, 하단 바에서 선택한 항목을 확인 한 번으로 모두 삭제합니다.
+
+선택은 Collection의 소유 관계를 따릅니다:
+
+| 동작 | 선택되는 대상 |
+| --- | --- |
+| Collection 체크 | Collection **과** 그 안의 endpoint 전부 |
+| endpoint 하나를 체크 해제 | 그 endpoint와 상위 Collection (나머지 형제는 체크 유지) |
+| endpoint를 전부 직접 체크 | endpoint만 — Collection은 체크되지 않음 |
+
+Collection은 **직접 체크했을 때만** 삭제됩니다. 안의 항목을 전부 선택한 결과로 삭제되는 일은 없습니다.
+
+> [!NOTE]
+> 삭제는 서버에서 트랜잭션 하나로 처리되므로 중간에 걸친 상태가 남지 않습니다. 실패하면 다이얼로그가 실패 개수와 함께 열린 채로 남고, 삭제 버튼으로 재시도할 수 있습니다.
 
 ### Import / Export
 

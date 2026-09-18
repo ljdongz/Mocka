@@ -1,4 +1,4 @@
-import { Braces, SlidersHorizontal, Layers, Reply, Route, ArrowUpDown, X, Sparkles, Info, Check, Bot, ListOrdered, Database } from 'lucide-react';
+import { Braces, SlidersHorizontal, Layers, Reply, Route, ArrowUpDown, X, Sparkles, Info, Check, Bot, ListOrdered, Database, Power } from 'lucide-react';
 import { useUIStore } from '../../stores/ui.store';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
 import { ModalOverlay } from '../shared/ModalOverlay';
@@ -83,6 +83,15 @@ export function OnboardingPage() {
       title: t.onboarding.pathParameters,
       description: t.onboarding.pathParametersDesc,
       preview: PathParamsPreview,
+    },
+    {
+      key: 'endpointControl',
+      icon: Power,
+      iconColor: 'text-method-delete',
+      iconBg: 'bg-method-delete/10',
+      title: t.onboarding.endpointControl,
+      description: t.onboarding.endpointControlDesc,
+      preview: EndpointControlPreview,
     },
     {
       key: 'importExport',
@@ -254,6 +263,36 @@ function SequencePreview() {
           <span className="text-[9px] text-text-secondary">{v.label}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+function EndpointControlPreview() {
+  const t = useTranslation();
+  const rows: { method: string; color: string; path: string; enabled: boolean }[] = [
+    { method: 'GET', color: 'text-method-get', path: '/users', enabled: true },
+    { method: 'POST', color: 'text-method-post', path: '/login', enabled: true },
+    { method: 'GET', color: 'text-method-get', path: '/health', enabled: false },
+  ];
+  return (
+    <div className="flex flex-col">
+      <div className="px-3 py-1.5">
+        <span className="text-[8px] font-semibold tracking-wider text-text-muted uppercase">{t.onboarding.previewEndpointControl}</span>
+      </div>
+      {rows.map(({ method, color, path, enabled }) => (
+        <div key={path} className="flex items-center gap-2 px-3 py-1">
+          <span className="h-2.5 w-2.5 shrink-0 rounded-[2px] border border-accent-primary bg-accent-primary" />
+          <span className={`font-mono text-[8px] font-bold ${enabled ? color : 'text-text-muted'}`}>{method}</span>
+          <span className={`flex-1 font-mono text-[9px] ${enabled ? 'text-text-secondary' : 'text-text-muted line-through'}`}>{path}</span>
+          {enabled
+            ? <Power size={9} className="text-text-muted" />
+            : <span className="rounded-full bg-method-delete/10 px-1.5 py-0.5 text-[7px] font-semibold text-method-delete">{t.onboarding.previewDisabled}</span>}
+        </div>
+      ))}
+      <div className="mt-1 flex items-center justify-between border-t border-border-secondary px-3 py-1.5">
+        <span className="text-[8px] text-text-tertiary">{t.onboarding.previewSelectedCount}</span>
+        <span className="rounded bg-method-delete px-2 py-0.5 text-[8px] font-semibold text-white">{t.common.delete}</span>
+      </div>
     </div>
   );
 }

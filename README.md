@@ -46,6 +46,8 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 - **Web UI** — Create and manage endpoints from your browser with a visual editor
 - **Multiple Response Variants** — Define multiple responses per endpoint and switch between them with a single click
 - **Conditional Matching** — Auto-select response variants based on request body, headers, query/path params with AND/OR rule logic
+- **Enable / Disable Endpoints** — Take a single endpoint out of the route table with one switch; it answers 404 until you switch it back
+- **Bulk Editing** — Select-to-delete mode for clearing out collections and endpoints together, behind one confirmation
 
 ### Mock Server Capabilities
 - **Dynamic Templates** — 30+ built-in variables (`{{$randomUUID}}`, `{{$randomEmail}}`, etc.) and request context helpers (`{{$body 'field'}}`, `{{$pathParams 'id'}}`), with an offset suffix for arithmetic and relative time (`{{$body 'count' + 1}}`, `{{$isoTimestamp + 3h}}`)
