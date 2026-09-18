@@ -1,40 +1,57 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEndpointStore } from '../../stores/endpoint.store';
 import { useCollectionStore } from '../../stores/collection.store';
-import { useTranslation } from '../../i18n';
+import { useTranslation, fmt } from '../../i18n';
 import { ModalOverlay } from '../shared/ModalOverlay';
 
 interface Props {
   open: boolean;
   collectionIds: string[];
-  /** Every endpoint to delete, including those pulled in by a selected collection. */
+  /** Every endpoint to be deleted, including those a selected collection takes with it. */
   endpointIds: string[];
   onClose: () => void;
-  /** Called after the deletes settle; `failed` is how many rejected. */
-  onDone: (failed: number) => void;
+  /** Called once everything asked for is actually gone. Failures stay in the dialog. */
+  onDone: () => void;
 }
 
 /**
  * Confirms and runs a collection/endpoint delete. Shared by the single X on a
- * collection row and the edit-mode bulk delete so both paths mean the same thing.
+ * collection row and the edit-mode bulk delete so both paths mean the same
+ * thing, down to how a failure is reported.
  */
 export function DeleteConfirmDialog({ open, collectionIds, endpointIds, onClose, onDone }: Props) {
   const t = useTranslation();
   const deleteEndpoint = useEndpointStore(s => s.deleteEndpoint);
   const removeCollection = useCollectionStore(s => s.remove);
+  const collections = useCollectionStore(s => s.collections);
   const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => { if (open) setError(''); }, [open]);
+
+  // The server deletes a collection's endpoints with it, in one transaction, so
+  // only endpoints no selected collection covers need a request of their own.
+  const cascaded = new Set(
+    collections.filter(c => collectionIds.includes(c.id)).flatMap(c => c.endpointIds ?? []),
+  );
+  const standaloneEndpointIds = endpointIds.filter(id => !cascaded.has(id));
 
   const run = async () => {
     setDeleting(true);
-    // Endpoints first so deleteEndpoint's selectedId reset and the server-side
-    // sequence cleanup run per endpoint; allSettled keeps one stale id from
-    // aborting the rest.
+    setError('');
+    // allSettled so one id that is already gone cannot abort the rest.
     const results = await Promise.allSettled([
-      ...endpointIds.map(id => deleteEndpoint(id)),
+      ...standaloneEndpointIds.map(id => deleteEndpoint(id)),
       ...collectionIds.map(id => removeCollection(id)),
     ]);
+    const failed = results.filter(r => r.status === 'rejected').length;
     setDeleting(false);
-    onDone(results.filter(r => r.status === 'rejected').length);
+    if (failed > 0) {
+      // Stay open: what succeeded is gone from the tree, and Delete retries the rest.
+      setError(fmt(t.sidebar.deleteFailed, failed));
+      return;
+    }
+    onDone();
   };
 
   return (
@@ -43,15 +60,16 @@ export function DeleteConfirmDialog({ open, collectionIds, endpointIds, onClose,
         <h2 className="mb-3 text-base font-semibold text-text-primary">{t.sidebar.confirmDeleteTitle}</h2>
         <ul className="mb-3 list-disc pl-5 text-sm text-text-secondary">
           {collectionIds.length > 0 && (
-            <li>{t.sidebar.confirmDeleteCollections.replace('{0}', String(collectionIds.length))}</li>
+            <li>{fmt(t.sidebar.confirmDeleteCollections, collectionIds.length)}</li>
           )}
           {endpointIds.length > 0 && (
-            <li>{t.sidebar.confirmDeleteEndpoints.replace('{0}', String(endpointIds.length))}</li>
+            <li>{fmt(t.sidebar.confirmDeleteEndpoints, endpointIds.length)}</li>
           )}
         </ul>
         {collectionIds.length > 0 && endpointIds.length > 0 && (
           <p className="mb-5 text-xs text-text-muted">{t.sidebar.confirmDeleteNote}</p>
         )}
+        {error && <p className="mb-5 text-xs text-method-delete">{error}</p>}
         <div className="flex justify-end gap-3">
           <button
             onClick={onClose}

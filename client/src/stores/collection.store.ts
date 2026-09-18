@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { collectionsApi } from '../api/collections';
+import { useEndpointStore } from './endpoint.store';
 import type { Collection } from '../types';
 
 interface CollectionStore {
@@ -17,7 +18,7 @@ interface CollectionStore {
   removeCollection: (id: string) => void;
 }
 
-export const useCollectionStore = create<CollectionStore>((set) => ({
+export const useCollectionStore = create<CollectionStore>((set, get) => ({
   collections: [],
 
   fetch: async () => {
@@ -41,8 +42,13 @@ export const useCollectionStore = create<CollectionStore>((set) => ({
   },
 
   remove: async (id) => {
+    const endpointIds = get().collections.find(c => c.id === id)?.endpointIds ?? [];
     await collectionsApi.delete(id);
     set(s => ({ collections: s.collections.filter(x => x.id !== id) }));
+    // The server deletes the collection's endpoints with it. Drop them locally
+    // too rather than leaving ghost rows until the websocket echo lands.
+    const dropEndpoint = useEndpointStore.getState().removeEndpointFromList;
+    for (const endpointId of endpointIds) dropEndpoint(endpointId);
   },
 
   toggleExpanded: async (id) => {

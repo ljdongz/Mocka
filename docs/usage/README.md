@@ -49,7 +49,7 @@ curl http://localhost:4650/api/users/42          # matches /api/users/:id
 Named folders that group endpoints in the UI. A Collection has a name and an ordered list of endpoints; you can reorder them and drag endpoints between them.
 
 > [!NOTE]
-> Collections are **purely organizational**. They never influence route matching or which response is returned. Deleting a Collection does **not** delete its endpoints — they just become ungrouped.
+> Collections are **purely organizational**. They never influence route matching or which response is returned. Deleting a Collection **also deletes the endpoints inside it** — drag an endpoint out, or use the move-to-collection menu, if you want to keep it.
 
 ### Endpoints
 

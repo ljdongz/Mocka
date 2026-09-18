@@ -91,7 +91,14 @@ export function CollectionTree() {
   const collectedIds = new Set(collections.flatMap(c => c.endpointIds ?? []));
   const uncollected = endpoints.filter(e => !collectedIds.has(e.id));
 
+  // Read from the tree, not from collections[].endpointIds: an endpoint deleted
+  // elsewhere stays listed there until something refetches, and a dead id would
+  // inflate the delete count.
+  const liveEndpointIds = (c: Collection) => (c.endpointIds ?? []).filter(id => endpoints.some(e => e.id === id));
   const pendingDeleteCollection = collections.find(c => c.id === pendingDeleteId);
+  // Captured once: the delete removes the collection from the store mid-flight,
+  // and deriving `open` from it would unmount the dialog while requests are out.
+  const pendingDeleteEndpointIds = pendingDeleteCollection ? liveEndpointIds(pendingDeleteCollection) : [];
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -155,7 +162,7 @@ export function CollectionTree() {
                       'flex items-center gap-1.5 rounded px-2 py-1.5 text-sm cursor-pointer hover:bg-bg-hover',
                       editMode && selectedCollectionIds.includes(c.id) && 'bg-bg-hover',
                     )}
-                    onClick={() => editMode ? toggleCollectionSelection(c.id, c.endpointIds ?? []) : toggleExpanded(c.id)}
+                    onClick={() => editMode ? toggleCollectionSelection(c.id, liveEndpointIds(c)) : toggleExpanded(c.id)}
                     onMouseEnter={() => setHoveredCollId(c.id)}
                     onMouseLeave={() => setHoveredCollId(null)}
                   >
@@ -163,7 +170,7 @@ export function CollectionTree() {
                       <input
                         type="checkbox"
                         checked={selectedCollectionIds.includes(c.id)}
-                        onChange={() => toggleCollectionSelection(c.id, c.endpointIds ?? [])}
+                        onChange={() => toggleCollectionSelection(c.id, liveEndpointIds(c))}
                         onClick={e => e.stopPropagation()}
                         className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-accent-primary"
                       />
@@ -271,9 +278,9 @@ export function CollectionTree() {
         })()}
       </DragOverlay>
       <DeleteConfirmDialog
-        open={!!pendingDeleteCollection}
-        collectionIds={pendingDeleteCollection ? [pendingDeleteCollection.id] : []}
-        endpointIds={pendingDeleteCollection?.endpointIds ?? []}
+        open={!!pendingDeleteId}
+        collectionIds={pendingDeleteId ? [pendingDeleteId] : []}
+        endpointIds={pendingDeleteEndpointIds}
         onClose={() => setPendingDeleteId(null)}
         onDone={() => setPendingDeleteId(null)}
       />

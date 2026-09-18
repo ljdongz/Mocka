@@ -49,7 +49,7 @@ curl http://localhost:4650/api/users/42          # /api/users/:id 에 매칭
 UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collection은 이름과 정렬된 endpoint 목록을 가지며, 재정렬하거나 endpoint를 끌어다 옮길 수 있습니다.
 
 > [!NOTE]
-> Collection은 **순수하게 정리용**입니다. 라우트 매칭이나 어떤 응답이 반환될지에 전혀 영향을 주지 않습니다. Collection을 삭제해도 그 안의 endpoint는 **삭제되지 않고** 그룹만 해제됩니다.
+> Collection은 **순수하게 정리용**입니다. 라우트 매칭이나 어떤 응답이 반환될지에 전혀 영향을 주지 않습니다. 단, Collection을 삭제하면 **그 안의 endpoint도 함께 삭제됩니다** — 남기려면 먼저 다른 Collection으로 옮기거나 그룹을 해제하세요.
 
 ### Endpoints
 

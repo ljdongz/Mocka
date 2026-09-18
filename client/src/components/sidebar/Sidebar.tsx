@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, FolderPlus, ListChecks, Trash2 } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
-import { useTranslation } from '../../i18n';
+import { useTranslation, fmt } from '../../i18n';
 import { CollectionTree } from './CollectionTree';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 
@@ -16,23 +16,21 @@ export function Sidebar() {
   const setEditMode = useUIStore(s => s.setEditMode);
   const selectedCollectionIds = useUIStore(s => s.selectedCollectionIds);
   const selectedEndpointIds = useUIStore(s => s.selectedEndpointIds);
-  const clearSelection = useUIStore(s => s.clearSelection);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [error, setError] = useState('');
+
+  // Edit mode is global state owned by a component that unmounts (App swaps the
+  // sidebar out for History). Tie it to this component's lifetime so every exit
+  // path resets it, instead of patching each setter that can hide the tree.
+  useEffect(() => () => setEditMode(false), [setEditMode]);
 
   const panelTitle = showHistory ? t.sidebar.history : t.sidebar.collections;
   const selectedCount = selectedCollectionIds.length + selectedEndpointIds.length;
 
-  const handleDeleted = (failed: number) => {
+  // Only called once everything asked for is gone; the dialog keeps failures.
+  const handleDeleted = () => {
     setConfirmOpen(false);
-    clearSelection();
-    if (failed > 0) {
-      // Stay in edit mode so the rows that survived are still in reach.
-      setError(t.sidebar.deleteFailed.replace('{0}', String(failed)));
-    } else {
-      setEditMode(false);
-    }
+    setEditMode(false); // also clears the selection
   };
 
   return (
@@ -51,7 +49,7 @@ export function Sidebar() {
           {!showHistory && (
             <div className="flex items-center gap-1">
               <button
-                onClick={() => { setEditMode(!editMode); setError(''); }}
+                onClick={() => setEditMode(!editMode)}
                 className={`flex items-center rounded p-0.5 hover:bg-bg-hover ${editMode ? 'text-accent-primary' : 'text-text-muted hover:text-text-secondary'}`}
                 title={editMode ? t.sidebar.exitEditMode : t.sidebar.editMode}
               >
@@ -78,11 +76,10 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="border-t border-border-primary p-2 flex flex-col gap-1">
-        {error && <span className="px-1 text-[11px] text-method-delete">{error}</span>}
         {editMode ? (
           <div className="flex items-center gap-2">
             <span className="flex-1 truncate px-1 text-xs text-text-tertiary">
-              {t.sidebar.selectedCount.replace('{0}', String(selectedCount))}
+              {fmt(t.sidebar.selectedCount, selectedCount)}
             </span>
             <button
               onClick={() => setEditMode(false)}

@@ -183,7 +183,7 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 | `list_collections` | List collections and their endpoint IDs | — |
 | `create_collection` | Create a collection | `name` |
 | `update_collection` | Rename a collection | `id`, `name` |
-| `delete_collection` | Delete a collection (endpoints are kept, just ungrouped) | `id` |
+| `delete_collection` | Delete a collection **and the endpoints inside it** | `id` |
 | `reorder_collections` | Reorder by full ordered ID list | `orderedIds` |
 | `reorder_collection_endpoints` | Reorder endpoints inside a collection | `collectionId`, `orderedEndpointIds` |
 | `move_endpoint` | Move an endpoint between collections | `endpointId`, `fromCollectionId`, `toCollectionId`, `sortOrder?` |
