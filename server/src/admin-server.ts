@@ -15,7 +15,6 @@ import { importExportRoutes } from './routes/import-export.routes.js';
 import { environmentRoutes } from './routes/environment.routes.js';
 import { datasetRoutes } from './routes/dataset.routes.js';
 import { mediaRoutes } from './routes/media.routes.js';
-import { MAX_MEDIA_BYTES } from './services/media.service.js';
 import { addClient } from './plugins/websocket.js';
 import * as settingsService from './services/settings.service.js';
 
@@ -28,9 +27,9 @@ export async function createAdminServer(onRestart: RestartHandler) {
 
   await app.register(cors, { origin: true });
   await app.register(websocket);
-  // One byte above the service's own cap so the service is what rejects an
-  // oversized upload, with a clear 413, rather than the parser truncating first.
-  await app.register(multipart, { limits: { fileSize: MAX_MEDIA_BYTES + 1 } });
+  // Registered without limits; the media upload route sets its own per request,
+  // so a 200 MB ceiling does not leak onto every multipart route added later.
+  await app.register(multipart);
 
   app.register(async function (fastify) {
     fastify.get('/ws', { websocket: true }, (socket) => {

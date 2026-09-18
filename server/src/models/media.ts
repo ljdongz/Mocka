@@ -1,4 +1,5 @@
 import { extname } from 'path';
+import { lookup as mimeLookup, extension as extensionForMime } from 'mime-types';
 
 export interface Media {
   id: string;
@@ -13,26 +14,18 @@ export interface Media {
   createdAt: string;
 }
 
-/**
- * Extensions we can name a Content-Type for. The static file server sniffs the
- * served file's extension, so the extension — not this table — is what decides
- * the response's Content-Type; the table only fills `mime_type` for the API and
- * supplies an extension when an upload arrives without one.
- */
-const MIME_BY_EXT: Record<string, string> = {
-  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif',
-  '.webp': 'image/webp', '.heic': 'image/heic', '.svg': 'image/svg+xml',
-  '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.m4v': 'video/x-m4v', '.webm': 'video/webm',
-  '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.wav': 'audio/wav', '.aac': 'audio/aac',
-  '.pdf': 'application/pdf', '.zip': 'application/zip', '.json': 'application/json',
-  '.txt': 'text/plain', '.csv': 'text/csv',
-};
-
 export const DEFAULT_MIME = 'application/octet-stream';
 
-/** Content-Type for a file name, by extension. */
+/**
+ * Content-Type for a file name, by extension.
+ *
+ * Deliberately the same library the static file server uses to set the header on
+ * the wire. A table of our own would disagree with it for every extension we
+ * forgot — a .mkv stored as octet-stream but served as video/x-matroska shows up
+ * as a file the UI refuses to preview and a video the mock plays anyway.
+ */
 export function mimeTypeForFileName(fileName: string): string {
-  return MIME_BY_EXT[extname(fileName).toLowerCase()] ?? DEFAULT_MIME;
+  return mimeLookup(fileName) || DEFAULT_MIME;
 }
 
 /**
@@ -43,9 +36,9 @@ export function mimeTypeForFileName(fileName: string): string {
 export function storageExtension(originalName: string, mimeType?: string): string {
   const own = extname(originalName).toLowerCase();
   if (own) return own;
-  if (!mimeType) return '';
-  const match = Object.entries(MIME_BY_EXT).find(([, mime]) => mime === mimeType.toLowerCase());
-  return match ? match[0] : '';
+  if (!mimeType || mimeType.split(';')[0].trim().toLowerCase() === DEFAULT_MIME) return '';
+  const ext = extensionForMime(mimeType);
+  return ext ? `.${ext}` : '';
 }
 
 /**

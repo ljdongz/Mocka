@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { randomUUID as uuid } from 'crypto';
-import { mkdtempSync, writeFileSync } from 'fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { initDb, closeDb, getDb } from '../db/connection.js';
@@ -26,7 +26,11 @@ async function registerFile(name: string, fileName: string, contents: string) {
   const dir = mkdtempSync(join(tmpdir(), 'mocka-src-'));
   const path = join(dir, fileName);
   writeFileSync(path, contents);
-  return mediaService.registerFromPath({ path, name });
+  try {
+    return await mediaService.registerFromPath({ path, name });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 function seedEndpoint(body: string) {

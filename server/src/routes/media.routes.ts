@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { Media } from '../models/media.js';
 import * as mediaService from '../services/media.service.js';
-import { MediaError } from '../services/media.service.js';
+import { MAX_MEDIA_BYTES, MediaError } from '../services/media.service.js';
 
 /** Turn a MediaError into its status code; anything else is a 500. */
 function fail(reply: FastifyReply, err: unknown) {
@@ -42,29 +43,37 @@ export async function mediaRoutes(app: FastifyInstance): Promise<void> {
     return media;
   });
 
-  // Upload one or more files as multipart/form-data. A `name` field, when present,
-  // renames a single uploaded file; with several files the generated names are used.
+  // Upload one or more files as multipart/form-data. Each file is named after
+  // itself; PUT renames one afterwards. An upload does not take a `name` field:
+  // the parser hands every file part the same accumulated fields, so one name
+  // across several files can only mean the second file collides with the first.
+  //
+  // A file that fails leaves the ones before it registered. Rolling them back
+  // would throw away good uploads, so the response reports what did land
+  // alongside the error and the client reconciles from that.
   app.post('/api/media', async (req, reply) => {
     if (!req.isMultipart()) {
       reply.code(415);
       return { error: 'Expected multipart/form-data. Use POST /api/media/from-path to register a local file by path.' };
     }
 
-    const created = [];
+    const created: Media[] = [];
     try {
-      for await (const part of req.parts()) {
+      // One byte above the service's own cap, so the service is what rejects an
+      // oversized upload with a clear 413 rather than the parser truncating first.
+      // Scoped to this route: a limit set at plugin registration would silently
+      // become the ceiling for every multipart route added later.
+      for await (const part of req.parts({ limits: { fileSize: MAX_MEDIA_BYTES + 1 } })) {
         if (part.type !== 'file') continue;
         created.push(await mediaService.registerFromStream({
           stream: part.file,
           originalName: part.filename,
           mimeType: part.mimetype,
-          name: typeof (part.fields as any)?.name?.value === 'string'
-            ? (part.fields as any).name.value
-            : undefined,
         }));
       }
     } catch (err) {
-      return fail(reply, err);
+      const failure = fail(reply, err) as { error: string };
+      return { ...failure, created };
     }
 
     if (created.length === 0) { reply.code(400); return { error: 'No file part in the request' }; }

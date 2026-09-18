@@ -6,7 +6,7 @@ import { homedir } from 'os';
 import type { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
 import * as mediaRepo from '../repositories/media.repo.js';
-import { resolveMediaDir } from '../utils/paths.js';
+import { ensureMediaDir, resolveMediaDir } from '../utils/paths.js';
 import { emit } from './domain-events.js';
 import {
   DEFAULT_MIME,
@@ -55,17 +55,47 @@ function uniqueName(preferred: string): string {
   }
 }
 
+/**
+ * Insert the row for a file already written to disk.
+ *
+ * The name was checked before the bytes were written, but checking and inserting
+ * are not one step: a second registration can take the name in between, and the
+ * UNIQUE constraint is what catches it. Rather than surfacing a raw SQLite error
+ * — and leaving the copy behind with no row pointing at it — an auto-generated
+ * name is resolved again and retried, and anything else unlinks the copy first.
+ */
 function insert(input: {
+  id: string;
   name: string;
   fileName: string;
   mimeType: string;
   size: number;
   originalName: string;
-  id: string;
+  /** false when the caller asked for this exact name and should hear that it is taken */
+  nameWasGenerated: boolean;
 }): Media {
-  const media = mediaRepo.create(input);
-  emit('media:created', media);
-  return media;
+  const { nameWasGenerated, ...row } = input;
+  try {
+    const media = mediaRepo.create(row);
+    emit('media:created', media);
+    return media;
+  } catch (err) {
+    if (isNameConflict(err)) {
+      if (nameWasGenerated) {
+        const media = mediaRepo.create({ ...row, name: uniqueName(row.name) });
+        emit('media:created', media);
+        return media;
+      }
+      safeUnlink(join(resolveMediaDir(), row.fileName));
+      throw new MediaError(`Media name already in use: ${row.name}`, 409);
+    }
+    safeUnlink(join(resolveMediaDir(), row.fileName));
+    throw err;
+  }
+}
+
+function isNameConflict(err: unknown): boolean {
+  return err instanceof Error && /UNIQUE constraint failed: media\.name/.test(err.message);
 }
 
 /** Expand a leading ~ and make the path absolute against the process's cwd. */
@@ -94,11 +124,11 @@ export async function registerFromPath(input: { path: string; name?: string }): 
   }
 
   const originalName = basename(sourcePath);
-  const name = resolveRequestedName(input.name, originalName);
+  const { name, generated } = resolveRequestedName(input.name, originalName);
   const id = uuid();
   const fileName = `${id}${storageExtension(originalName)}`;
 
-  await copyFile(sourcePath, join(resolveMediaDir(), fileName));
+  await copyFile(sourcePath, join(ensureMediaDir(), fileName));
 
   return insert({
     id,
@@ -107,12 +137,13 @@ export async function registerFromPath(input: { path: string; name?: string }): 
     mimeType: mimeTypeForFileName(fileName),
     size: stat.size,
     originalName,
+    nameWasGenerated: generated,
   });
 }
 
 /**
- * Register an uploaded file, streaming it to disk. The stream is counted as it is
- * written so an oversized upload is cut off rather than buffered whole.
+ * Register an uploaded file, streaming it to disk rather than buffering it —
+ * a 200 MB video mock should not become 200 MB of process memory.
  */
 export async function registerFromStream(input: {
   stream: Readable;
@@ -121,20 +152,10 @@ export async function registerFromStream(input: {
   name?: string;
 }): Promise<Media> {
   const originalName = basename(input.originalName || 'upload');
-  const name = resolveRequestedName(input.name, originalName);
+  const { name, generated } = resolveRequestedName(input.name, originalName);
   const id = uuid();
   const fileName = `${id}${storageExtension(originalName, input.mimeType)}`;
-  const target = join(resolveMediaDir(), fileName);
-
-  // Count as we go and cut the stream off at the cap, so an oversized upload
-  // is never written to disk in full before being rejected.
-  let size = 0;
-  input.stream.on('data', (chunk: Buffer) => {
-    size += chunk.length;
-    if (size > MAX_MEDIA_BYTES && !input.stream.destroyed) {
-      input.stream.destroy(new MediaError(`File exceeds the ${MAX_MEDIA_BYTES} byte limit`, 413));
-    }
-  });
+  const target = join(ensureMediaDir(), fileName);
 
   try {
     await pipeline(input.stream, createWriteStream(target));
@@ -151,23 +172,30 @@ export async function registerFromStream(input: {
     throw new MediaError(`File exceeds the ${MAX_MEDIA_BYTES} byte limit`, 413);
   }
 
+  // Read the size back off the file rather than counting the stream: a 'data'
+  // listener would switch it to flowing mode before pipeline wires the
+  // destination up, and relying on that ordering is relying on an internal.
   const byExtension = mimeTypeForFileName(fileName);
   return insert({
     id,
     name,
     fileName,
     mimeType: byExtension === DEFAULT_MIME ? (input.mimeType || DEFAULT_MIME) : byExtension,
-    size,
+    size: statSync(target).size,
     originalName,
+    nameWasGenerated: generated,
   });
 }
 
 /** An explicit name must be free; a generated one is made free. */
-function resolveRequestedName(requested: string | undefined, originalName: string): string {
+function resolveRequestedName(
+  requested: string | undefined,
+  originalName: string,
+): { name: string; generated: boolean } {
   const trimmed = requested?.trim();
-  if (!trimmed) return uniqueName(defaultMediaName(originalName));
+  if (!trimmed) return { name: uniqueName(defaultMediaName(originalName)), generated: true };
   if (mediaRepo.findByName(trimmed)) throw new MediaError(`Media name already in use: ${trimmed}`, 409);
-  return trimmed;
+  return { name: trimmed, generated: false };
 }
 
 export function rename(id: string, name: string): Media | null {
