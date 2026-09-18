@@ -8,6 +8,7 @@ interface UIStore {
   showImportExport: boolean;
   showEnvironments: boolean;
   showDatasets: boolean;
+  showMedia: boolean;
   showOnboarding: boolean;
   newEndpointCollectionId: string;
 
@@ -26,6 +27,7 @@ interface UIStore {
   setShowImportExport: (v: boolean) => void;
   setShowEnvironments: (v: boolean) => void;
   setShowDatasets: (v: boolean) => void;
+  setShowMedia: (v: boolean) => void;
   setShowOnboarding: (v: boolean) => void;
   setEditMode: (v: boolean) => void;
   toggleCollectionSelection: (id: string, endpointIds: string[]) => void;
@@ -43,6 +45,7 @@ export const useUIStore = create<UIStore>((set) => ({
   showImportExport: false,
   showEnvironments: false,
   showDatasets: false,
+  showMedia: false,
   showOnboarding: false,
   newEndpointCollectionId: '',
   editMode: false,
@@ -59,6 +62,7 @@ export const useUIStore = create<UIStore>((set) => ({
   setShowImportExport: (v) => set({ showImportExport: v }),
   setShowEnvironments: (v) => set({ showEnvironments: v }),
   setShowDatasets: (v) => set({ showDatasets: v }),
+  setShowMedia: (v) => set({ showMedia: v }),
   setShowOnboarding: (v) => set({ showOnboarding: v }),
   setEditMode: (v) => set({ editMode: v, selectedCollectionIds: [], selectedEndpointIds: [] }),
   // Checking a collection pulls its endpoints in with it, because deleting a

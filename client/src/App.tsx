@@ -9,6 +9,7 @@ import { SettingsModal } from './components/modals/SettingsModal';
 import { ImportExportModal } from './components/modals/ImportExportModal';
 import { EnvironmentModal } from './components/modals/EnvironmentModal';
 import { DatasetModal } from './components/modals/DatasetModal';
+import { MediaModal } from './components/modals/MediaModal';
 import { OnboardingPage } from './components/onboarding/OnboardingPage';
 import { ResizableDivider } from './components/layout/ResizableDivider';
 import { useEndpointStore } from './stores/endpoint.store';
@@ -67,6 +68,7 @@ export default function App() {
       <ImportExportModal />
       <EnvironmentModal />
       <DatasetModal />
+      <MediaModal />
       <OnboardingPage />
 
       {/* Toast notifications */}

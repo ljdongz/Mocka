@@ -33,6 +33,7 @@ const ko: Translations = {
     guide: '가이드',
     environments: 'Environments',
     datasets: 'Datasets',
+    media: 'Media',
     importExport: 'Import / Export',
     settings: '설정',
     addEndpoint: 'Endpoint 추가',
@@ -131,6 +132,22 @@ const ko: Translations = {
     invalidJson: '유효하지 않은 JSON',
     mustBeArray: '배열이어야 합니다',
     usageHint: 'Response Body에 {{$dataset}}를 넣으면 이 Dataset이 주입됩니다.',
+  },
+
+  media: {
+    title: 'Media',
+    empty: '등록된 미디어가 없습니다.',
+    addToStart: '시작하려면 파일을 추가하세요.',
+    dropHint: '파일을 끌어다 놓거나 클릭',
+    deleteMedia: '미디어 삭제',
+    placeholder: '플레이스홀더',
+    copy: '복사',
+    originalName: '파일',
+    type: '종류',
+    size: '크기',
+    url: 'URL',
+    noPreview: '이 형식은 미리보기를 지원하지 않습니다.',
+    usageHint: "Response Body에 {{$media 'name'}}을 넣으면 이 파일의 URL로 치환됩니다. 요청이 들어온 host를 그대로 쓰므로 시뮬레이터와 같은 네트워크의 실기기 모두 접근 가능한 주소를 받습니다.",
   },
 
   environment: {

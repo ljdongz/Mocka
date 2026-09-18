@@ -5,6 +5,7 @@ import type { Collection } from '../models/collection.js';
 import type { Environment } from '../models/environment.js';
 import type { RequestRecord } from '../models/request-record.js';
 import type { Dataset } from '../models/dataset.js';
+import type { Media } from '../models/media.js';
 
 const emitter = new EventEmitter();
 
@@ -25,6 +26,9 @@ export type DomainEvent =
   | { type: 'dataset:created'; payload: Dataset }
   | { type: 'dataset:updated'; payload: Dataset }
   | { type: 'dataset:deleted'; payload: { id: string } }
+  | { type: 'media:created'; payload: Media }
+  | { type: 'media:updated'; payload: Media }
+  | { type: 'media:deleted'; payload: { id: string } }
   | { type: 'history:new'; payload: RequestRecord }
   | { type: 'history:cleared'; payload: null }
   | { type: 'import:completed'; payload: any }

@@ -1,4 +1,4 @@
-import { Folder, History, Layers, ArrowUpDown, Settings, BookOpen, Database, LucideIcon } from 'lucide-react';
+import { Folder, History, Layers, ArrowUpDown, Settings, BookOpen, Database, Image, LucideIcon } from 'lucide-react';
 import { useUIStore } from '../../stores/ui.store';
 import { useTranslation } from '../../i18n';
 
@@ -38,6 +38,8 @@ export function IconRail() {
   const setShowEnvironments = useUIStore(s => s.setShowEnvironments);
   const showDatasets = useUIStore(s => s.showDatasets);
   const setShowDatasets = useUIStore(s => s.setShowDatasets);
+  const showMedia = useUIStore(s => s.showMedia);
+  const setShowMedia = useUIStore(s => s.setShowMedia);
   const setShowImportExport = useUIStore(s => s.setShowImportExport);
   const setShowSettings = useUIStore(s => s.setShowSettings);
 
@@ -68,6 +70,12 @@ export function IconRail() {
           label={t.sidebar.datasets}
           active={showDatasets}
           onClick={() => setShowDatasets(true)}
+        />
+        <RailButton
+          icon={Image}
+          label={t.sidebar.media}
+          active={showMedia}
+          onClick={() => setShowMedia(true)}
         />
       </div>
 

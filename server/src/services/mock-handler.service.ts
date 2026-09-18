@@ -4,8 +4,10 @@ import * as environmentService from './environment.service.js';
 import * as settingsService from './settings.service.js';
 import * as sequenceCounter from './sequence-counter.service.js';
 import * as datasetService from './dataset.service.js';
+import * as mediaService from './media.service.js';
 import { resolveVariables } from '../utils/template-variables.js';
 import { resolveHelpers, resolveDataset, parseQueryParams, parsePathSegments, type RequestContext } from '../utils/template-helpers.js';
+import { resolveMedia } from '../utils/template-media.js';
 import { matchesRules, type ResponseVariant } from '../models/response-variant.js';
 import { resolveDatasetValue } from '../models/dataset.js';
 
@@ -60,14 +62,28 @@ export function resolveVariant(
   return variants.find(v => v.id === endpoint.activeVariantId) ?? variants[0];
 }
 
-/** Resolve template body: env vars → helpers → dynamic variables → dataset */
+/** Resolve template body: env vars → helpers → dynamic variables → dataset → media */
 export function resolveResponseBody(
   template: string,
   envVars: Record<string, string>,
   requestContext: RequestContext,
 ): string {
   const resolved = resolveVariables(resolveHelpers(resolveEnvVariables(template, envVars), requestContext));
-  return resolveDataset(resolved, requestContext);
+  return resolveMediaUrls(resolveDataset(resolved, requestContext), requestContext);
+}
+
+/**
+ * Replace {{$media 'name'}} with a URL this very request could fetch — built from
+ * the request's own Host header, so a simulator and a device on the LAN each get
+ * an address that resolves for them.
+ */
+function resolveMediaUrls(template: string, requestContext: RequestContext): string {
+  return resolveMedia(
+    template,
+    requestContext.headers?.host,
+    name => mediaService.getByName(name),
+    name => console.warn(`[Mocka] No media registered under the name '${name}'; left the placeholder in the response.`),
+  );
 }
 
 /** Build the body string used for history recording (merges pathParams if present) */

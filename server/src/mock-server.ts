@@ -1,11 +1,27 @@
 import Fastify from 'fastify';
+import fastifyStatic from '@fastify/static';
 import { handleMockRequest } from './services/mock-handler.service.js';
+import { MEDIA_URL_PREFIX } from './utils/template-media.js';
+import { resolveMediaDir } from './utils/paths.js';
 
 /** Cap on accepted request body size — JSON via Fastify bodyLimit, multipart via manual counting. */
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MiB
 
 export async function createMockServer(_port: number) {
   const app = Fastify({ logger: false, bodyLimit: MAX_BODY_BYTES });
+
+  // Registered media files, served straight off disk under a reserved prefix.
+  // The plugin sets Content-Type from the file's extension and answers Range
+  // requests with a 206, which is what makes video seeking work.
+  //
+  // `wildcard` must stay on: with it off the plugin enumerates the directory at
+  // registration time, so any file registered after the server started would
+  // 404. The wildcard it registers lives under this prefix and does not collide
+  // with the catch-all mock routes below.
+  await app.register(fastifyStatic, {
+    root: resolveMediaDir(),
+    prefix: MEDIA_URL_PREFIX,
+  });
 
   // Accept multipart/form-data requests (store raw body without parsing), with a size cap.
   app.addContentTypeParser('multipart/form-data', function (_req, payload, done) {

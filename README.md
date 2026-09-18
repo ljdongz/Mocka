@@ -39,7 +39,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 ## Features
 
 ### AI-Driven Mock Setup
-- **MCP Server (43 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
+- **MCP Server (46 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
 - **Sequence Presets** — Named response scenarios (e.g. "Token Expired Flow") with sequential or loop modes. The AI can set up multi-step flows like `401 → token refresh → 200` in one conversation
 
 ### Manual Control
@@ -51,6 +51,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 
 ### Mock Server Capabilities
 - **Dynamic Templates** — 30+ built-in variables (`{{$randomUUID}}`, `{{$randomEmail}}`, etc.) and request context helpers (`{{$body 'field'}}`, `{{$pathParams 'id'}}`), with an offset suffix for arithmetic and relative time (`{{$body 'count' + 1}}`, `{{$isoTimestamp + 3h}}`)
+- **Media Responses** — Register a local image, video, or file and reference it with `{{$media 'name'}}`. The mock server serves it over HTTP with the right `Content-Type` and range support, and builds the URL from the host the request came in on, so a simulator and a real device both get an address that resolves
 - **Path Parameters** — Dynamic routes with `:param` or `{param}` syntax
 - **Environments** — Manage variables across dev/staging/production and switch instantly
 - **Response Delay** — Simulate latency per-variant or globally
