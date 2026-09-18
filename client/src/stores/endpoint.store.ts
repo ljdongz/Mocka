@@ -38,7 +38,12 @@ export const useEndpointStore = create<EndpointStore>((set, get) => ({
   fetch: async () => {
     set({ loading: true });
     const endpoints = await endpointsApi.getAll();
-    set({ endpoints, loading: false });
+    set(s => ({
+      endpoints,
+      loading: false,
+      // A refetch can be what tells us the open endpoint is gone.
+      selectedId: endpoints.some(e => e.id === s.selectedId) ? s.selectedId : null,
+    }));
   },
 
   select: (id) => set({ selectedId: id }),

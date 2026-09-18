@@ -5,6 +5,7 @@ import { initSchema } from '../db/schema.js';
 import * as collectionService from '../services/collection.service.js';
 import * as endpointService from '../services/endpoint.service.js';
 import * as routeRegistry from '../services/route-registry.js';
+import * as collectionRepo from '../repositories/collection.repo.js';
 
 function seedCollectionWithEndpoints(name: string, paths: string[]) {
   const collection = collectionService.create(name);
@@ -83,6 +84,20 @@ describe('deleting a collection', () => {
 
     expect(endpointService.getAll().map(e => e.id).sort()).toEqual(endpoints.map(e => e.id).sort());
     expect(collectionService.getAll()).toHaveLength(1);
+  });
+
+  it('spares an endpoint that another collection also holds', () => {
+    const { collection, endpoints } = seedCollectionWithEndpoints('A', ['/shared']);
+    const other = collectionService.create('B');
+    // move_endpoint with a null source adds a second membership without dropping
+    // the first, so the endpoint legitimately belongs to both collections.
+    collectionRepo.moveEndpoint(endpoints[0].id, null, other.id, 0);
+
+    collectionService.remove(collection.id);
+
+    expect(endpointService.getAll().map(e => e.id)).toEqual([endpoints[0].id]);
+    expect(collectionService.getAll().find(c => c.id === other.id)?.endpointIds).toEqual([endpoints[0].id]);
+    expect(routeRegistry.match('GET', '/shared')).toBeDefined();
   });
 
   it('returns false for an unknown collection', () => {

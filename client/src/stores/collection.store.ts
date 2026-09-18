@@ -18,7 +18,7 @@ interface CollectionStore {
   removeCollection: (id: string) => void;
 }
 
-export const useCollectionStore = create<CollectionStore>((set, get) => ({
+export const useCollectionStore = create<CollectionStore>((set) => ({
   collections: [],
 
   fetch: async () => {
@@ -42,13 +42,12 @@ export const useCollectionStore = create<CollectionStore>((set, get) => ({
   },
 
   remove: async (id) => {
-    const endpointIds = get().collections.find(c => c.id === id)?.endpointIds ?? [];
     await collectionsApi.delete(id);
     set(s => ({ collections: s.collections.filter(x => x.id !== id) }));
-    // The server deletes the collection's endpoints with it. Drop them locally
-    // too rather than leaving ghost rows until the websocket echo lands.
-    const dropEndpoint = useEndpointStore.getState().removeEndpointFromList;
-    for (const endpointId of endpointIds) dropEndpoint(endpointId);
+    // The server deletes the collection's endpoints with it — but spares any it
+    // shares with another collection, so which ones went is the server's answer
+    // to give. Re-read rather than guess, and don't wait on the websocket echo.
+    await useEndpointStore.getState().fetch();
   },
 
   toggleExpanded: async (id) => {
