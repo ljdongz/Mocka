@@ -30,7 +30,6 @@ interface UIStore {
   setEditMode: (v: boolean) => void;
   toggleCollectionSelection: (id: string, endpointIds: string[]) => void;
   toggleEndpointSelection: (id: string, collectionId: string | null) => void;
-  clearSelection: () => void;
   setSidebarWidth: (w: number) => void;
   setHistoryDetailWidth: (w: number) => void;
   setDetailTab: (tab: 'params' | 'headers' | 'body' | 'response') => void;
@@ -53,11 +52,7 @@ export const useUIStore = create<UIStore>((set) => ({
   historyDetailWidth: 400,
   detailTab: 'params',
 
-  // History replaces the collection tree, so edit mode must not survive the
-  // switch — its checked rows would go invisible while the footer still deletes them.
-  setShowHistory: (v) => set(v
-    ? { showHistory: v, editMode: false, selectedCollectionIds: [], selectedEndpointIds: [] }
-    : { showHistory: v }),
+  setShowHistory: (v) => set({ showHistory: v }),
   setShowSettings: (v) => set({ showSettings: v }),
   setShowNewEndpoint: (v, collectionId) => set({ showNewEndpoint: v, newEndpointCollectionId: v ? (collectionId ?? '') : '' }),
   setShowNewCollection: (v) => set({ showNewCollection: v }),
@@ -95,7 +90,6 @@ export const useUIStore = create<UIStore>((set) => ({
         : s.selectedCollectionIds,
     };
   }),
-  clearSelection: () => set({ selectedCollectionIds: [], selectedEndpointIds: [] }),
   setSidebarWidth: (w) => set({ sidebarWidth: w }),
   setHistoryDetailWidth: (w) => set({ historyDetailWidth: w }),
   setDetailTab: (tab) => set({ detailTab: tab }),

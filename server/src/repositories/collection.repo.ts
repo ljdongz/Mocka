@@ -45,10 +45,19 @@ export function update(id: string, data: { name?: string }): Collection | null {
   return findById(id);
 }
 
-export function remove(id: string): boolean {
+/**
+ * Delete a collection together with the endpoints it holds, in one transaction.
+ * Variants, params, headers and presets follow via ON DELETE CASCADE.
+ */
+export function removeWithEndpoints(id: string, endpointIds: string[]): boolean {
   const db = getDb();
-  const result = db.prepare('DELETE FROM collections WHERE id = ?').run(id);
-  return result.changes > 0;
+  const delEndpoint = db.prepare('DELETE FROM endpoints WHERE id = ?');
+  const delCollection = db.prepare('DELETE FROM collections WHERE id = ?');
+  const txn = db.transaction(() => {
+    for (const endpointId of endpointIds) delEndpoint.run(endpointId);
+    return delCollection.run(id).changes > 0;
+  });
+  return txn();
 }
 
 export function toggleExpanded(id: string): Collection | null {

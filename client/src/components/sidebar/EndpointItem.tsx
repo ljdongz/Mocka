@@ -83,13 +83,25 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showMoveMenu]);
 
-  // Leaving edit mode should never strand an open popover / inline editor.
+  // Entering edit mode swaps the row out from under an open popover or inline
+  // editor, so close them before they are hidden rather than stranded.
   useEffect(() => {
     if (editMode) {
       setShowMoveMenu(false);
       setIsEditing(false);
     }
   }, [editMode]);
+
+  // One definition for both branches: a one-sided tweak would give the same
+  // endpoint two different looks depending on whether edit mode is on.
+  const identity = (
+    <div className={clsx('flex min-w-0 flex-1 items-center gap-2', !endpoint.isEnabled && 'opacity-40')}>
+      <HttpMethodBadge method={endpoint.method} />
+      <span className={clsx('flex-1 truncate text-sm text-text-secondary', !endpoint.name && 'font-mono')}>
+        {label}
+      </span>
+    </div>
+  );
 
   if (editMode) {
     return (
@@ -107,12 +119,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
           onClick={e => e.stopPropagation()}
           className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-accent-primary"
         />
-        <div className={clsx('flex min-w-0 flex-1 items-center gap-2', !endpoint.isEnabled && 'opacity-40')}>
-          <HttpMethodBadge method={endpoint.method} />
-          <span className={clsx('flex-1 truncate text-sm text-text-secondary', !endpoint.name && 'font-mono')}>
-            {label}
-          </span>
-        </div>
+        {identity}
       </div>
     );
   }
@@ -163,19 +170,18 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
       )}
     >
       {/* Dim only the identity, never the actions — a disabled row must stay operable. */}
-      <div className={clsx('flex min-w-0 flex-1 items-center gap-2', !endpoint.isEnabled && 'opacity-40')}>
-        <HttpMethodBadge method={endpoint.method} />
-        <span className={clsx('flex-1 truncate text-sm text-text-secondary', !endpoint.name && 'font-mono')}>
-          {label}
-        </span>
-      </div>
+      {identity}
       {activeVariant && (
         <StatusCodeBadge
           code={activeVariant.statusCode}
           className={clsx(!endpoint.isEnabled && 'opacity-40', showMoveMenu ? 'hidden' : 'group-hover:hidden')}
         />
       )}
-      <span
+      <button
+        type="button"
+        role="switch"
+        aria-checked={endpoint.isEnabled}
+        aria-label={endpoint.isEnabled ? t.endpointItem.disable : t.endpointItem.enable}
         onClick={e => { e.stopPropagation(); toggleEnabled(endpoint.id); }}
         className={clsx(
           'items-center justify-center cursor-pointer',
@@ -188,7 +194,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
         title={endpoint.isEnabled ? t.endpointItem.disable : t.endpointItem.enable}
       >
         <Power size={13} strokeWidth={2.5} />
-      </span>
+      </button>
       <span
         onClick={startEdit}
         className={clsx(
