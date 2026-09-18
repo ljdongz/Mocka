@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import clsx from 'clsx';
 import { ChevronDown, ChevronRight, Plus, Pencil, X, GripVertical } from 'lucide-react';
 import {
   DndContext,
@@ -23,18 +24,22 @@ import { useUIStore } from '../../stores/ui.store';
 import { useTranslation } from '../../i18n';
 import { EndpointItem } from './EndpointItem';
 import { SortableEndpointItem } from './SortableEndpointItem';
+import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import type { Collection } from '../../types';
 
 function SortableCollectionItem({
   collection,
+  disabled,
   children,
 }: {
   collection: Collection;
+  disabled: boolean;
   children: (dragHandleProps: { listeners: any; attributes: any }) => React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: collection.id,
     data: { type: 'collection' },
+    disabled,
   });
 
   const style = {
@@ -55,11 +60,14 @@ export function CollectionTree() {
   const collections = useCollectionStore(s => s.collections);
   const endpoints = useEndpointStore(s => s.endpoints);
   const toggleExpanded = useCollectionStore(s => s.toggleExpanded);
-  const removeCollection = useCollectionStore(s => s.remove);
   const updateCollection = useCollectionStore(s => s.update);
   const reorderCollections = useCollectionStore(s => s.reorderCollections);
   const reorderEndpoints = useCollectionStore(s => s.reorderEndpoints);
   const setShowNewEndpoint = useUIStore(s => s.setShowNewEndpoint);
+  const editMode = useUIStore(s => s.editMode);
+  const selectedCollectionIds = useUIStore(s => s.selectedCollectionIds);
+  const toggleCollectionSelection = useUIStore(s => s.toggleCollectionSelection);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [hoveredCollId, setHoveredCollId] = useState<string | null>(null);
@@ -82,6 +90,8 @@ export function CollectionTree() {
 
   const collectedIds = new Set(collections.flatMap(c => c.endpointIds ?? []));
   const uncollected = endpoints.filter(e => !collectedIds.has(e.id));
+
+  const pendingDeleteCollection = collections.find(c => c.id === pendingDeleteId);
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -137,27 +147,44 @@ export function CollectionTree() {
       <div className="flex flex-col gap-1 py-1">
         <SortableContext items={collections.map(c => c.id)} strategy={verticalListSortingStrategy}>
           {collections.map(c => (
-            <SortableCollectionItem key={c.id} collection={c}>
+            <SortableCollectionItem key={c.id} collection={c} disabled={editMode}>
               {({ listeners, attributes }) => (
                 <div>
                   <div
-                    className="flex items-center gap-1.5 rounded px-2 py-1.5 text-sm cursor-pointer hover:bg-bg-hover"
-                    onClick={() => toggleExpanded(c.id)}
+                    className={clsx(
+                      'flex items-center gap-1.5 rounded px-2 py-1.5 text-sm cursor-pointer hover:bg-bg-hover',
+                      editMode && selectedCollectionIds.includes(c.id) && 'bg-bg-hover',
+                    )}
+                    onClick={() => editMode ? toggleCollectionSelection(c.id, c.endpointIds ?? []) : toggleExpanded(c.id)}
                     onMouseEnter={() => setHoveredCollId(c.id)}
                     onMouseLeave={() => setHoveredCollId(null)}
                   >
+                    {editMode ? (
+                      <input
+                        type="checkbox"
+                        checked={selectedCollectionIds.includes(c.id)}
+                        onChange={() => toggleCollectionSelection(c.id, c.endpointIds ?? [])}
+                        onClick={e => e.stopPropagation()}
+                        className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-accent-primary"
+                      />
+                    ) : (
+                      <span
+                        className="text-text-muted hover:text-text-secondary cursor-grab flex items-center"
+                        {...listeners}
+                        {...attributes}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <GripVertical size={14} strokeWidth={2.5} />
+                      </span>
+                    )}
+                    {/* In edit mode the row click selects, so expanding needs its own hit area. */}
                     <span
-                      className="text-text-muted hover:text-text-secondary cursor-grab flex items-center"
-                      {...listeners}
-                      {...attributes}
-                      onClick={e => e.stopPropagation()}
+                      className="text-text-muted flex items-center"
+                      onClick={e => { if (editMode) { e.stopPropagation(); toggleExpanded(c.id); } }}
                     >
-                      <GripVertical size={14} strokeWidth={2.5} />
-                    </span>
-                    <span className="text-text-muted flex items-center">
                       {c.isExpanded ? <ChevronDown size={14} strokeWidth={2.5} /> : <ChevronRight size={14} strokeWidth={2.5} />}
                     </span>
-                    {editingId === c.id ? (
+                    {editingId === c.id && !editMode ? (
                       <input
                         autoFocus
                         value={editName}
@@ -170,7 +197,7 @@ export function CollectionTree() {
                     ) : (
                       <span className="flex-1 font-medium text-text-primary truncate">{c.name}</span>
                     )}
-                    {hoveredCollId === c.id && (
+                    {hoveredCollId === c.id && !editMode && (
                       <div className="flex gap-1.5 items-center">
                         <button
                           onClick={e => { e.stopPropagation(); setShowNewEndpoint(true, c.id); }}
@@ -187,7 +214,7 @@ export function CollectionTree() {
                           <Pencil size={13} strokeWidth={2.5} />
                         </button>
                         <button
-                          onClick={e => { e.stopPropagation(); removeCollection(c.id); }}
+                          onClick={e => { e.stopPropagation(); setPendingDeleteId(c.id); }}
                           className="text-text-muted hover:text-method-delete flex items-center"
                           title={t.common.delete}
                         >
@@ -243,6 +270,13 @@ export function CollectionTree() {
           );
         })()}
       </DragOverlay>
+      <DeleteConfirmDialog
+        open={!!pendingDeleteCollection}
+        collectionIds={pendingDeleteCollection ? [pendingDeleteCollection.id] : []}
+        endpointIds={pendingDeleteCollection?.endpointIds ?? []}
+        onClose={() => setPendingDeleteId(null)}
+        onDone={() => setPendingDeleteId(null)}
+      />
     </DndContext>
   );
 }
