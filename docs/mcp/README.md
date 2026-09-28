@@ -10,7 +10,7 @@
 
 Mocka ships with a built-in [MCP](https://modelcontextprotocol.io/) (Model Context Protocol) server. Once registered with an AI client, agents like **Claude Code**, **Codex CLI**, and **Gemini CLI** can read your project's API calls and create matching mock endpoints, configure response sequences, manage collections, seed datasets — all through conversation, with no manual UI work.
 
-The MCP server exposes **60 tools** that map 1:1 to Mocka's admin REST API, so anything you can do in the web UI, an agent can do through MCP — under the exact same matching, precedence, and resolution rules.
+The MCP server exposes **63 tools** that map 1:1 to Mocka's admin REST API, so anything you can do in the web UI, an agent can do through MCP — under the exact same matching, precedence, and resolution rules.
 
 > Example prompt:
 > *"Set up mocks for my auth API — the first `/login` call returns 401, retrying returns 200. Then add a `/users/:id` endpoint backed by a shared dataset."*
@@ -122,7 +122,7 @@ After registering, start Mocka and ask your agent to call `get_server_status` (o
 
 ---
 
-## Tool reference (60 tools)
+## Tool reference (63 tools)
 
 All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned by the corresponding `list_*` / `get_*` / `create_*` tools.
 
@@ -139,7 +139,7 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 
 > `method` ∈ `GET｜POST｜PUT｜DELETE｜PATCH`. `sequenceMode` ∈ `off｜on` (`on` uses the active preset).
 
-### Response Variants (4)
+### Response Variants (5)
 
 | Tool | Description | Key params |
 |------|-------------|------------|
@@ -183,11 +183,14 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 | `list_collections` | List collections and their endpoint IDs | — |
 | `create_collection` | Create a collection | `name` |
 | `update_collection` | Rename a collection | `id`, `name` |
-| `delete_collection` | Delete a collection (endpoints are kept, just ungrouped) | `id` |
+| `delete_collection` | Delete a collection **and the endpoints inside it** | `id` |
 | `reorder_collections` | Reorder by full ordered ID list | `orderedIds` |
 | `reorder_collection_endpoints` | Reorder endpoints inside a collection | `collectionId`, `orderedEndpointIds` |
 | `move_endpoint` | Move an endpoint between collections | `endpointId`, `fromCollectionId`, `toCollectionId`, `sortOrder?` |
 | `remove_endpoint_from_collection` | Ungroup without deleting | `collectionId`, `endpointId` |
+
+> [!WARNING]
+> `delete_collection` is destructive: it deletes the endpoints inside the collection, in one transaction. Use `remove_endpoint_from_collection` or `move_endpoint` to take an endpoint out first if you want to keep it. An endpoint that a second collection also holds is left alone.
 
 ### Datasets (5)
 
@@ -198,6 +201,16 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 | `create_dataset` | Create a shared dataset | `name`, `keyField`, `records?` |
 | `update_dataset` | Update name/keyField/records (records fully replaces) | `id`, …optional |
 | `delete_dataset` | Delete a dataset | `id` |
+
+### Media (3)
+
+| Tool | Description | Key params |
+|------|-------------|------------|
+| `list_media` | List registered media files (id, name, mimeType, size) | — |
+| `register_media` | Copy a local image/video/file in so responses can hand out a URL for it | `path`, `name?` |
+| `delete_media` | Delete a registered file, record and copy both | `id` |
+
+> `path` is an absolute path on the machine running Mocka (`~` is expanded). The file is **copied** into Mocka's data directory, so moving the original afterwards is safe. Reference it from a response body with `{{$media 'name'}}`; the mock server replaces it with a URL it serves the file from — built from the host the request arrived on, so a simulator and a device on the LAN each get an address that resolves. `register_media` works because the MCP server is a local non-browser client; the route refuses anything sent by a browser. Media is **not** included in export/import.
 
 ### Import / Export (2)
 
@@ -270,7 +283,17 @@ create_endpoint(GET /api/users)        → add_variant + update_variant(datasetB
 create_endpoint(GET /api/users/:id)    → add_variant + update_variant(datasetBinding {mode:"detail", keySource:{from:"path", field:"id"}})
 ```
 
-**3. "Show me what my app has been hitting."**
+**3. "Mock the attachment download API with this video."**
+```
+register_media(path="~/Movies/clip.mp4", name="chat-clip")
+create_endpoint(GET /api/chat/attachment/:idx/download-url)
+add_variant(body='{"data":{"downloadUrl":"{{$media \'chat-clip\'}}"}}')
+```
+The app receives a URL the mock server itself serves the file from, addressed to
+whichever host the request came in on — so the simulator and a real device on the
+network both get one that resolves.
+
+**4. "Show me what my app has been hitting."**
 ```
 get_history(limit=50)                  # inspect recent requests, statuses, resolved bodies
 ```

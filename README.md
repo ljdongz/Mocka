@@ -39,13 +39,15 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 ## Features
 
 ### AI-Driven Mock Setup
-- **MCP Server (60 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
+- **MCP Server (63 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
 - **Sequence Presets** — Named response scenarios (e.g. "Token Expired Flow") with sequential or loop modes. The AI can set up multi-step flows like `401 → token refresh → 200` in one conversation
 
 ### Manual Control
 - **Web UI** — Create and manage endpoints from your browser with a visual editor
 - **Multiple Response Variants** — Define multiple responses per endpoint and switch between them with a single click
 - **Conditional Matching** — Auto-select response variants based on request body, headers, query/path params with AND/OR rule logic
+- **Enable / Disable Endpoints** — Take a single endpoint out of the route table with one switch; it answers 404 until you switch it back
+- **Bulk Editing** — Select-to-delete mode for clearing out collections and endpoints together, behind one confirmation
 
 ### STOMP Mock (WebSocket)
 - **Protocol-aware socket mock** — a STOMP 1.2 broker over raw WebSocket: CONNECT/CONNECTED with heartbeat negotiation, SUBSCRIBE/UNSUBSCRIBE, SEND, RECEIPT, ERROR. Point your app's socket URL at Mocka and it connects without code changes
@@ -56,6 +58,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 
 ### Mock Server Capabilities
 - **Dynamic Templates** — 30+ built-in variables (`{{$randomUUID}}`, `{{$randomEmail}}`, etc.) and request context helpers (`{{$body 'field'}}`, `{{$pathParams 'id'}}`), with an offset suffix for arithmetic and relative time (`{{$body 'count' + 1}}`, `{{$isoTimestamp + 3h}}`)
+- **Media Responses** — Register a local image, video, or file and reference it with `{{$media 'name'}}`. The mock server serves it over HTTP with the right `Content-Type` and range support, and builds the URL from the host the request came in on, so a simulator and a real device both get an address that resolves
 - **Path Parameters** — Dynamic routes with `:param` or `{param}` syntax
 - **Environments** — Manage variables across dev/staging/production and switch instantly
 - **Response Delay** — Simulate latency per-variant or globally
@@ -170,9 +173,9 @@ codex mcp add mocka -- mocka mcp
 
 Once configured, AI agents can create endpoints, set up sequence presets, configure response bodies, and manage collections — all through natural language.
 
-**Available tools (60):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, `create_dataset`, `update_dataset`, `create_stomp_connection`, `create_destination`, `add_message_variant`, `push_message`, `list_sessions`, `inject_error`, `stop_heartbeat`, and more.
+**Available tools (63):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, `create_dataset`, `update_dataset`, `create_stomp_connection`, `create_destination`, `add_message_variant`, `push_message`, `list_sessions`, `inject_error`, `stop_heartbeat`, and more.
 
-> **Full MCP reference →** [docs/mcp](docs/mcp/README.md) (installation per client, the complete 60-tool catalog, example agent workflows, troubleshooting).
+> **Full MCP reference →** [docs/mcp](docs/mcp/README.md) (installation per client, the complete 63-tool catalog, example agent workflows, troubleshooting).
 
 ### Development
 

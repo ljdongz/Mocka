@@ -46,6 +46,7 @@ const TEMPLATE_HELPERS = [
   { name: '$pathSegments', description: "URL path segment by index — {{$pathSegments '1'}}" },
   { name: '$pathParams', description: "Path parameter — {{$pathParams 'id'}}" },
   { name: '$headers', description: "Request header — {{$headers 'authorization'}}" },
+  { name: '$media', description: "URL of a registered media file — {{$media 'chat-clip'}}" },
   // STOMP (Mocka-stomp message variants)
   { name: '$destCapture', description: "STOMP: N-th wildcard capture of the destination pattern (1-based) — {{$destCapture '1'}}" },
   { name: '$destSeg', description: "STOMP: N-th destination segment (0-based) — {{$destSeg '2'}}" },

@@ -39,13 +39,15 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
 ## 주요 기능
 
 ### AI 기반 Mock 구축
-- **MCP 서버 (60개 도구)** — AI 에이전트(Claude Code, Codex, Gemini 등)가 소스코드를 읽고 그에 맞는 mock endpoint를 생성, 응답 시퀀스 구성, collection 관리 — 자연어 한 문장으로
+- **MCP 서버 (63개 도구)** — AI 에이전트(Claude Code, Codex, Gemini 등)가 소스코드를 읽고 그에 맞는 mock endpoint를 생성, 응답 시퀀스 구성, collection 관리 — 자연어 한 문장으로
 - **Sequence Preset** — 이름 있는 응답 시나리오(예: "토큰 만료 플로우")를 sequential 또는 loop 모드로 구성. AI가 `401 → 토큰 갱신 → 200` 같은 다단계 플로우를 대화 한 번으로 셋업
 
 ### 수동 관리
 - **웹 UI** — 브라우저에서 비주얼 에디터로 endpoint를 직접 생성 및 관리
 - **다중 응답 변형** — endpoint당 여러 응답을 정의하고 클릭 한 번으로 전환
 - **조건부 매칭** — 요청 body, header, query/path param 기반으로 AND/OR 룰 로직을 통해 응답 자동 선택
+- **Endpoint 활성 / 비활성** — 스위치 하나로 특정 endpoint를 라우트 테이블에서 제외. 다시 켤 때까지 404를 반환
+- **일괄 편집** — 선택 삭제 모드로 Collection과 endpoint를 한 번의 확인으로 정리
 
 ### STOMP Mock (WebSocket)
 - **프로토콜을 이해하는 소켓 mock** — raw WebSocket 위의 STOMP 1.2 브로커: heartbeat 협상을 포함한 CONNECT/CONNECTED, SUBSCRIBE/UNSUBSCRIBE, SEND, RECEIPT, ERROR. 앱 코드 수정 없이 소켓 URL만 Mocka로 바꾸면 붙습니다
@@ -56,6 +58,7 @@ Mocka는 AI 에이전트가 대신 설정해주는 로컬 mock 서버입니다. 
 
 ### Mock 서버 기능
 - **동적 템플릿** — 30+ 내장 변수(`{{$randomUUID}}`, `{{$randomEmail}}` 등)와 요청 컨텍스트 헬퍼(`{{$body 'field'}}`, `{{$pathParams 'id'}}`), 그리고 산술·상대 시간 오프셋 접미사(`{{$body 'count' + 1}}`, `{{$isoTimestamp + 3h}}`)
+- **미디어 응답** — 로컬 사진·영상·파일을 등록하고 `{{$media 'name'}}`으로 참조. mock 서버가 알맞은 `Content-Type`과 range 지원으로 직접 서빙하며, 요청이 들어온 host로 URL을 만들기 때문에 시뮬레이터와 실기기 모두 접근 가능한 주소를 받습니다
 - **Path Parameter** — `:param` 또는 `{param}` 문법으로 동적 경로 정의
 - **환경 변수** — dev/staging/production 환경별 변수 관리 및 즉시 전환
 - **응답 지연** — 변형별 또는 전역으로 레이턴시 시뮬레이션
@@ -170,9 +173,9 @@ codex mcp add mocka -- mocka mcp
 
 설정 후 AI 에이전트가 자연어로 endpoint 생성, sequence preset 구성, 응답 본문 설정, collection 관리 등을 수행할 수 있습니다.
 
-**제공 도구 (60개):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, `create_stomp_connection`, `create_destination`, `add_message_variant`, `push_message`, `list_sessions`, `inject_error`, `stop_heartbeat` 등.
+**제공 도구 (63개):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, `create_stomp_connection`, `create_destination`, `add_message_variant`, `push_message`, `list_sessions`, `inject_error`, `stop_heartbeat` 등.
 
-> **전체 MCP 레퍼런스 →** [docs/mcp](mcp/README.ko.md) (클라이언트별 설치, 60개 도구 전체 목록, 예시 에이전트 워크플로, 문제 해결).
+> **전체 MCP 레퍼런스 →** [docs/mcp](mcp/README.ko.md) (클라이언트별 설치, 63개 도구 전체 목록, 예시 에이전트 워크플로, 문제 해결).
 
 ### 개발 모드
 

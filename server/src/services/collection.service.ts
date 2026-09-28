@@ -1,5 +1,8 @@
 import { v4 as uuid } from 'uuid';
 import * as collectionRepo from '../repositories/collection.repo.js';
+import * as endpointRepo from '../repositories/endpoint.repo.js';
+import * as routeRegistry from './route-registry.js';
+import * as sequenceCounter from './sequence-counter.service.js';
 import { emit } from './domain-events.js';
 import type { Collection } from '../models/collection.js';
 
@@ -20,9 +23,38 @@ export function update(id: string, data: { name?: string }): Collection | null {
   return c;
 }
 
+/**
+ * Delete a collection and the endpoints inside it. A collection owns its
+ * endpoints, so removing it removes them — deliberately, rather than leaving
+ * them behind ungrouped the way a bare FK cascade would.
+ *
+ * Deliberately not routed through endpoint.service.remove: that module imports
+ * this one, and reaching back would make the cycle load-bearing.
+ */
 export function remove(id: string): boolean {
-  const ok = collectionRepo.remove(id);
-  if (ok) emit('collection:deleted', { id });
+  const collection = collectionRepo.findById(id);
+  if (!collection) return false;
+
+  // collection_endpoints is keyed on (collection, endpoint), so an endpoint can
+  // sit in more than one collection — move_endpoint with a null source leaves it
+  // in both. Only take the ones this collection alone holds; deleting a shared
+  // endpoint would empty a slot another collection still lists.
+  const ownedEndpointIds = (collection.endpointIds ?? []).filter(endpointId =>
+    collectionRepo.findMembershipsByEndpointId(endpointId).every(m => m.collectionId === id),
+  );
+
+  // Tear down in-memory state before the rows go, while the paths are still readable.
+  for (const endpointId of ownedEndpointIds) {
+    const ep = endpointRepo.findById(endpointId);
+    if (ep) routeRegistry.remove(ep.method, ep.path);
+    sequenceCounter.cleanup(endpointId);
+  }
+
+  const ok = collectionRepo.removeWithEndpoints(id, ownedEndpointIds);
+  if (ok) {
+    for (const endpointId of ownedEndpointIds) emit('endpoint:deleted', { id: endpointId });
+    emit('collection:deleted', { id });
+  }
   return ok;
 }
 

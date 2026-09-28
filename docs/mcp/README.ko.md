@@ -10,7 +10,7 @@
 
 Mocka는 [MCP](https://modelcontextprotocol.io/)(Model Context Protocol) 서버를 내장하고 있습니다. AI 클라이언트에 등록하면 **Claude Code**, **Codex CLI**, **Gemini CLI** 같은 에이전트가 프로젝트의 API 호출 코드를 읽고 그에 맞는 mock endpoint를 생성하고, 응답 시퀀스를 구성하고, collection을 관리하고, dataset을 채우는 작업을 — 수동 UI 조작 없이 대화만으로 — 수행합니다.
 
-MCP 서버는 **60개 도구**를 제공하며, 이들은 Mocka의 admin REST API와 1:1로 대응합니다. 따라서 웹 UI에서 할 수 있는 모든 작업을 에이전트가 MCP로 할 수 있고, **동일한 매칭·우선순위·해석 규칙**이 그대로 적용됩니다.
+MCP 서버는 **63개 도구**를 제공하며, 이들은 Mocka의 admin REST API와 1:1로 대응합니다. 따라서 웹 UI에서 할 수 있는 모든 작업을 에이전트가 MCP로 할 수 있고, **동일한 매칭·우선순위·해석 규칙**이 그대로 적용됩니다.
 
 > 예시 프롬프트:
 > *"내 인증 API mock 만들어줘 — `/login` 첫 호출은 401, 재시도하면 200. 그리고 공유 dataset 기반의 `/users/:id` endpoint도 추가해줘."*
@@ -122,7 +122,7 @@ Gemini에는 `mcp add` 명령이 없어 Mocka가 설정을 직접 작성합니�
 
 ---
 
-## 도구 레퍼런스 (60개)
+## 도구 레퍼런스 (63개)
 
 모든 도구는 `mcp__mocka__<name>` 형태로 노출됩니다. 아래에서 참조하는 ID는 대응하는 `list_*` / `get_*` / `create_*` 도구가 반환합니다.
 
@@ -139,7 +139,7 @@ Gemini에는 `mcp add` 명령이 없어 Mocka가 설정을 직접 작성합니�
 
 > `method` ∈ `GET｜POST｜PUT｜DELETE｜PATCH`. `sequenceMode` ∈ `off｜on`(`on`은 활성 preset 사용).
 
-### Response Variants (4)
+### Response Variants (5)
 
 | 도구 | 설명 | 주요 파라미터 |
 |------|------|---------------|
@@ -183,11 +183,14 @@ Gemini에는 `mcp add` 명령이 없어 Mocka가 설정을 직접 작성합니�
 | `list_collections` | collection과 endpoint ID 나열 | — |
 | `create_collection` | collection 생성 | `name` |
 | `update_collection` | collection 이름 변경 | `id`, `name` |
-| `delete_collection` | collection 삭제(endpoint는 유지, 그룹만 해제) | `id` |
+| `delete_collection` | collection과 **그 안의 endpoint까지 삭제** | `id` |
 | `reorder_collections` | 전체 ID 순서로 재정렬 | `orderedIds` |
 | `reorder_collection_endpoints` | collection 내 endpoint 재정렬 | `collectionId`, `orderedEndpointIds` |
 | `move_endpoint` | endpoint를 다른 collection으로 이동 | `endpointId`, `fromCollectionId`, `toCollectionId`, `sortOrder?` |
 | `remove_endpoint_from_collection` | 삭제 없이 그룹만 해제 | `collectionId`, `endpointId` |
+
+> [!WARNING]
+> `delete_collection`은 파괴적입니다. Collection 안의 endpoint를 트랜잭션 하나로 함께 삭제합니다. 남기려면 `remove_endpoint_from_collection` 또는 `move_endpoint`로 먼저 빼내세요. 다른 Collection에도 속한 endpoint는 삭제되지 않습니다.
 
 ### Datasets (5)
 
@@ -198,6 +201,16 @@ Gemini에는 `mcp add` 명령이 없어 Mocka가 설정을 직접 작성합니�
 | `create_dataset` | 공유 dataset 생성 | `name`, `keyField`, `records?` |
 | `update_dataset` | name/keyField/records 수정(records는 전체 교체) | `id`, …선택 |
 | `delete_dataset` | dataset 삭제 | `id` |
+
+### Media (3개)
+
+| 도구 | 설명 | 주요 파라미터 |
+|------|------|--------------|
+| `list_media` | 등록된 미디어 파일 목록 (id, name, mimeType, size) | — |
+| `register_media` | 로컬 사진·영상·파일을 복사해 등록. 응답이 그 URL을 내려줄 수 있게 함 | `path`, `name?` |
+| `delete_media` | 등록된 파일 삭제 (레코드와 복사본 모두) | `id` |
+
+> `path`는 Mocka가 실행 중인 머신의 절대 경로입니다(`~` 확장 지원). 파일은 Mocka 데이터 디렉터리로 **복사**되므로 원본을 옮기거나 지워도 mock이 깨지지 않습니다. 응답 body에서 `{{$media 'name'}}`으로 참조하면 mock 서버가 해당 파일을 서빙하는 URL로 치환하며, 요청이 들어온 host로 주소를 만들기 때문에 시뮬레이터와 LAN의 실기기가 각각 접근 가능한 주소를 받습니다. `register_media`가 동작하는 것은 MCP 서버가 로컬 비브라우저 클라이언트이기 때문이고, 이 라우트는 브라우저가 보낸 요청을 거부합니다. 미디어는 export/import에 **포함되지 않습니다**.
 
 ### Import / Export (2)
 
@@ -270,7 +283,16 @@ create_endpoint(GET /api/users)        → add_variant + update_variant(datasetB
 create_endpoint(GET /api/users/:id)    → add_variant + update_variant(datasetBinding {mode:"detail", keySource:{from:"path", field:"id"}})
 ```
 
-**3. "내 앱이 뭘 호출했는지 보여줘."**
+**3. "첨부파일 다운로드 API를 이 영상으로 mock해줘."**
+```
+register_media(path="~/Movies/clip.mp4", name="chat-clip")
+create_endpoint(GET /api/chat/attachment/:idx/download-url)
+add_variant(body='{"data":{"downloadUrl":"{{$media \'chat-clip\'}}"}}')
+```
+앱은 mock 서버가 직접 서빙하는 URL을 받습니다. 주소는 요청이 들어온 host로 만들어지므로
+시뮬레이터와 같은 네트워크의 실기기가 각각 접근 가능한 주소를 받습니다.
+
+**4. "내 앱이 뭘 호출했는지 보여줘."**
 ```
 get_history(limit=50)                  # 최근 요청·상태·해석된 응답 본문 확인
 ```

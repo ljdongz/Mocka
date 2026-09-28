@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { collectionsApi } from '../api/collections';
+import { useEndpointStore } from './endpoint.store';
 import type { Collection } from '../types';
 
 interface CollectionStore {
@@ -43,6 +44,10 @@ export const useCollectionStore = create<CollectionStore>((set) => ({
   remove: async (id) => {
     await collectionsApi.delete(id);
     set(s => ({ collections: s.collections.filter(x => x.id !== id) }));
+    // The server deletes the collection's endpoints with it — but spares any it
+    // shares with another collection, so which ones went is the server's answer
+    // to give. Re-read rather than guess, and don't wait on the websocket echo.
+    await useEndpointStore.getState().fetch();
   },
 
   toggleExpanded: async (id) => {

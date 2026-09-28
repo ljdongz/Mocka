@@ -49,7 +49,7 @@ curl http://localhost:4650/api/users/42          # /api/users/:id 에 매칭
 UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collection은 이름과 정렬된 endpoint 목록을 가지며, 재정렬하거나 endpoint를 끌어다 옮길 수 있습니다.
 
 > [!NOTE]
-> Collection은 **순수하게 정리용**입니다. 라우트 매칭이나 어떤 응답이 반환될지에 전혀 영향을 주지 않습니다. Collection을 삭제해도 그 안의 endpoint는 **삭제되지 않고** 그룹만 해제됩니다.
+> Collection은 **순수하게 정리용**입니다. 라우트 매칭이나 어떤 응답이 반환될지에 전혀 영향을 주지 않습니다. 단, Collection을 삭제하면 **그 안의 endpoint도 함께 삭제됩니다** — 남기려면 먼저 다른 Collection으로 옮기거나 그룹을 해제하세요.
 
 ### Endpoints
 
@@ -57,7 +57,7 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 
 - **유일성:** `method + path`는 고유해야 합니다(충돌 시 `400 already exists`).
 - **정규화:** 끝의 슬래시는 제거되고(`/users/` → `/users`), 루트 `/`는 유지됩니다.
-- **활성/비활성:** 비활성 endpoint는 라우트 테이블에서 완전히 제거되어 **404**를 반환합니다(503 아님). UI 스위치 또는 `toggle_endpoint`로 토글.
+- **활성/비활성:** 비활성 endpoint는 라우트 테이블에서 완전히 제거되어 **404**를 반환합니다(503 아님). 에디터 상단바의 스위치, 사이드바 행의 전원 아이콘, 또는 `toggle_endpoint`로 토글합니다. 비활성 endpoint는 사이드바에서 흐리게 표시되고, 전원 아이콘은 계속 보이므로 hover 없이 바로 되돌릴 수 있습니다.
 - 설정된 요청 body 타입·query param·request header는 **문서/UI 보조 정보**일 뿐 매칭을 **제한하지 않습니다.** 해당 method+path로 들어온 어떤 요청이든 매칭됩니다.
 
 ### Response Variants
@@ -98,7 +98,7 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 
 ### 동적 템플릿
 
-응답 body는 요청 시 **고정된 4단계 패스**로 해석되는 템플릿입니다:
+응답 body는 요청 시 **고정된 5단계 패스**로 해석되는 템플릿입니다:
 
 | # | 패스 | 문법 | 예시 |
 |---|------|------|------|
@@ -106,6 +106,7 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 | 2 | 요청 컨텍스트 헬퍼 | `{{$helper 'arg' 'default'}}` | `{{$body 'user.name' 'anon'}}` |
 | 3 | 동적 변수 | `{{$variable}}` | `{{$randomUUID}}` |
 | 4 | Dataset 토큰 | `{{$dataset}}` | `{{$dataset}}` |
+| 5 | 미디어 URL | `{{$media 'name'}}` | `{{$media 'chat-clip'}}` |
 
 ```json
 {
@@ -118,7 +119,7 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 ```
 
 > [!NOTE]
-> 순서가 중요합니다. env 치환이 먼저이므로, `{{$randomUUID}}`를 *포함한* env 값은 패스 3에서 확장됩니다. 알 수 없는 `{{$foo}}` 토큰은 출력에 **그대로** 남습니다. **응답 header는 패스 1만 받습니다** — header에서는 env 변수는 동작하지만 헬퍼·동적 변수·dataset은 동작하지 않습니다.
+> 순서가 중요합니다. env 치환이 먼저이므로, `{{$randomUUID}}`를 *포함한* env 값은 패스 3에서 확장됩니다. 알 수 없는 `{{$foo}}` 토큰은 출력에 **그대로** 남습니다. **응답 header는 패스 1만 받습니다** — header에서는 env 변수는 동작하지만 헬퍼·동적 변수·dataset·미디어 URL은 동작하지 않습니다.
 
 #### 내장 동적 변수 (33개)
 
@@ -133,6 +134,8 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 | `{{$pathParams 'name' 'default'}}` | 캡처된 path parameter(`:name` / `{name}`) |
 | `{{$pathSegments 'index' 'default'}}` | 0-기반 숫자 인덱스 위치의 raw URL 세그먼트 |
 | `{{$headers 'Header-Name' 'default'}}` | request header(대소문자 무시) |
+
+`{{$media 'name'}}`도 같은 방식으로 인자를 받지만, 요청이 아니라 등록된 미디어 파일을 보고 자기 패스에서 해석됩니다 — [Media](#media--media-name) 참고.
 
 #### 오프셋 접미사 — 산술 & 상대 시간
 
@@ -195,6 +198,34 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 > [!WARNING]
 > `{{$dataset}}`은 **마지막에** 해석되며, dataset이 없거나 매칭 record가 없으면 리터럴 `null`이 됩니다. Dataset과 dataset binding은 export/import에 **포함되지 않습니다** — export 후 다시 import하면 **모든 dataset 연결이 사라집니다.** `records`는 JSON 배열이어야 합니다.
 
+### Media & `{{$media 'name'}}`
+
+로컬 사진·영상·파일을 등록해 두면 응답이 그 파일의 URL을 내려줄 수 있습니다. 앱이 "이 파일 어디 있냐"를 API에 묻고 받은 주소에서 내려받는 흐름에 그대로 맞습니다.
+
+```jsonc
+// 등록 (MCP): register_media path="~/Movies/clip.mp4" name="chat-clip"
+// 또는 웹 UI의 Media 패널에 파일을 끌어다 놓기.
+
+// GET /chat/attachment/:idx/download-url 의 variant body
+{ "data": { "downloadUrl": "{{$media 'chat-clip'}}" } }
+
+// GET http://localhost:4650/chat/attachment/501/download-url
+// → { "data": { "downloadUrl": "http://localhost:4650/__mocka/media/<id>.mp4" } }
+
+// GET http://192.168.0.12:4650/chat/attachment/501/download-url   (실기기에서)
+// → { "data": { "downloadUrl": "http://192.168.0.12:4650/__mocka/media/<id>.mp4" } }
+```
+
+- **URL은 요청의 `Host` 헤더로 만들어집니다.** 그래서 localhost의 시뮬레이터와 같은 네트워크의 실기기가 각자 접근 가능한 주소를 받습니다. 환경별 설정이 필요 없습니다.
+- 파일은 **mock 포트**의 `/__mocka/media/…` 에서 서빙되며, 확장자로 `Content-Type`이 정해지고 **range 요청에 `206`으로 응답**합니다 — 영상 플레이어의 seek이 동작하는 이유입니다.
+- 등록하면 파일이 Mocka 데이터 디렉터리로 **복사**되므로, 이후 원본을 옮기거나 지워도 mock이 깨지지 않습니다.
+- 등록되지 않은 이름은 빈 문자열이 되는 대신 **응답에 그대로 남고**(`{{$media 'typo'}}`) 서버 로그에 기록됩니다.
+
+> [!WARNING]
+> 미디어는 export/import에 **포함되지 않습니다**.
+>
+> **파일 경로**로 등록하는 것은 admin API가 임의의 로컬 파일을 읽는 동작이라, 로컬의 비(非)브라우저 클라이언트 — MCP 서버나 `curl` — 에서만 허용됩니다. `Origin`이나 `Sec-Fetch-Site`가 붙은 요청은 403으로 거부합니다. 사용자가 방문만 한 페이지도 같은 머신에서 도는 터라 IP 검사만으로는 통과하기 때문입니다. 웹 UI와 다른 기기는 **업로드**를 쓰며, 여기에는 이런 제약이 없습니다.
+
 ### Environment & 변수
 
 **Environment**는 이름 있는 `key → value` 문자열 변수 집합입니다. 한 번에 정확히 **하나**의 environment만 활성이며, 그 변수가 `{{varName}}` 자리표시자를 채웁니다.
@@ -254,6 +285,23 @@ curl http://localhost:4650/users -H 'x-mock-response-name: error' -H 'x-mock-res
 > [!NOTE]
 > `x-mock-response-name`은 변형의 **description**에 매칭됩니다(별도의 "name" 필드 없음). 오버라이드는 sequence preset과 match rule을 이기며, sequence 카운터를 **전진시키지 않습니다.** 요청한 code/name에 맞는 변형이 없으면 해석은 그냥 일반 체인으로 넘어갑니다(에러 아님).
 
+### 일괄 편집 (편집 모드)
+
+사이드바 헤더의 **선택 삭제** 버튼으로 편집 모드에 들어갑니다. 편집 모드에서는 모든 Collection과 endpoint에 체크박스가 생기고, 드래그 핸들과 행별 액션은 비활성화되며, 하단 바에서 선택한 항목을 확인 한 번으로 모두 삭제합니다.
+
+선택은 Collection의 소유 관계를 따릅니다:
+
+| 동작 | 선택되는 대상 |
+| --- | --- |
+| Collection 체크 | Collection **과** 그 안의 endpoint 전부 |
+| endpoint 하나를 체크 해제 | 그 endpoint와 상위 Collection (나머지 형제는 체크 유지) |
+| endpoint를 전부 직접 체크 | endpoint만 — Collection은 체크되지 않음 |
+
+Collection은 **직접 체크했을 때만** 삭제됩니다. 안의 항목을 전부 선택한 결과로 삭제되는 일은 없습니다.
+
+> [!NOTE]
+> 삭제는 서버에서 트랜잭션 하나로 처리되므로 중간에 걸친 상태가 남지 않습니다. 실패하면 다이얼로그가 실패 개수와 함께 열린 채로 남고, 삭제 버튼으로 재시도할 수 있습니다.
+
 ### Import / Export
 
 endpoint + collection + STOMP connection을 버전이 있는 JSON 문서(현재 **버전 4**)로 export하고, conflict policy로 다시 import합니다:
@@ -298,7 +346,7 @@ LAYER 3 · pool에서 하나 선택, 엄격한 순서로:
 
 선택 후:
   지연 적용(header > variant.delay ?? 전역, 단위 초)
-  → body 템플릿(env → 헬퍼 → 동적 → dataset)
+  → body 템플릿(env → 헬퍼 → 동적 → dataset → media)
   → header(env 변수만)
   → 전송 + history 기록
 ```
@@ -308,7 +356,8 @@ LAYER 3 · pool에서 하나 선택, 엄격한 순서로:
 - **header 오버라이드(1–2)가 모든 것을 이기며** sequence 카운터를 움직이지 않습니다.
 - **sequence 모드에서는 3단계가 항상 변형을 반환**하므로 4–5단계에 도달하지 못합니다. 그래서 **조건부 매칭은 standard 모드에서만 동작**합니다.
 - 매칭된 라우트인데 pool에 변형이 **하나도 없으면** `500 No response variant configured`를 반환합니다.
-- header는 오직 environment 변수 치환만 받습니다 — 헬퍼·동적 변수·dataset은 절대 받지 않습니다.
+- header는 오직 environment 변수 치환만 받습니다 — 헬퍼·동적 변수·dataset·미디어 URL은 절대 받지 않습니다.
+- `{{$media 'name'}}`은 **가장 마지막**에 요청의 `Host` 헤더를 써서 해석됩니다. `Host`가 없는 요청에서는 플레이스홀더가 그대로 남습니다.
 
 ---
 
@@ -388,5 +437,5 @@ HTTP 헬퍼·변수에 더해 쓸 수 있는 STOMP 템플릿 헬퍼:
 
 ## 함께 보기
 
-- [MCP 가이드](../mcp/README.ko.md) — 위의 모든 것을 AI 에이전트로 조작(60개 도구).
+- [MCP 가이드](../mcp/README.ko.md) — 위의 모든 것을 AI 에이전트로 조작(63개 도구).
 - [메인 README](../README.ko.md) — 설치, CLI 명령어, 아키텍처.

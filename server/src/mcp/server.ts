@@ -8,6 +8,7 @@ import { registerCollectionTools } from './tools/collections.js';
 import { registerHistoryTools } from './tools/history.js';
 import { registerImportExportTools } from './tools/import-export.js';
 import { registerDatasetTools } from './tools/datasets.js';
+import { registerMediaTools } from './tools/media.js';
 import { registerServerTools } from './tools/server.js';
 import { registerStompTools } from './tools/stomp.js';
 
@@ -25,6 +26,7 @@ export async function startMcpServer() {
   registerHistoryTools(server);
   registerImportExportTools(server);
   registerDatasetTools(server);
+  registerMediaTools(server);
   registerServerTools(server);
   registerStompTools(server);
 

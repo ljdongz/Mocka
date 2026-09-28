@@ -47,7 +47,7 @@ export function registerCollectionTools(server: McpServer) {
 
   server.tool(
     'delete_collection',
-    'Delete a collection. Endpoints in the collection are NOT deleted, only ungrouped.',
+    'Delete a collection and the endpoints inside it. Use remove_endpoint_from_collection to ungroup an endpoint without deleting it.',
     { id: z.string().describe('Collection ID') },
     async ({ id }) => {
       try {

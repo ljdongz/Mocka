@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
-import { Pencil, Check, X, FolderInput } from 'lucide-react';
+import { Pencil, Check, X, FolderInput, Power } from 'lucide-react';
 import { useEndpointStore } from '../../stores/endpoint.store';
 import { useCollectionStore } from '../../stores/collection.store';
 import { useUIStore } from '../../stores/ui.store';
@@ -16,7 +16,11 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
   const select = useEndpointStore(s => s.select);
   const deleteEndpoint = useEndpointStore(s => s.deleteEndpoint);
   const updateEndpoint = useEndpointStore(s => s.updateEndpoint);
+  const toggleEnabled = useEndpointStore(s => s.toggleEnabled);
   const setShowHistory = useUIStore(s => s.setShowHistory);
+  const editMode = useUIStore(s => s.editMode);
+  const isChecked = useUIStore(s => s.selectedEndpointIds.includes(endpoint.id));
+  const toggleEndpointSelection = useUIStore(s => s.toggleEndpointSelection);
   const collections = useCollectionStore(s => s.collections);
   const moveEndpoint = useCollectionStore(s => s.moveEndpoint);
   const removeEndpointFromCollection = useCollectionStore(s => s.removeEndpointFromCollection);
@@ -33,6 +37,8 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
     ?? endpoint.responseVariants?.[0];
 
   const currentCollId = collections.find(c => c.endpointIds?.includes(endpoint.id))?.id ?? null;
+
+  const label = endpoint.name || buildFullUrl(endpoint.path, endpoint.queryParams);
 
   const handleMove = async (targetCollId: string | null) => {
     setShowMoveMenu(false);
@@ -77,6 +83,47 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showMoveMenu]);
 
+  // Entering edit mode swaps the row out from under an open popover or inline
+  // editor, so close them before they are hidden rather than stranded.
+  useEffect(() => {
+    if (editMode) {
+      setShowMoveMenu(false);
+      setIsEditing(false);
+    }
+  }, [editMode]);
+
+  // One definition for both branches: a one-sided tweak would give the same
+  // endpoint two different looks depending on whether edit mode is on.
+  const identity = (
+    <div className={clsx('flex min-w-0 flex-1 items-center gap-2', !endpoint.isEnabled && 'opacity-40')}>
+      <HttpMethodBadge method={endpoint.method} />
+      <span className={clsx('flex-1 truncate text-sm text-text-secondary', !endpoint.name && 'font-mono')}>
+        {label}
+      </span>
+    </div>
+  );
+
+  if (editMode) {
+    return (
+      <div
+        onClick={() => toggleEndpointSelection(endpoint.id, currentCollId)}
+        className={clsx(
+          'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left cursor-pointer',
+          isChecked ? 'bg-bg-hover' : 'hover:bg-bg-hover',
+        )}
+      >
+        <input
+          type="checkbox"
+          checked={isChecked}
+          onChange={() => toggleEndpointSelection(endpoint.id, currentCollId)}
+          onClick={e => e.stopPropagation()}
+          className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-accent-primary"
+        />
+        {identity}
+      </div>
+    );
+  }
+
   if (isEditing) {
     return (
       <div
@@ -120,16 +167,34 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
       className={clsx(
         'group relative flex w-full items-center gap-2 rounded px-2 py-1.5 text-left cursor-pointer',
         isSelected ? 'bg-bg-hover' : 'hover:bg-bg-hover',
-        !endpoint.isEnabled && 'opacity-40',
       )}
     >
-      <HttpMethodBadge method={endpoint.method} />
-      <span className={clsx('flex-1 truncate text-sm text-text-secondary', !endpoint.name && 'font-mono')}>
-        {endpoint.name || buildFullUrl(endpoint.path, endpoint.queryParams)}
-      </span>
+      {/* Dim only the identity, never the actions — a disabled row must stay operable. */}
+      {identity}
       {activeVariant && (
-        <StatusCodeBadge code={activeVariant.statusCode} className={clsx(showMoveMenu ? 'hidden' : 'group-hover:hidden')} />
+        <StatusCodeBadge
+          code={activeVariant.statusCode}
+          className={clsx(!endpoint.isEnabled && 'opacity-40', showMoveMenu ? 'hidden' : 'group-hover:hidden')}
+        />
       )}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={endpoint.isEnabled}
+        aria-label={endpoint.isEnabled ? t.endpointItem.disable : t.endpointItem.enable}
+        onClick={e => { e.stopPropagation(); toggleEnabled(endpoint.id); }}
+        className={clsx(
+          'items-center justify-center cursor-pointer',
+          endpoint.isEnabled
+            ? 'text-text-muted hover:text-accent-primary'
+            : 'text-method-delete hover:text-accent-primary',
+          // A disabled endpoint keeps its switch on screen, otherwise there is no visible way back.
+          !endpoint.isEnabled || showMoveMenu ? 'flex' : 'hidden group-hover:flex',
+        )}
+        title={endpoint.isEnabled ? t.endpointItem.disable : t.endpointItem.enable}
+      >
+        <Power size={13} strokeWidth={2.5} />
+      </button>
       <span
         onClick={startEdit}
         className={clsx(

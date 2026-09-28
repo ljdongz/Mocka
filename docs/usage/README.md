@@ -49,7 +49,7 @@ curl http://localhost:4650/api/users/42          # matches /api/users/:id
 Named folders that group endpoints in the UI. A Collection has a name and an ordered list of endpoints; you can reorder them and drag endpoints between them.
 
 > [!NOTE]
-> Collections are **purely organizational**. They never influence route matching or which response is returned. Deleting a Collection does **not** delete its endpoints — they just become ungrouped.
+> Collections are **purely organizational**. They never influence route matching or which response is returned. Deleting a Collection **also deletes the endpoints inside it** — drag an endpoint out, or use the move-to-collection menu, if you want to keep it.
 
 ### Endpoints
 
@@ -57,7 +57,7 @@ A mock route, identified by **HTTP method + path**. Valid methods: `GET, POST, P
 
 - **Uniqueness:** `method + path` must be unique (a clash returns `400 already exists`).
 - **Normalization:** trailing slashes are stripped (`/users/` → `/users`); the root `/` is kept.
-- **Enable/disable:** a disabled endpoint is removed from the route table entirely, so it returns **404** (not 503). Toggle with the UI switch or `toggle_endpoint`.
+- **Enable/disable:** a disabled endpoint is removed from the route table entirely, so it returns **404** (not 503). Toggle it from the switch in the editor's top bar, the power icon on the sidebar row, or `toggle_endpoint`. A disabled endpoint is dimmed in the sidebar and keeps its power icon on screen so you can switch it back without hovering.
 - The configured request body type, query params, and request headers are **documentation/UI scaffolding** — they do **not** gate matching. Any request to the method+path matches.
 
 ### Response Variants
@@ -98,7 +98,7 @@ Make a variant respond only when the incoming request looks a certain way. A var
 
 ### Dynamic Templates
 
-Response bodies are templates resolved at request time in **four fixed passes**:
+Response bodies are templates resolved at request time in **five fixed passes**:
 
 | # | Pass | Syntax | Example |
 |---|------|--------|---------|
@@ -106,6 +106,7 @@ Response bodies are templates resolved at request time in **four fixed passes**:
 | 2 | Request-context helpers | `{{$helper 'arg' 'default'}}` | `{{$body 'user.name' 'anon'}}` |
 | 3 | Dynamic variables | `{{$variable}}` | `{{$randomUUID}}` |
 | 4 | Dataset token | `{{$dataset}}` | `{{$dataset}}` |
+| 5 | Media URL | `{{$media 'name'}}` | `{{$media 'chat-clip'}}` |
 
 ```json
 {
@@ -118,7 +119,7 @@ Response bodies are templates resolved at request time in **four fixed passes**:
 ```
 
 > [!NOTE]
-> Order matters. Because env substitution runs first, an env value that *contains* a `{{$randomUUID}}` will be expanded by pass 3. Unknown `{{$foo}}` tokens are left **literally** in the output. **Response headers receive pass 1 only** — env variables work in headers, but helpers / dynamic vars / dataset do not.
+> Order matters. Because env substitution runs first, an env value that *contains* a `{{$randomUUID}}` will be expanded by pass 3. Unknown `{{$foo}}` tokens are left **literally** in the output. **Response headers receive pass 1 only** — env variables work in headers, but helpers / dynamic vars / dataset / media URLs do not.
 
 #### Built-in dynamic variables (33)
 
@@ -133,6 +134,8 @@ Response bodies are templates resolved at request time in **four fixed passes**:
 | `{{$pathParams 'name' 'default'}}` | Captured path parameter (from `:name` / `{name}`) |
 | `{{$pathSegments 'index' 'default'}}` | Raw URL segment at a 0-based numeric index |
 | `{{$headers 'Header-Name' 'default'}}` | Request header (case-insensitive) |
+
+`{{$media 'name'}}` takes an argument the same way but resolves in its own pass, against the registered media files rather than the request — see [Media](#media--media-name).
 
 #### Offset suffix — arithmetic & relative time
 
@@ -195,6 +198,34 @@ A **Dataset** is a reusable array of records with a `keyField`. A variant binds 
 > [!WARNING]
 > `{{$dataset}}` resolves **last** and becomes the literal `null` if the dataset is missing or no record matches. Datasets and dataset bindings are **not** included in export/import — exporting and re-importing **loses all dataset wiring**. `records` must be a JSON array.
 
+### Media & `{{$media 'name'}}`
+
+Register a local image, video, or file and a response can hand out a URL for it — the case where an app asks the API where a file lives, then downloads it from that address.
+
+```jsonc
+// Register (MCP): register_media path="~/Movies/clip.mp4" name="chat-clip"
+// Or drop the file into the Media panel in the web UI.
+
+// Variant body on GET /chat/attachment/:idx/download-url
+{ "data": { "downloadUrl": "{{$media 'chat-clip'}}" } }
+
+// GET http://localhost:4650/chat/attachment/501/download-url
+// → { "data": { "downloadUrl": "http://localhost:4650/__mocka/media/<id>.mp4" } }
+
+// GET http://192.168.0.12:4650/chat/attachment/501/download-url   (from a device)
+// → { "data": { "downloadUrl": "http://192.168.0.12:4650/__mocka/media/<id>.mp4" } }
+```
+
+- **The URL is built from the request's `Host` header**, so a simulator on localhost and a real device on your network each get an address that resolves for them. No per-environment configuration.
+- The file is served from `/__mocka/media/…` on the **mock port**, with `Content-Type` from its extension and **range requests answered with `206`** — which is what lets a video player seek.
+- Registering **copies** the file into Mocka's data directory, so moving or deleting the original afterwards does not break the mock.
+- A name that is not registered is **left in the response as-is** (`{{$media 'typo'}}`) and logged on the server, rather than silently becoming an empty string.
+
+> [!WARNING]
+> Media is **not** included in export/import.
+>
+> Registering by **file path** makes the admin API read an arbitrary local file, so it is accepted only from a local, non-browser client — the MCP server or `curl`. A request carrying `Origin` or `Sec-Fetch-Site` is refused with a 403, because a page you merely visit runs on your machine too and would otherwise pass an IP check. The web UI and other devices **upload** the bytes instead, which has no such restriction.
+
 ### Environments & Variables
 
 An **Environment** is a named set of `key → value` string variables. Exactly **one** environment is active at a time; its variables fill `{{varName}}` placeholders.
@@ -254,6 +285,23 @@ curl http://localhost:4650/users -H 'x-mock-response-name: error' -H 'x-mock-res
 > [!NOTE]
 > `x-mock-response-name` matches the variant **description** (there is no separate "name" field). Overrides beat sequence presets and match rules, and do **not** advance the sequence counter. If no variant matches the requested code/name, resolution simply falls through to the normal chain (no error).
 
+### Bulk editing (edit mode)
+
+The sidebar header has a **select-to-delete** toggle. In edit mode every collection and endpoint gets a checkbox, the drag handles and per-row actions stand down, and a footer bar deletes everything ticked behind a single confirmation.
+
+Selection follows collection ownership:
+
+| What you do | What gets selected |
+| --- | --- |
+| Tick a collection | The collection **and** its endpoints |
+| Untick any one endpoint | That endpoint and the collection; its siblings stay ticked |
+| Tick every endpoint by hand | Only the endpoints — the collection stays unticked |
+
+A collection is only deleted when you ticked **the collection itself**, never as a side effect of selecting everything inside it.
+
+> [!NOTE]
+> The delete runs server-side in one transaction, so it cannot half-finish. If anything fails the dialog stays open with the count and the Delete button retries.
+
 ### Import / Export
 
 Export endpoints + collections + STOMP connections to a versioned JSON document (current **version 4**) and re-import with a conflict policy:
@@ -298,7 +346,7 @@ LAYER 3 · Pick one from the pool, in strict order:
 
 After selection:
   delay (header > variant.delay ?? global, in seconds)
-  → body templates (env → helpers → dynamic → dataset)
+  → body templates (env → helpers → dynamic → dataset → media)
   → headers (env vars only)
   → send + record to history
 ```
@@ -308,7 +356,8 @@ After selection:
 - **Header overrides (1–2) beat everything** and do not move the sequence counter.
 - **In sequence mode, step 3 always returns a variant** — so steps 4–5 are unreachable. That's why **conditional matching only works in standard mode**.
 - A matched route whose pool has **no variant** returns `500 No response variant configured`.
-- Headers only ever get environment-variable substitution — never helpers, dynamic vars, or datasets.
+- Headers only ever get environment-variable substitution — never helpers, dynamic vars, datasets, or media URLs.
+- `{{$media 'name'}}` resolves **after** everything else, using the request's `Host` header; a request that arrives without one leaves the placeholder untouched.
 
 ---
 
@@ -388,5 +437,5 @@ Every frame (both directions, heartbeats excluded) lands in **History** with its
 
 ## See also
 
-- [MCP Guide](../mcp/README.md) — drive all of the above from an AI agent (60 tools).
+- [MCP Guide](../mcp/README.md) — drive all of the above from an AI agent (63 tools).
 - [Main README](../../README.md) — install, CLI commands, architecture.

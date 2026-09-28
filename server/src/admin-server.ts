@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
+import multipart from '@fastify/multipart';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
@@ -14,6 +15,7 @@ import { importExportRoutes } from './routes/import-export.routes.js';
 import { environmentRoutes } from './routes/environment.routes.js';
 import { datasetRoutes } from './routes/dataset.routes.js';
 import { stompRoutes } from './routes/stomp.routes.js';
+import { mediaRoutes } from './routes/media.routes.js';
 import { addClient } from './plugins/websocket.js';
 import * as settingsService from './services/settings.service.js';
 
@@ -26,6 +28,9 @@ export async function createAdminServer(onRestart: RestartHandler) {
 
   await app.register(cors, { origin: true });
   await app.register(websocket);
+  // Registered without limits; the media upload route sets its own per request,
+  // so a 200 MB ceiling does not leak onto every multipart route added later.
+  await app.register(multipart);
 
   app.register(async function (fastify) {
     fastify.get('/ws', { websocket: true }, (socket) => {
@@ -41,6 +46,7 @@ export async function createAdminServer(onRestart: RestartHandler) {
   await app.register(environmentRoutes);
   await app.register(datasetRoutes);
   await app.register(stompRoutes);
+  await app.register(mediaRoutes);
 
   // Server status
   let mockServerRunning = false;
