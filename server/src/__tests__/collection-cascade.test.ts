@@ -154,4 +154,96 @@ describe('nested collections', () => {
     expect(collectionService.move(b.id, b.id)).toBe('Cannot move a collection into itself or its descendants');
     expect(collectionService.move(child.id, null)).toMatchObject({ parentId: null, sortOrder: 2 });
   });
+
+  it('moves to a given position, renumbering the new siblings', () => {
+    const a = collectionService.create('A')!;
+    const b = collectionService.create('B')!;
+    const c = collectionService.create('C')!;
+    const inner = collectionService.create('Inner', a.id)!;
+
+    collectionService.move(inner.id, null, 1);
+    const top = () => collectionService.getAll().filter(x => !x.parentId).sort((x, y) => x.sortOrder - y.sortOrder).map(x => x.name);
+    expect(top()).toEqual(['A', 'Inner', 'B', 'C']);
+
+    collectionService.move(c.id, null, 0);
+    expect(top()).toEqual(['C', 'A', 'Inner', 'B']);
+    collectionService.move(b.id, a.id, 0);
+    expect(top()).toEqual(['C', 'A', 'Inner']);
+  });
+
+  it('orders top-level endpoints: new ones last, placed ones where asked', () => {
+    const a = collectionService.create('A')!;
+    const [t1] = ['/t1', '/t2'].map(path => endpointService.create({ method: 'GET', path }));
+    const grouped = endpointService.create({ method: 'GET', path: '/g', collectionId: a.id });
+    const t3 = endpointService.create({ method: 'GET', path: '/t3' });
+    const topLevel = () => {
+      const held = new Set(collectionService.getAll().flatMap(c => c.endpointIds ?? []));
+      return endpointService.getAll().filter(e => !held.has(e.id)).map(e => e.path);
+    };
+    expect(topLevel()).toEqual(['/t1', '/t2', '/t3']);
+
+    // Top-level positions count collection A too: [A, /t1, /t2, /t3].
+    collectionService.place({ type: 'endpoint', id: grouped.id }, a.id, null, 2);
+    expect(topLevel()).toEqual(['/t1', '/g', '/t2', '/t3']);
+    collectionService.place({ type: 'endpoint', id: t3.id }, null, null, 0);
+    expect(topLevel()).toEqual(['/t3', '/t1', '/g', '/t2']);
+
+    // Ungrouping through the menu appends.
+    collectionService.moveEndpoint(t1.id, null, a.id, 0);
+    collectionService.removeEndpoint(a.id, t1.id);
+    expect(topLevel()).toEqual(['/t3', '/g', '/t2', '/t1']);
+  });
+
+  it('lets endpoints and collections interleave under one parent', () => {
+    const app = collectionService.create('App')!;
+    const chat = collectionService.create('Chat', app.id)!;
+    const e1 = endpointService.create({ method: 'GET', path: '/e1', collectionId: app.id });
+    const top = endpointService.create({ method: 'GET', path: '/top' });
+    const shown = (parentId: string | null) => collectionRepo.childOrder(parentId).map(i =>
+      i.type === 'collection' ? collectionService.getAll().find(c => c.id === i.id)!.name : endpointService.getAll().find(e => e.id === i.id)!.path);
+
+    expect(shown(app.id)).toEqual(['Chat', '/e1']);
+    expect(shown(null)).toEqual(['App', '/top']);
+
+    // An endpoint above a collection, inside and at the top level.
+    expect(collectionService.place({ type: 'endpoint', id: e1.id }, app.id, app.id, 0)).toBeNull();
+    expect(shown(app.id)).toEqual(['/e1', 'Chat']);
+    collectionService.place({ type: 'endpoint', id: top.id }, null, null, 0);
+    expect(shown(null)).toEqual(['/top', 'App']);
+
+    // A collection below an endpoint, and new children go last.
+    collectionService.place({ type: 'collection', id: chat.id }, null, null, 1);
+    expect(shown(null)).toEqual(['/top', 'Chat', 'App']);
+    endpointService.create({ method: 'GET', path: '/new' });
+    collectionService.create('Later');
+    expect(shown(null)).toEqual(['/top', 'Chat', 'App', '/new', 'Later']);
+
+    expect(collectionService.place({ type: 'collection', id: app.id }, null, app.id, 0)).toMatch(/itself/);
+  });
+
+  it('migrates old per-type orders to collections-first', () => {
+    const app = collectionService.create('App')!;
+    const e = endpointService.create({ method: 'GET', path: '/e', collectionId: app.id });
+    const c = collectionService.create('Sub', app.id)!;
+    // Old data: both started at 0, so they would now tie or interleave.
+    getDb().prepare('UPDATE collection_endpoints SET sort_order = 0').run();
+    getDb().prepare('UPDATE collections SET sort_order = 0 WHERE id = ?').run(c.id);
+    collectionRepo.normalizeCollectionsFirst();
+    expect(collectionRepo.childOrder(app.id)).toEqual([{ type: 'collection', id: c.id }, { type: 'endpoint', id: e.id }]);
+  });
+
+  it('inserts a moved endpoint at the given position', () => {
+    const a = collectionService.create('A')!;
+    const b = collectionService.create('B')!;
+    const [e1, e2, e3] = ['/1', '/2', '/3'].map(path => endpointService.create({ method: 'GET', path, collectionId: b.id }));
+    const moved = endpointService.create({ method: 'GET', path: '/m', collectionId: a.id });
+
+    collectionService.moveEndpoint(moved.id, a.id, b.id, 1);
+    expect(collectionService.getAll().find(c => c.id === b.id)?.endpointIds).toEqual([e1.id, moved.id, e2.id, e3.id]);
+    expect(collectionService.getAll().find(c => c.id === a.id)?.endpointIds).toEqual([]);
+
+    // Within the same collection it acts as a reorder.
+    collectionService.moveEndpoint(moved.id, b.id, b.id, 3);
+    expect(collectionService.getAll().find(c => c.id === b.id)?.endpointIds).toEqual([e1.id, e2.id, e3.id, moved.id]);
+  });
 });

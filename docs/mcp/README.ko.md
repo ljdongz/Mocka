@@ -182,7 +182,7 @@ Gemini에는 `mcp add` 명령이 없어 Mocka가 설정을 직접 작성합니�
 |------|------|---------------|
 | `list_collections` | collection과 endpoint ID 나열 | — |
 | `create_collection` | collection 생성(다른 collection 안에도 가능) | `name`, `parentId?` |
-| `move_collection` | collection을 하위 트리째 다른 collection 안이나 최상위로 이동 | `id`, `parentId` |
+| `move_collection` | collection을 하위 트리째 다른 collection 안이나 최상위의 원하는 위치로 이동 | `id`, `parentId`, `index?` |
 | `update_collection` | collection 이름 변경 | `id`, `name` |
 | `delete_collection` | collection과 **하위 collection, 그 안의 endpoint까지 삭제** | `id` |
 | `reorder_collections` | 같은 부모의 collection을 ID 순서로 재정렬 | `orderedIds` |

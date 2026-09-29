@@ -46,7 +46,7 @@ curl http://localhost:4650/api/users/42          # /api/users/:id 에 매칭
 
 ### Collections
 
-UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collection은 이름과 정렬된 endpoint 목록을 가지며, 다른 Collection을 안에 담을 수 있습니다 — 예: 앱마다 최상위 Collection 하나, 그 안에 기능별 Collection. 같은 레벨끼리는 끌어서 순서를 바꾸고, 다른 위치로 옮길 때는 행의 폴더 아이콘으로 endpoint나 Collection(안의 내용 전체 포함)을 이동합니다.
+UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collection은 이름과 정렬된 endpoint 목록을 가지며, 다른 Collection을 안에 담을 수 있습니다 — 예: 앱마다 최상위 Collection 하나, 그 안에 기능별 Collection. endpoint나 Collection(안의 내용 전체 포함)을 트리 어디로든 끌어서 옮길 수 있습니다: Collection 행의 가운데에 놓으면 그 안으로, 행의 위·아래 가장자리에 놓으면 그 앞·뒤로, 트리 아래 빈 공간에 놓으면 최상위로 옮깁니다. 놓일 자리는 파란 선으로 정확히 보입니다. 같은 부모 아래의 Collection과 endpoint는 하나의 순서를 공유하므로 endpoint를 Collection 위에 둘 수도 있습니다. Collection에 속하지 않은 endpoint는 최상위 Collection들과 같은 레벨에 나옵니다. 행의 폴더 아이콘으로 메뉴에서 옮길 수도 있습니다.
 
 > [!NOTE]
 > Collection은 **순수하게 정리용**입니다. 라우트 매칭이나 어떤 응답이 반환될지에 전혀 영향을 주지 않으므로 `method + path`는 앱을 가리지 않고 고유해야 합니다. Collection을 삭제하면 **하위 Collection과 그 안의 endpoint까지 모두 삭제됩니다** — 남기려면 먼저 다른 곳으로 옮기세요.

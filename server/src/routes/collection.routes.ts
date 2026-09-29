@@ -38,8 +38,8 @@ export async function collectionRoutes(app: FastifyInstance): Promise<void> {
 
   app.put('/api/collections/:id/move', async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { parentId } = req.body as { parentId: string | null };
-    const result = collectionService.move(id, parentId ?? null);
+    const { parentId, index } = req.body as { parentId: string | null; index?: number };
+    const result = collectionService.move(id, parentId ?? null, typeof index === 'number' ? index : undefined);
     if (typeof result === 'string') { reply.code(result.endsWith('not found') ? 404 : 400); return { error: result }; }
     return result;
   });
@@ -60,6 +60,18 @@ export async function collectionRoutes(app: FastifyInstance): Promise<void> {
   app.put('/api/collections/move-endpoint', async (req) => {
     const { endpointId, fromCollectionId, toCollectionId, sortOrder } = req.body as any;
     collectionService.moveEndpoint(endpointId, fromCollectionId, toCollectionId, sortOrder);
+    return { success: true };
+  });
+
+  // Drag and drop: put a collection or endpoint anywhere in the tree.
+  app.put('/api/collections/place', async (req, reply) => {
+    const { type, id, fromCollectionId, parentId, index } = req.body as {
+      type: 'collection' | 'endpoint'; id: string; fromCollectionId?: string | null; parentId: string | null; index?: number;
+    };
+    if (type !== 'collection' && type !== 'endpoint') { reply.code(400); return { error: 'type must be collection or endpoint' }; }
+    const error = collectionService.place({ type, id }, fromCollectionId ?? null, parentId ?? null,
+      typeof index === 'number' ? index : Number.MAX_SAFE_INTEGER);
+    if (error) { reply.code(error.endsWith('not found') ? 404 : 400); return { error }; }
     return { success: true };
   });
 

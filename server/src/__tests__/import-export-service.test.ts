@@ -7,6 +7,7 @@ import * as endpointRepo from '../repositories/endpoint.repo.js';
 import * as stompService from '../services/stomp.service.js';
 import * as stompRegistry from '../services/stomp-registry.js';
 import * as collectionService from '../services/collection.service.js';
+import * as collectionRepo from '../repositories/collection.repo.js';
 import { exportData, importData, EXPORT_VERSION } from '../services/import-export.service.js';
 
 beforeEach(() => {
@@ -352,6 +353,28 @@ describe('import-export service (post WebSocket removal)', () => {
       const onlyA = exportData([a.id]);
       expect(onlyA.collections.map(c => [c.name, c.parentIndex])).toEqual([['App A', undefined], ['Chat', 0]]);
       expect(onlyA.endpoints.map(e => e.path)).toEqual(['/a/rooms']);
+    });
+
+    it('round-trips endpoints placed above collections', () => {
+      const { a } = seedTree();
+      const top = endpointService.create({ method: 'GET', path: '/top' });
+      const inA = endpointService.create({ method: 'GET', path: '/in-a', collectionId: a.id });
+      collectionService.place({ type: 'endpoint', id: top.id }, null, null, 0);
+      collectionService.place({ type: 'endpoint', id: inA.id }, a.id, a.id, 0);
+
+      const names = () => {
+        const cols = collectionService.getAll(); const eps = endpointService.getAll();
+        const label = (i: collectionRepo.TreeItem) => i.type === 'collection' ? cols.find(c => c.id === i.id)!.name : eps.find(e => e.id === i.id)!.path;
+        const appA = cols.find(c => c.name === 'App A')!;
+        return { top: collectionRepo.childOrder(null).map(label), inA: collectionRepo.childOrder(appA.id).map(label) };
+      };
+      const before = names();
+      expect(before).toEqual({ top: ['/top', 'App A', 'App B'], inA: ['/in-a', 'Chat'] });
+
+      const data = exportData();
+      initDb(':memory:'); initSchema(); stompRegistry.reload([]);
+      importData(data, 'skip');
+      expect(names()).toEqual(before);
     });
 
     it('round-trips the tree, and dedups by name among siblings only', () => {

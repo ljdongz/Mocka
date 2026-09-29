@@ -25,25 +25,37 @@ function subtreeIds(all: Collection[], id: string): Set<string> {
 export function create(name: string, parentId: string | null = null): Collection | null {
   const all = collectionRepo.findAll();
   if (parentId && !all.some(c => c.id === parentId)) return null;
-  const siblings = all.filter(c => c.parentId === parentId).length;
-  const c = collectionRepo.create({ id: uuid(), name, sortOrder: siblings, parentId });
+  const c = collectionRepo.create({ id: uuid(), name, sortOrder: collectionRepo.nextOrder(parentId), parentId });
   emit('collection:created', c);
   return c;
 }
 
 /**
- * Move a collection under another (or to the top level with null), appended after its new siblings.
- * Returns an error string when the target is unknown or inside the collection itself.
+ * Put a collection or an endpoint at position `index` among the children of `parentId` (null = top
+ * level; collections and endpoints share one order there). An endpoint leaves `fromCollectionId`.
+ * Returns an error string when a collection is unknown or would land inside itself.
  */
-export function move(id: string, parentId: string | null): Collection | string {
+export function place(
+  item: collectionRepo.TreeItem, fromCollectionId: string | null, parentId: string | null, index: number,
+): string | null {
   const all = collectionRepo.findAll();
-  if (!all.some(c => c.id === id)) return 'Collection not found';
   if (parentId && !all.some(c => c.id === parentId)) return 'Target collection not found';
-  if (parentId && subtreeIds(all, id).has(parentId)) return 'Cannot move a collection into itself or its descendants';
-  const siblings = all.filter(c => c.parentId === parentId && c.id !== id).length;
-  const c = collectionRepo.setParent(id, parentId, siblings)!;
-  emit('collection:updated', c);
-  return c;
+  if (item.type === 'collection') {
+    if (!all.some(c => c.id === item.id)) return 'Collection not found';
+    if (parentId && subtreeIds(all, item.id).has(parentId)) return 'Cannot move a collection into itself or its descendants';
+  } else if (!endpointRepo.findById(item.id)) {
+    return 'Endpoint not found';
+  }
+  collectionRepo.placeItem(item, fromCollectionId, parentId, index);
+  if (item.type === 'collection') emit('collection:updated', collectionRepo.findById(item.id)!);
+  emit('collection:reordered', null);
+  return null;
+}
+
+/** Move a collection under another (or to the top level) at `index` among its new siblings (default: last). */
+export function move(id: string, parentId: string | null, index?: number): Collection | string {
+  const error = place({ type: 'collection', id }, null, parentId, index ?? Number.MAX_SAFE_INTEGER);
+  return error ?? collectionRepo.findById(id)!;
 }
 
 export function update(id: string, data: { name?: string }): Collection | null {
@@ -106,14 +118,11 @@ export function reorderEndpoints(collectionId: string, orderedEndpointIds: strin
 }
 
 export function moveEndpoint(endpointId: string, fromCollectionId: string | null, toCollectionId: string, sortOrder: number): void {
-  collectionRepo.moveEndpoint(endpointId, fromCollectionId, toCollectionId, sortOrder);
-  emit('collection:reordered', null);
+  place({ type: 'endpoint', id: endpointId }, fromCollectionId, toCollectionId, sortOrder);
 }
 
 export function addEndpoint(collectionId: string, endpointId: string): void {
-  const collection = collectionRepo.findById(collectionId);
-  const sortOrder = collection?.endpointIds?.length ?? 0;
-  collectionRepo.addEndpoint(collectionId, endpointId, sortOrder);
+  collectionRepo.addEndpoint(collectionId, endpointId, collectionRepo.nextOrder(collectionId));
 }
 
 export function removeEndpoint(collectionId: string, endpointId: string): void {

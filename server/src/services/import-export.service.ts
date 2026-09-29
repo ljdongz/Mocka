@@ -73,6 +73,8 @@ interface ExportEndpoint {
   sequenceMode?: 'off' | 'on' | 'sequential' | 'loop';
   sequencePresets?: ExportPreset[];
   activePresetIndex?: number;
+  /** v5: position among the top-level children (collections and endpoints) when outside every collection */
+  rootSortOrder?: number;
 }
 
 interface ExportVariant {
@@ -94,6 +96,8 @@ interface ExportCollection {
   endpointIndices: number[];
   /** v5: index of the enclosing collection in the collections array (always an earlier entry); absent at top level */
   parentIndex?: number;
+  /** v5: positions of endpointIndices among this collection's children, on the scale of child collections' sortOrder */
+  endpointSortOrders?: number[];
 }
 
 export type ConflictPolicy = 'overwrite' | 'skip' | 'merge';
@@ -143,6 +147,16 @@ export function exportData(collectionIds?: string[]): ExportData {
     collections = allCollections;
   }
 
+  // Positions within each parent's shared collection/endpoint order, so import can rebuild the interleaving.
+  const positionCache = new Map<string | null, Map<string, number>>();
+  const positionIn = (parentId: string | null, type: 'collection' | 'endpoint', id: string) => {
+    if (!positionCache.has(parentId)) {
+      positionCache.set(parentId, new Map(collectionRepo.childOrder(parentId).map((it, i) => [`${it.type}:${it.id}`, i])));
+    }
+    return positionCache.get(parentId)!.get(`${type}:${id}`) ?? 0;
+  };
+  const inSomeCollection = new Set(allCollections.flatMap(c => c.endpointIds ?? []));
+
   const endpointIndexMap = new Map<string, number>();
   const exportEndpoints: ExportEndpoint[] = endpoints.map((ep, idx) => {
     endpointIndexMap.set(ep.id, idx);
@@ -190,6 +204,7 @@ export function exportData(collectionIds?: string[]): ExportData {
         })),
       })),
       activePresetIndex: ep.sequencePresets?.findIndex(p => p.id === ep.activePresetId) ?? -1,
+      ...(inSomeCollection.has(ep.id) ? {} : { rootSortOrder: positionIn(null, 'endpoint', ep.id) }),
     };
   });
 
@@ -205,14 +220,16 @@ export function exportData(collectionIds?: string[]): ExportData {
   visit(null);
   const collectionIndexMap = new Map(ordered.map((c, i) => [c.id, i]));
 
-  const exportCollections: ExportCollection[] = ordered.map(c => ({
-    name: c.name,
-    sortOrder: c.sortOrder,
-    endpointIndices: (c.endpointIds ?? [])
-      .map(eid => endpointIndexMap.get(eid))
-      .filter((idx): idx is number => idx !== undefined),
-    ...(c.parentId && collectionIndexMap.has(c.parentId) ? { parentIndex: collectionIndexMap.get(c.parentId) } : {}),
-  }));
+  const exportCollections: ExportCollection[] = ordered.map(c => {
+    const members = (c.endpointIds ?? []).filter(eid => endpointIndexMap.has(eid));
+    return {
+      name: c.name,
+      sortOrder: positionIn(c.parentId ?? null, 'collection', c.id),
+      endpointIndices: members.map(eid => endpointIndexMap.get(eid)!),
+      endpointSortOrders: members.map(eid => positionIn(c.id, 'endpoint', eid)),
+      ...(c.parentId && collectionIndexMap.has(c.parentId) ? { parentIndex: collectionIndexMap.get(c.parentId) } : {}),
+    };
+  });
 
   return {
     version: EXPORT_VERSION,
@@ -242,6 +259,7 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
 
   withTransaction(() => {
     const importedEndpointIds = new Map<number, string>();
+    const createdEndpointIds = new Set<string>();
 
     for (let i = 0; i < data.endpoints.length; i++) {
       const importEp = data.endpoints[i];
@@ -317,6 +335,7 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
         } else {
           const newId = createEndpointFromImport(importEp);
           importedEndpointIds.set(i, newId);
+          createdEndpointIds.add(newId);
           result.created++;
         }
       } catch (e: any) {
@@ -327,6 +346,11 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
     // Import collections (deduplicated by name among siblings under the same parent)
     const importCollections: ExportCollection[] = Array.isArray(data.collections) ? data.collections : [];
     const importedCollectionIds = new Map<number, string>();
+    // Collections this import created: their children take the file's order values as they are.
+    const createdCollectionIds = new Set<string>();
+    // New top-level items, placed after the existing ones in the file's order once everything exists.
+    // Files without order values (pre-v5) keep the old look: collections first, then endpoints.
+    const newTopLevel: { item: collectionRepo.TreeItem; order: number }[] = [];
     for (const [colIndex, importCol] of importCollections.entries()) {
       try {
         const allCollections = collectionRepo.findAll();
@@ -339,27 +363,31 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
           for (const epIndex of importCol.endpointIndices ?? []) {
             const epId = importedEndpointIds.get(epIndex);
             if (epId && !collectionRepo.isEndpointLinked(existingCol.id, epId)) {
-              const maxSort = collectionRepo.getMaxSortOrder(existingCol.id);
-              collectionRepo.addEndpoint(existingCol.id, epId, maxSort + 1);
+              collectionRepo.addEndpoint(existingCol.id, epId, collectionRepo.nextOrder(existingCol.id));
             }
           }
           importedCollectionIds.set(colIndex, existingCol.id);
           result.collectionsSkipped++;
         } else {
           const colId = uuid();
+          const parentIsNew = parentId !== null && createdCollectionIds.has(parentId);
           collectionRepo.create({
             id: colId,
             name: existingCol ? `${importCol.name} (imported)` : importCol.name,
-            sortOrder: siblings.length,
+            sortOrder: parentIsNew ? importCol.sortOrder : collectionRepo.nextOrder(parentId),
             parentId,
           });
           importedCollectionIds.set(colIndex, colId);
+          createdCollectionIds.add(colId);
+          if (parentId === null) newTopLevel.push({ item: { type: 'collection', id: colId }, order: importCol.sortOrder ?? colIndex });
 
+          // Pre-v5 files carry no endpoint order: put endpoints after this collection's child collections.
+          const childCollections = importCollections.filter(x => x.parentIndex === colIndex).length;
           for (let sortIdx = 0; sortIdx < (importCol.endpointIndices ?? []).length; sortIdx++) {
             const epIndex = importCol.endpointIndices[sortIdx];
             const epId = importedEndpointIds.get(epIndex);
             if (epId) {
-              collectionRepo.addEndpoint(colId, epId, sortIdx);
+              collectionRepo.addEndpoint(colId, epId, importCol.endpointSortOrders?.[sortIdx] ?? childCollections + sortIdx);
             }
           }
           result.collectionsCreated++;
@@ -368,6 +396,16 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
         result.errors.push(`Collection ${importCol.name}: ${e.message}`);
       }
     }
+
+    // Endpoints this import created that ended up outside every collection.
+    const grouped = new Set(collectionRepo.findAll().flatMap(c => c.endpointIds ?? []));
+    for (const [i, epId] of importedEndpointIds.entries()) {
+      if (createdEndpointIds.has(epId) && !grouped.has(epId)) {
+        newTopLevel.push({ item: { type: 'endpoint', id: epId }, order: data.endpoints[i]?.rootSortOrder ?? 1e9 + i });
+      }
+    }
+    newTopLevel.sort((a, b) => a.order - b.order);
+    for (const { item } of newTopLevel) collectionRepo.placeItem(item, null, null, Number.MAX_SAFE_INTEGER);
   });
 
   routeRegistry.reload(endpointRepo.findAll());

@@ -13,6 +13,8 @@ export interface Endpoint {
   requestBodyRaw: string;
   createdAt: string;
   updatedAt: string;
+  /** Order among the top-level children (collections and endpoints) when outside every collection. */
+  rootSortOrder?: number;
   queryParams: QueryParam[];
   requestHeaders: RequestHeader[];
   responseVariants: ResponseVariant[];
@@ -85,6 +87,8 @@ export interface Collection {
   sortOrder: number;
   createdAt: string;
   endpointIds: string[];
+  /** Order values of endpointIds, on the same scale as the sortOrder of this collection's child collections. */
+  endpointSortOrders?: number[];
 }
 
 export interface RequestRecord {

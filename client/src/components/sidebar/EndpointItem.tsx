@@ -226,7 +226,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
                 !currentCollId ? 'text-accent-primary font-medium' : 'text-text-secondary',
               )}
             >
-              {t.endpointItem.uncollected}
+              {t.sidebar.topLevel}
             </div>
             {flattenTree(collections).map(({ collection: c, depth }) => (
               <div

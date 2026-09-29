@@ -182,12 +182,12 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 |------|-------------|------------|
 | `list_collections` | List collections and their endpoint IDs | — |
 | `create_collection` | Create a collection, optionally nested | `name`, `parentId?` |
-| `move_collection` | Move a collection (and its subtree) under another, or to top level | `id`, `parentId` |
+| `move_collection` | Move a collection (and its subtree) under another, or to top level, at a position | `id`, `parentId`, `index?` |
 | `update_collection` | Rename a collection | `id`, `name` |
 | `delete_collection` | Delete a collection, **its nested collections and all endpoints inside** | `id` |
 | `reorder_collections` | Reorder sibling collections by ordered ID list | `orderedIds` |
 | `reorder_collection_endpoints` | Reorder endpoints inside a collection | `collectionId`, `orderedEndpointIds` |
-| `move_endpoint` | Move an endpoint between collections | `endpointId`, `fromCollectionId`, `toCollectionId`, `sortOrder?` |
+| `move_endpoint` | Move an endpoint between collections, at a position among the target's children | `endpointId`, `fromCollectionId`, `toCollectionId`, `sortOrder?` |
 | `remove_endpoint_from_collection` | Ungroup without deleting | `collectionId`, `endpointId` |
 
 > [!WARNING]

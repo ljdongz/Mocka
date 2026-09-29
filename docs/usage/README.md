@@ -46,7 +46,7 @@ curl http://localhost:4650/api/users/42          # matches /api/users/:id
 
 ### Collections
 
-Named folders that group endpoints in the UI. A Collection has a name, an ordered list of endpoints, and can hold other Collections — e.g. one top-level Collection per app, with feature Collections inside. Drag to reorder siblings; use the folder icon on a row to move an endpoint or a Collection (with everything inside it) elsewhere in the tree.
+Named folders that group endpoints in the UI. A Collection has a name, an ordered list of endpoints, and can hold other Collections — e.g. one top-level Collection per app, with feature Collections inside. Drag an endpoint or a Collection (with everything inside it) anywhere in the tree: drop on the middle of a Collection row to put it inside, near a row's top or bottom edge to place it before or after, or in the empty space below the tree to move it to the top level. A blue line shows exactly where it will land. Collections and endpoints under the same parent share one order, so an endpoint can sit above a Collection; endpoints outside any Collection sit at the top level alongside the top-level Collections. The folder icon on a row does the same through a menu.
 
 > [!NOTE]
 > Collections are **purely organizational**. They never influence route matching or which response is returned, so `method + path` must still be unique across all apps. Deleting a Collection **also deletes its nested Collections and every endpoint inside them** — move an endpoint out first if you want to keep it.

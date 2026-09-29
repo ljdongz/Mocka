@@ -31,6 +31,8 @@ export interface Endpoint {
   requestBodyRaw: string;
   createdAt: string;
   updatedAt: string;
+  /** Position among the top-level children when outside every collection (shared scale with top-level collections). */
+  rootSortOrder?: number;
   queryParams?: QueryParam[];
   requestHeaders?: RequestHeader[];
   responseVariants?: ResponseVariant[];

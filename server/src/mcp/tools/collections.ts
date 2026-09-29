@@ -54,12 +54,13 @@ export function registerCollectionTools(server: McpServer) {
     {
       id: z.string().describe('Collection ID'),
       parentId: z.string().nullable().describe('New enclosing collection ID, or null for top level'),
+      index: z.number().int().min(0).optional().describe('Position among the new parent\'s children — collections and endpoints share one order — 0-based (default: last)'),
     },
-    async ({ id, parentId }) => {
+    async ({ id, parentId, index }) => {
       try {
         return toolResult(await mockaFetch(`/api/collections/${id}/move`, {
           method: 'PUT',
-          body: JSON.stringify({ parentId }),
+          body: JSON.stringify({ parentId, index }),
         }));
       } catch (e) { return toolError(e); }
     },
@@ -117,7 +118,7 @@ export function registerCollectionTools(server: McpServer) {
       endpointId: z.string().describe('Endpoint ID to move'),
       fromCollectionId: z.string().nullable().describe('Source collection ID (null if ungrouped)'),
       toCollectionId: z.string().describe('Destination collection ID'),
-      sortOrder: z.number().optional().describe('Position in destination collection (default: 0)'),
+      sortOrder: z.number().optional().describe('Position among the destination collection\'s children (its collections and endpoints share one order), 0-based (default: 0 = first)'),
     },
     async ({ endpointId, fromCollectionId, toCollectionId, sortOrder }) => {
       try {

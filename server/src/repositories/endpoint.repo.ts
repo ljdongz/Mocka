@@ -1,4 +1,5 @@
 import { getDb } from '../db/connection.js';
+import { nextOrder } from './collection.repo.js';
 import type { Endpoint, QueryParam, RequestHeader } from '../models/endpoint.js';
 import { rowToVariant } from './variant.repo.js';
 import { normalizePath } from '../models/route-path.js';
@@ -22,6 +23,7 @@ function rowToEndpoint(row: any): Endpoint {
     requestBodyRaw: row.request_body_raw,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    rootSortOrder: row.root_sort_order ?? 0,
   };
 }
 
@@ -49,7 +51,8 @@ function rowToHeader(row: any): RequestHeader {
 
 export function findAll(): Endpoint[] {
   const db = getDb();
-  const rows = db.prepare('SELECT * FROM endpoints ORDER BY created_at ASC').all();
+  // root_sort_order orders the endpoints shown at the top level; creation order breaks ties.
+  const rows = db.prepare('SELECT * FROM endpoints ORDER BY root_sort_order ASC, created_at ASC').all();
   return rows.map((row: any) => {
     const ep = rowToEndpoint(row);
     ep.queryParams = db.prepare('SELECT * FROM query_params WHERE endpoint_id = ? ORDER BY sort_order').all(ep.id).map(rowToParam);
@@ -75,9 +78,9 @@ export function findById(id: string): Endpoint | null {
 export function create(ep: Endpoint): Endpoint {
   const db = getDb();
   db.prepare(`
-    INSERT INTO endpoints (id, method, path, name, active_variant_id, active_preset_id, sequence_mode, is_enabled, request_body_content_type, request_body_raw)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(ep.id, ep.method, ep.path, ep.name ?? '', ep.activeVariantId, ep.activePresetId ?? null, ep.sequenceMode ?? 'off', ep.isEnabled ? 1 : 0, ep.requestBodyContentType, ep.requestBodyRaw);
+    INSERT INTO endpoints (id, method, path, name, active_variant_id, active_preset_id, sequence_mode, is_enabled, request_body_content_type, request_body_raw, root_sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(ep.id, ep.method, ep.path, ep.name ?? '', ep.activeVariantId, ep.activePresetId ?? null, ep.sequenceMode ?? 'off', ep.isEnabled ? 1 : 0, ep.requestBodyContentType, ep.requestBodyRaw, nextOrder(null));
   return findById(ep.id)!;
 }
 

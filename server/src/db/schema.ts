@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getDb } from './connection.js';
+import { normalizeCollectionsFirst } from '../repositories/collection.repo.js';
 
 export function initSchema(): void {
   const db = getDb();
@@ -340,10 +341,23 @@ export function initSchema(): void {
     db.exec("ALTER TABLE request_records ADD COLUMN session_id TEXT");
   }
 
+  // Migration: order of endpoints that sit at the top level (outside every collection)
+  const epCols = db.prepare("PRAGMA table_info(endpoints)").all() as { name: string }[];
+  if (!epCols.some(c => c.name === 'root_sort_order')) {
+    db.exec("ALTER TABLE endpoints ADD COLUMN root_sort_order INTEGER NOT NULL DEFAULT 0");
+  }
+
   // Migration: nested collections
   const collCols = db.prepare("PRAGMA table_info(collections)").all() as { name: string }[];
   if (!collCols.some(c => c.name === 'parent_id')) {
     db.exec("ALTER TABLE collections ADD COLUMN parent_id TEXT REFERENCES collections(id) ON DELETE CASCADE");
+  }
+
+  // Migration: collections and endpoints under one parent now share one order. Before, each kept its
+  // own 0..n and collections always showed first; renumber once so the tree looks the same.
+  if (!db.prepare("SELECT 1 FROM settings WHERE key = 'tree_shared_order'").get()) {
+    normalizeCollectionsFirst();
+    db.prepare("INSERT INTO settings (key, value) VALUES ('tree_shared_order', '1')").run();
   }
 
   // Indexes on foreign-key and hot-path columns (idempotent; created after all

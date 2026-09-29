@@ -8,12 +8,14 @@ interface CollectionStore {
   collections: Collection[];
   fetch: () => Promise<void>;
   create: (name: string, parentId?: string | null) => Promise<Collection>;
-  move: (id: string, parentId: string | null) => Promise<void>;
+  move: (id: string, parentId: string | null, index?: number) => Promise<void>;
   update: (id: string, data: { name?: string }) => Promise<void>;
   remove: (id: string) => Promise<void>;
   toggleExpanded: (id: string) => Promise<void>;
   moveEndpoint: (endpointId: string, from: string | null, to: string, sortOrder: number) => Promise<void>;
   removeEndpointFromCollection: (collectionId: string, endpointId: string) => Promise<void>;
+  /** Put a collection or endpoint at `index` among `parentId`'s children (collections and endpoints share one order). */
+  place: (type: 'collection' | 'endpoint', id: string, from: string | null, parentId: string | null, index: number) => Promise<void>;
   reorderCollections: (orderedIds: string[]) => Promise<void>;
   reorderEndpoints: (collectionId: string, orderedEndpointIds: string[]) => Promise<void>;
   replaceCollection: (c: Collection) => void;
@@ -38,8 +40,8 @@ export const useCollectionStore = create<CollectionStore>((set) => ({
     return c;
   },
 
-  move: async (id, parentId) => {
-    await collectionsApi.move(id, parentId);
+  move: async (id, parentId, index) => {
+    await collectionsApi.move(id, parentId, index);
     set({ collections: await collectionsApi.getAll() });
   },
 
@@ -79,6 +81,13 @@ export const useCollectionStore = create<CollectionStore>((set) => ({
   },
 
   // orderedIds are one parent's children; the tree reads order from sortOrder.
+  // Orders live on collections, memberships and (top level) endpoints, so both lists are re-read.
+  place: async (type, id, from, parentId, index) => {
+    await collectionsApi.place({ type, id, fromCollectionId: from, parentId, index });
+    const [collections] = await Promise.all([collectionsApi.getAll(), useEndpointStore.getState().fetch()]);
+    set({ collections });
+  },
+
   reorderCollections: async (orderedIds) => {
     set(s => ({
       collections: s.collections.map(c => {

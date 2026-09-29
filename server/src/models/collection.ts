@@ -7,4 +7,6 @@ export interface Collection {
   sortOrder: number;
   createdAt: string;
   endpointIds?: string[];
+  /** Order values of endpointIds, on the same scale as the sortOrder of this collection's child collections. */
+  endpointSortOrders?: number[];
 }
