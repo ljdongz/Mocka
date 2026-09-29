@@ -31,7 +31,7 @@ const triggerEnum = z.enum(['send', 'subscribe', 'manual']);
 const TEMPLATE_HINT =
   'Templates: {{$destCapture N}} (N-th * of the pattern, 1-based), {{$destSeg N}} (N-th destination segment, 0-based), ' +
   "{{$destination}}, {{$sessionId}}, {{$subscriptionId}}, {{$stompHeader 'x'}} (trigger frame header), {{$connectHeader 'x-client-type'}} (CONNECT header), " +
-  "plus Mocka's {{$body 'field'}}, {{$randomUUID}}, {{$isoTimestamp}}, {{$now 'yyyy.MM.dd HH:mm:ss'}} (formatted local time; + 14d shifts before formatting), {{ENV_VAR}} and {{$dataset}}.";
+  "plus Mocka's {{$body 'field'}}, {{$bodyJson 'field'}} (JSON literal with quotes — use unquoted to echo request text safely), {{$randomUUID}}, {{$isoTimestamp}}, {{$now 'yyyy.MM.dd HH:mm:ss'}} (formatted local time; + 14d shifts before formatting), {{ENV_VAR}} and {{$dataset}}.";
 
 const variantFields = {
   description: z.string().optional().describe('Label shown in the UI'),

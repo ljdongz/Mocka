@@ -241,12 +241,14 @@ curl http://localhost:4650/api/users \
 
 ```json
 {
-  "receivedName": "{{$body 'user.name'}}",
+  "receivedName": {{$bodyJson 'user.name'}},
   "authToken": "{{$headers 'authorization'}}",
   "searchQuery": "{{$queryParams 'q'}}",
   "userId": "{{$pathParams 'id'}}"
 }
 ```
+
+   요청의 텍스트를 되돌려줄 때는 `{{$bodyJson}}`을 바깥 따옴표 없이 씁니다 — 이스케이프된 JSON 리터럴을 내므로 요청에 개행·`"`가 있어도 응답이 깨지지 않습니다.
 
 7. **환경 변수**를 설정하여 다양한 구성(dev, staging, production)을 관리합니다. 응답 본문에서 `{{variableName}}` 문법으로 참조합니다.
 

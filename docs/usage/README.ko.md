@@ -130,11 +130,15 @@ UI에서 endpoint를 그룹으로 묶는 이름 있는 폴더입니다. Collecti
 | 헬퍼 | 반환 |
 |------|------|
 | `{{$body 'dot.path' 'default'}}` | JSON body의 중첩 값(객체는 JSON 문자열화) |
+| `{{$bodyJson 'dot.path' 'default'}}` | 같은 값을 **따옴표까지 포함한** JSON 리터럴로 출력 — 바깥 따옴표 없이 쓴다: `"text": {{$bodyJson 'payload.text'}}`. 문자열은 이스케이프(개행·`"`·`\`), 숫자·불리언·객체는 그대로, 경로가 없으면 `null` 또는 default를 그대로 출력(default는 JSON으로 적는다) |
 | `{{$queryParams 'key' 'default'}}` | 정확한 키의 query string 값 |
 | `{{$pathParams 'name' 'default'}}` | 캡처된 path parameter(`:name` / `{name}`) |
 | `{{$pathSegments 'index' 'default'}}` | 0-기반 숫자 인덱스 위치의 raw URL 세그먼트 |
 | `{{$headers 'Header-Name' 'default'}}` | request header(대소문자 무시) |
 | `{{$now 'yyyy.MM.dd HH:mm:ss'}}` | Mocka를 띄운 호스트의 로컬 시각을 형식대로 출력. 토큰 `yyyy` `yy` `MM` `dd` `HH` `mm` `ss` `SSS`, 나머지 문자는 그대로, `''`이면 ISO 8601. 오프셋은 형식을 입히기 **전에** 시각에 더한다 — `{{$now 'yyyy.MM.dd' + 14d}}`. 한 본문 안의 `$now`는 모두 같은 시각 |
+
+> [!IMPORTANT]
+> 요청의 **텍스트**를 응답에 되돌려줄 때는 `"{{$body}}"` 대신 `{{$bodyJson}}`을 쓴다. `$body`는 문자열을 가공 없이 넣으므로 요청에 개행·탭·`"`가 있으면 JSON이 깨지고, 역슬래시는 조용히 다른 값이 될 수 있다.
 
 `{{$media 'name'}}`도 같은 방식으로 인자를 받지만, 요청이 아니라 등록된 미디어 파일을 보고 자기 패스에서 해석됩니다 — [Media](#media--media-name) 참고.
 

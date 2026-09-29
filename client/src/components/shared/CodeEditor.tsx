@@ -42,6 +42,7 @@ const TEMPLATE_VARIABLES = [
 // or `+ 3h` / `- 7d` (s/m/h/d/w time shift on a Unix-seconds or ISO value).
 const TEMPLATE_HELPERS = [
   { name: '$body', description: "Request body field — {{$body 'field.path' 'default'}}, {{$body 'count' + 1}}" },
+  { name: '$bodyJson', description: "Request body field as a JSON literal, quotes included (escapes newlines/quotes; null if missing) — \"text\": {{$bodyJson 'payload.text'}}" },
   { name: '$queryParams', description: "Query parameter — {{$queryParams 'key' 'default'}}, {{$queryParams 'page' - 1}}" },
   { name: '$pathSegments', description: "URL path segment by index — {{$pathSegments '1'}}" },
   { name: '$pathParams', description: "Path parameter — {{$pathParams 'id'}}" },

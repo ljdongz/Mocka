@@ -51,6 +51,8 @@ export function registerVariantTools(server: McpServer) {
       statusCode: z.number().int().min(100).max(599).optional(),
       description: z.string().optional(),
       body: z.string().optional().describe("Response body (JSON string). Supports request-context helpers — {{$body 'field.path' 'default'}}, " +
+        "{{$bodyJson 'field.path'}} (the value as a complete JSON literal, quotes included — use it unquoted, e.g. \"text\": {{$bodyJson 'payload.text'}}, " +
+        "whenever request text is echoed, so newlines or quotes cannot break the body; null when missing), " +
         "{{$queryParams 'key'}}, {{$pathParams 'id'}}, {{$headers 'name'}}, {{$pathSegments '0'}} — dynamic variables " +
         "like {{$randomUUID}} / {{$isoTimestamp}}, and an offset suffix on either for arithmetic or relative time: " +
         "{{$body 'count' + 1}}, {{$isoTimestamp + 3h}}, {{$timestamp - 7d}} (units s/m/h/d/w). " +

@@ -241,12 +241,14 @@ curl http://localhost:4650/api/users \
 
 ```json
 {
-  "receivedName": "{{$body 'user.name'}}",
+  "receivedName": {{$bodyJson 'user.name'}},
   "authToken": "{{$headers 'authorization'}}",
   "searchQuery": "{{$queryParams 'q'}}",
   "userId": "{{$pathParams 'id'}}"
 }
 ```
+
+   Echo request text with `{{$bodyJson}}` (no surrounding quotes) — it emits an escaped JSON literal, so a newline or `"` in the request cannot break the response.
 
 7. **Set up environments** to manage variables across different configurations (dev, staging, production). Use `{{variableName}}` in response bodies to reference them.
 

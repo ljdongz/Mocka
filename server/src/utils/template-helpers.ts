@@ -42,6 +42,13 @@ const HELPERS: Record<string, HelperFn> = {
     return val !== undefined ? stringify(val) : (defaultValue ?? '');
   },
 
+  // A complete JSON literal, quotes included: strings come back escaped, so a newline or `"` in the
+  // request cannot break the body. Missing → the default verbatim (write it as JSON), else `null`.
+  '$bodyJson': (ctx, arg, defaultValue) => {
+    const val = getNestedValue(ctx.body, arg);
+    return val !== undefined ? JSON.stringify(val) : (defaultValue ?? 'null');
+  },
+
   '$queryParams': (ctx, arg, defaultValue) => {
     const val = ctx.queryParams[arg];
     return val !== undefined ? val : (defaultValue ?? '');

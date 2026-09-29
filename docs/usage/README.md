@@ -130,11 +130,15 @@ Response bodies are templates resolved at request time in **five fixed passes**:
 | Helper | Returns |
 |--------|---------|
 | `{{$body 'dot.path' 'default'}}` | Nested value from the JSON body (objects are JSON-stringified) |
+| `{{$bodyJson 'dot.path' 'default'}}` | The same value as a complete JSON literal, **quotes included** — write it without surrounding quotes: `"text": {{$bodyJson 'payload.text'}}`. Strings are escaped (newlines, `"`, `\`), numbers / booleans / objects pass through, a missing path gives `null` or the default verbatim (write the default as JSON) |
 | `{{$queryParams 'key' 'default'}}` | Query string param by exact key |
 | `{{$pathParams 'name' 'default'}}` | Captured path parameter (from `:name` / `{name}`) |
 | `{{$pathSegments 'index' 'default'}}` | Raw URL segment at a 0-based numeric index |
 | `{{$headers 'Header-Name' 'default'}}` | Request header (case-insensitive) |
 | `{{$now 'yyyy.MM.dd HH:mm:ss'}}` | Current time in the host's local time zone, formatted. Tokens `yyyy` `yy` `MM` `dd` `HH` `mm` `ss` `SSS`; other characters are literal; `''` gives ISO 8601. An offset shifts the clock **before** formatting — `{{$now 'yyyy.MM.dd' + 14d}}`. All `$now` in one body share the same instant |
+
+> [!IMPORTANT]
+> Echoing request **text** into a response? Use `{{$bodyJson}}`, not `"{{$body}}"`. `$body` inserts strings raw, so a newline, tab or `"` in the request produces invalid JSON, and a backslash can silently change the value.
 
 `{{$media 'name'}}` takes an argument the same way but resolves in its own pass, against the registered media files rather than the request — see [Media](#media--media-name).
 

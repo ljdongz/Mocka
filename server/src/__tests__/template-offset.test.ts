@@ -37,6 +37,26 @@ describe('offset suffix on request-context helpers', () => {
   });
 });
 
+describe('$bodyJson helper', () => {
+  it('emits strings as escaped JSON literals, so the body stays parseable', () => {
+    const text = '첫 줄\n둘째 줄\t"인용" a\\b \\x';
+    const ctx = ctxWith({ body: { payload: { text } } });
+    expect(JSON.parse(resolveHelpers('{"text": {{$bodyJson \'payload.text\'}}}', ctx))).toEqual({ text });
+  });
+
+  it('passes numbers, booleans, null and objects through as JSON', () => {
+    const ctx = ctxWith({ body: { n: 3, b: false, z: null, o: { a: [1] } } });
+    const out = resolveHelpers('[{{$bodyJson \'n\'}}, {{$bodyJson \'b\'}}, {{$bodyJson \'z\'}}, {{$bodyJson \'o\'}}, {{$bodyJson \'n\' + 1}}]', ctx);
+    expect(JSON.parse(out)).toEqual([3, false, null, { a: [1] }, 4]);
+  });
+
+  it('gives null for a missing path, or the default verbatim', () => {
+    const ctx = ctxWith({});
+    expect(resolveHelpers("{{$bodyJson 'missing'}}", ctx)).toBe('null');
+    expect(resolveHelpers("{{$bodyJson 'missing' '[]'}}", ctx)).toBe('[]');
+  });
+});
+
 describe('offset suffix on dynamic variables', () => {
   it('shifts $isoTimestamp forward', () => {
     const out = resolveVariables('{{$isoTimestamp + 3h}}');
