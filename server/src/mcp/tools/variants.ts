@@ -54,6 +54,8 @@ export function registerVariantTools(server: McpServer) {
         "{{$queryParams 'key'}}, {{$pathParams 'id'}}, {{$headers 'name'}}, {{$pathSegments '0'}} — dynamic variables " +
         "like {{$randomUUID}} / {{$isoTimestamp}}, and an offset suffix on either for arithmetic or relative time: " +
         "{{$body 'count' + 1}}, {{$isoTimestamp + 3h}}, {{$timestamp - 7d}} (units s/m/h/d/w). " +
+        "{{$now 'yyyy.MM.dd HH:mm:ss'}} formats the current local time (tokens yyyy yy MM dd HH mm ss SSS; '' = ISO); " +
+        "its offset shifts the clock before formatting: {{$now 'yyyy.MM.dd' + 14d}}. " +
         "{{$media 'name'}} becomes the URL of a registered media file, served by the mock server itself — use it " +
         "wherever a response hands out an image, video or file address (see register_media)"),
       headers: z.string().optional().describe('Response headers as JSON string (e.g. {"Content-Type":"application/json"})'),

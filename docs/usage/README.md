@@ -134,6 +134,7 @@ Response bodies are templates resolved at request time in **five fixed passes**:
 | `{{$pathParams 'name' 'default'}}` | Captured path parameter (from `:name` / `{name}`) |
 | `{{$pathSegments 'index' 'default'}}` | Raw URL segment at a 0-based numeric index |
 | `{{$headers 'Header-Name' 'default'}}` | Request header (case-insensitive) |
+| `{{$now 'yyyy.MM.dd HH:mm:ss'}}` | Current time in the host's local time zone, formatted. Tokens `yyyy` `yy` `MM` `dd` `HH` `mm` `ss` `SSS`; other characters are literal; `''` gives ISO 8601. An offset shifts the clock **before** formatting — `{{$now 'yyyy.MM.dd' + 14d}}`. All `$now` in one body share the same instant |
 
 `{{$media 'name'}}` takes an argument the same way but resolves in its own pass, against the registered media files rather than the request — see [Media](#media--media-name).
 

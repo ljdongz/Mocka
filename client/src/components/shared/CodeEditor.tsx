@@ -45,6 +45,7 @@ const TEMPLATE_HELPERS = [
   { name: '$queryParams', description: "Query parameter — {{$queryParams 'key' 'default'}}, {{$queryParams 'page' - 1}}" },
   { name: '$pathSegments', description: "URL path segment by index — {{$pathSegments '1'}}" },
   { name: '$pathParams', description: "Path parameter — {{$pathParams 'id'}}" },
+  { name: '$now', description: "Current local time, formatted — {{$now 'yyyy.MM.dd HH:mm:ss'}}, {{$now 'yyMMddHHmmssSSS'}}, {{$now 'yyyy.MM.dd' + 14d}}" },
   { name: '$headers', description: "Request header — {{$headers 'authorization'}}" },
   { name: '$media', description: "URL of a registered media file — {{$media 'chat-clip'}}" },
   // STOMP (Mocka-stomp message variants)

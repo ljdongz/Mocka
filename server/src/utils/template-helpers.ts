@@ -66,6 +66,20 @@ const HELPERS: Record<string, HelperFn> = {
   },
 };
 
+/**
+ * Format a date in the host's local time. Tokens: yyyy yy MM dd HH mm ss SSS; anything else is literal.
+ * Alternation lists yyyy before yy so a four-digit year never becomes "2626".
+ */
+export function formatDate(d: Date, pattern: string): string {
+  const p = (n: number, w = 2) => String(n).padStart(w, '0');
+  const tokens: Record<string, string> = {
+    yyyy: String(d.getFullYear()), yy: p(d.getFullYear() % 100), MM: p(d.getMonth() + 1),
+    dd: p(d.getDate()), HH: p(d.getHours()), mm: p(d.getMinutes()),
+    ss: p(d.getSeconds()), SSS: p(d.getMilliseconds(), 3),
+  };
+  return pattern.replace(/yyyy|yy|MM|dd|HH|mm|ss|SSS/g, (t) => tokens[t]);
+}
+
 const UNIT_SECONDS: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400, w: 604800 };
 
 /**
@@ -105,12 +119,22 @@ const HELPER_REGEX = /\{\{\s*(\$\w+)\s+['"]([^'"]*)['"]\s*(?:['"]([^'"]*)['"]\s*
 /**
  * Resolve all {{$helper 'arg' 'default'}} placeholders using request context,
  * applying any trailing offset suffix to the result.
+ * {{$now 'format'}} shifts the clock *before* formatting (applyOffset would turn the result into ISO),
+ * and every $now in one call shares one Date so an envelope and its payload never differ by a millisecond.
  */
 export function resolveHelpers(template: string, ctx: RequestContext): string {
+  const now = new Date();
   return template.replace(HELPER_REGEX, (
     _fullMatch, helperName: string, arg: string, defaultValue?: string,
     sign?: string, amount?: string, unit?: string,
   ) => {
+    if (helperName === '$now') {
+      const seconds = sign && amount !== undefined
+        ? (sign === '-' ? -1 : 1) * Number(amount) * UNIT_SECONDS[unit ?? 's']
+        : 0;
+      const d = new Date(now.getTime() + seconds * 1000);
+      return arg === '' ? d.toISOString() : formatDate(d, arg);
+    }
     const helper = HELPERS[helperName];
     if (!helper) return _fullMatch;
     return applyOffset(helper(ctx, arg, defaultValue), sign, amount, unit);
