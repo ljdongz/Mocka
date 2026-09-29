@@ -272,6 +272,18 @@ Precedence: header → `variant.delay` → global.
 > [!WARNING]
 > Seconds, **not milliseconds** — a common surprise. And `variant.delay === 0` **beats** the global default (only `null` falls through to global), so a variant set to `0` disables global delay for itself.
 
+### Uploads — throttle, size cap, mid-upload drop
+
+The mock server sits on the same machine as the simulator, so an upload normally finishes in one tick and progress UI never shows. These apply to every request body (JSON, multipart, …):
+
+| Control | Where | Effect |
+|---------|-------|--------|
+| Upload rate (KB/s) | settings `uploadRateKbps` (default `0` = unlimited), or header `x-mock-upload-rate-kbps: 300` (wins) | The body is **read** at that rate, so the client can only send that fast — its progress callback fires in steps. 300 KB/s × 3 MB ≈ 10 s |
+| Max body (MB) | settings `maxBodyMB` (default `5`) | Larger bodies get **413** naming the size and the limit — up front when `Content-Length` is sent |
+| Drop mid-upload | header `x-mock-upload-abort-percent: 50` | Closes the connection once that share of `Content-Length` has arrived, for failed-upload UI |
+
+Both settings take effect on the next request; no restart. `multipart/form-data` bodies are counted and discarded — History records `{"_multipart": {"bytes": …, "contentType": …}}`, so a large cap costs no memory. The response delay above starts only after the whole body is read.
+
 ### Header Overrides (`x-mock-*` request headers)
 
 Three special request headers let the **caller** pick the response without changing server config — ideal for client-driven test scenarios:

@@ -13,6 +13,8 @@ export function getAll(): Settings {
     adminPort: parseInt(raw.adminPort, 10) || 4649,
     port: parseInt(raw.port, 10) || 4650,
     responseDelay: parseInt(raw.responseDelay, 10) || 0,
+    uploadRateKbps: Number(raw.uploadRateKbps) || 0,
+    maxBodyMB: Number(raw.maxBodyMb) || 5,
     autoSaveEndpoints: raw.autoSaveEndpoints !== 'false',
     historyToast: raw.historyToast !== 'false',
     theme: (raw.theme === 'light' ? 'light' : 'dark') as 'dark' | 'light',
@@ -32,6 +34,8 @@ export function setAll(settings: Partial<Settings>): Settings {
     if (settings.adminPort !== undefined) update.run('admin_port', String(settings.adminPort));
     if (settings.port !== undefined) update.run('port', String(settings.port));
     if (settings.responseDelay !== undefined) update.run('response_delay', String(settings.responseDelay));
+    if (settings.uploadRateKbps !== undefined) update.run('upload_rate_kbps', String(settings.uploadRateKbps));
+    if (settings.maxBodyMB !== undefined) update.run('max_body_mb', String(settings.maxBodyMB));
     if (settings.autoSaveEndpoints !== undefined) update.run('auto_save_endpoints', String(settings.autoSaveEndpoints));
     if (settings.historyToast !== undefined) update.run('history_toast', String(settings.historyToast));
     if (settings.theme !== undefined) update.run('theme', settings.theme);

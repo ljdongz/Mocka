@@ -20,6 +20,8 @@ export function SettingsModal() {
 
   const [port, setPort] = useState(String(settings.port));
   const [delay, setDelay] = useState(String(settings.responseDelay));
+  const [uploadRate, setUploadRate] = useState(String(settings.uploadRateKbps));
+  const [maxBody, setMaxBody] = useState(String(settings.maxBodyMB));
   const [historyToast, setHistoryToast] = useState(settings.historyToast);
   const [theme, setTheme] = useState<Theme>(settings.theme);
   const [language, setLanguage] = useState<Language>(settings.language);
@@ -27,6 +29,8 @@ export function SettingsModal() {
   useEffect(() => {
     setPort(String(settings.port));
     setDelay(String(settings.responseDelay));
+    setUploadRate(String(settings.uploadRateKbps));
+    setMaxBody(String(settings.maxBodyMB));
     setHistoryToast(settings.historyToast);
     setTheme(settings.theme);
     setLanguage(settings.language);
@@ -35,7 +39,10 @@ export function SettingsModal() {
   const handleSave = async () => {
     const newPort = parseInt(port, 10) || 4650;
     const newDelay = parseInt(delay, 10) || 0;
-    await updateSettings({ port: newPort, responseDelay: newDelay, historyToast, theme, language });
+    await updateSettings({
+      port: newPort, responseDelay: newDelay, historyToast, theme, language,
+      uploadRateKbps: Number(uploadRate) || 0, maxBodyMB: Number(maxBody) || 5,
+    });
     if (newPort !== settings.port) {
       await restartServer();
     }
@@ -117,6 +124,28 @@ export function SettingsModal() {
             onChange={e => setDelay(e.target.value)}
             className="w-full rounded border border-border-secondary bg-bg-input px-3 py-2 text-sm text-text-primary font-mono outline-none focus:border-accent-primary"
           />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm text-text-tertiary mb-1.5">{t.settings.uploadRate}</label>
+          <input
+            type="number" style={{ MozAppearance: 'textfield' }}
+            value={uploadRate}
+            onChange={e => setUploadRate(e.target.value)}
+            className="w-full rounded border border-border-secondary bg-bg-input px-3 py-2 text-sm text-text-primary font-mono outline-none focus:border-accent-primary"
+          />
+          <p className="mt-1 text-xs text-text-muted">{t.settings.uploadRateHelp}</p>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm text-text-tertiary mb-1.5">{t.settings.maxBodySize}</label>
+          <input
+            type="number" style={{ MozAppearance: 'textfield' }}
+            value={maxBody}
+            onChange={e => setMaxBody(e.target.value)}
+            className="w-full rounded border border-border-secondary bg-bg-input px-3 py-2 text-sm text-text-primary font-mono outline-none focus:border-accent-primary"
+          />
+          <p className="mt-1 text-xs text-text-muted">{t.settings.maxBodySizeHelp}</p>
         </div>
 
         <div className="mb-6 flex items-center justify-between">

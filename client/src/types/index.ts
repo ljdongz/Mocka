@@ -110,6 +110,8 @@ export interface Settings {
   responseDelay: number;
   autoSaveEndpoints: boolean;
   historyToast: boolean;
+  uploadRateKbps: number;
+  maxBodyMB: number;
   theme: Theme;
   language: Language;
 }
