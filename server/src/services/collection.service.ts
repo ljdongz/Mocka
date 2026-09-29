@@ -10,10 +10,39 @@ export function getAll(): Collection[] {
   return collectionRepo.findAll();
 }
 
-export function create(name: string): Collection {
-  const existing = collectionRepo.findAll();
-  const c = collectionRepo.create({ id: uuid(), name, sortOrder: existing.length });
+/** Ids of `id` and every collection nested under it. */
+function subtreeIds(all: Collection[], id: string): Set<string> {
+  const ids = new Set([id]);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const c of all) {
+      if (c.parentId && ids.has(c.parentId) && !ids.has(c.id)) { ids.add(c.id); grew = true; }
+    }
+  }
+  return ids;
+}
+
+export function create(name: string, parentId: string | null = null): Collection | null {
+  const all = collectionRepo.findAll();
+  if (parentId && !all.some(c => c.id === parentId)) return null;
+  const siblings = all.filter(c => c.parentId === parentId).length;
+  const c = collectionRepo.create({ id: uuid(), name, sortOrder: siblings, parentId });
   emit('collection:created', c);
+  return c;
+}
+
+/**
+ * Move a collection under another (or to the top level with null), appended after its new siblings.
+ * Returns an error string when the target is unknown or inside the collection itself.
+ */
+export function move(id: string, parentId: string | null): Collection | string {
+  const all = collectionRepo.findAll();
+  if (!all.some(c => c.id === id)) return 'Collection not found';
+  if (parentId && !all.some(c => c.id === parentId)) return 'Target collection not found';
+  if (parentId && subtreeIds(all, id).has(parentId)) return 'Cannot move a collection into itself or its descendants';
+  const siblings = all.filter(c => c.parentId === parentId && c.id !== id).length;
+  const c = collectionRepo.setParent(id, parentId, siblings)!;
+  emit('collection:updated', c);
   return c;
 }
 
@@ -32,15 +61,17 @@ export function update(id: string, data: { name?: string }): Collection | null {
  * this one, and reaching back would make the cycle load-bearing.
  */
 export function remove(id: string): boolean {
-  const collection = collectionRepo.findById(id);
-  if (!collection) return false;
+  const all = collectionRepo.findAll();
+  if (!all.some(c => c.id === id)) return false;
+  const subtree = subtreeIds(all, id);
 
   // collection_endpoints is keyed on (collection, endpoint), so an endpoint can
   // sit in more than one collection — move_endpoint with a null source leaves it
-  // in both. Only take the ones this collection alone holds; deleting a shared
-  // endpoint would empty a slot another collection still lists.
-  const ownedEndpointIds = (collection.endpointIds ?? []).filter(endpointId =>
-    collectionRepo.findMembershipsByEndpointId(endpointId).every(m => m.collectionId === id),
+  // in both. Only take the ones this subtree alone holds; deleting a shared
+  // endpoint would empty a slot a collection outside it still lists.
+  const held = new Set(all.filter(c => subtree.has(c.id)).flatMap(c => c.endpointIds ?? []));
+  const ownedEndpointIds = [...held].filter(endpointId =>
+    collectionRepo.findMembershipsByEndpointId(endpointId).every(m => subtree.has(m.collectionId)),
   );
 
   // Tear down in-memory state before the rows go, while the paths are still readable.
@@ -53,7 +84,7 @@ export function remove(id: string): boolean {
   const ok = collectionRepo.removeWithEndpoints(id, ownedEndpointIds);
   if (ok) {
     for (const endpointId of ownedEndpointIds) emit('endpoint:deleted', { id: endpointId });
-    emit('collection:deleted', { id });
+    for (const collectionId of subtree) emit('collection:deleted', { id: collectionId });
   }
   return ok;
 }

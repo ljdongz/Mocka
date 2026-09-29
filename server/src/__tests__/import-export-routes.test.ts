@@ -26,7 +26,7 @@ describe('export/import routes carry STOMP', () => {
     const exported = await app.inject({ method: 'POST', url: '/api/export', payload: {} });
     expect(exported.statusCode).toBe(200);
     const data = exported.json();
-    expect(data.version).toBe(4);
+    expect(data.version).toBe(5);
     expect(data.stompConnections).toHaveLength(1);
 
     // wipe, then import the very same document back through the route

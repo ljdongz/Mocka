@@ -7,8 +7,9 @@ export async function collectionRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post('/api/collections', async (req, reply) => {
-    const { name } = req.body as { name: string };
-    const c = collectionService.create(name);
+    const { name, parentId } = req.body as { name: string; parentId?: string | null };
+    const c = collectionService.create(name, parentId ?? null);
+    if (!c) { reply.code(404); return { error: 'Parent collection not found' }; }
     reply.code(201);
     return c;
   });
@@ -33,6 +34,14 @@ export async function collectionRoutes(app: FastifyInstance): Promise<void> {
     const c = collectionService.toggleExpanded(id);
     if (!c) { reply.code(404); return { error: 'Not found' }; }
     return c;
+  });
+
+  app.put('/api/collections/:id/move', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { parentId } = req.body as { parentId: string | null };
+    const result = collectionService.move(id, parentId ?? null);
+    if (typeof result === 'string') { reply.code(result.endsWith('not found') ? 404 : 400); return { error: result }; }
+    return result;
   });
 
   app.put('/api/collections/reorder', async (req) => {

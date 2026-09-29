@@ -5,6 +5,7 @@ function rowToCollection(row: any): Collection {
   return {
     id: row.id,
     name: row.name,
+    parentId: row.parent_id ?? null,
     isExpanded: !!row.is_expanded,
     sortOrder: row.sort_order,
     createdAt: row.created_at,
@@ -31,10 +32,15 @@ export function findById(id: string): Collection | null {
   return c;
 }
 
-export function create(c: { id: string; name: string; sortOrder: number }): Collection {
+export function create(c: { id: string; name: string; sortOrder: number; parentId?: string | null }): Collection {
   const db = getDb();
-  db.prepare('INSERT INTO collections (id, name, sort_order) VALUES (?, ?, ?)').run(c.id, c.name, c.sortOrder);
+  db.prepare('INSERT INTO collections (id, name, sort_order, parent_id) VALUES (?, ?, ?, ?)').run(c.id, c.name, c.sortOrder, c.parentId ?? null);
   return findById(c.id)!;
+}
+
+export function setParent(id: string, parentId: string | null, sortOrder: number): Collection | null {
+  getDb().prepare('UPDATE collections SET parent_id = ?, sort_order = ? WHERE id = ?').run(parentId, sortOrder, id);
+  return findById(id);
 }
 
 export function update(id: string, data: { name?: string }): Collection | null {
@@ -46,8 +52,8 @@ export function update(id: string, data: { name?: string }): Collection | null {
 }
 
 /**
- * Delete a collection together with the endpoints it holds, in one transaction.
- * Variants, params, headers and presets follow via ON DELETE CASCADE.
+ * Delete a collection together with the endpoints its subtree holds, in one transaction.
+ * Child collections, variants, params, headers and presets follow via ON DELETE CASCADE.
  */
 export function removeWithEndpoints(id: string, endpointIds: string[]): boolean {
   const db = getDb();

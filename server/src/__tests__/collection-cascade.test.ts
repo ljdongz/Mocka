@@ -7,8 +7,8 @@ import * as endpointService from '../services/endpoint.service.js';
 import * as routeRegistry from '../services/route-registry.js';
 import * as collectionRepo from '../repositories/collection.repo.js';
 
-function seedCollectionWithEndpoints(name: string, paths: string[]) {
-  const collection = collectionService.create(name);
+function seedCollectionWithEndpoints(name: string, paths: string[], parentId: string | null = null) {
+  const collection = collectionService.create(name, parentId)!;
   const endpoints = paths.map(path =>
     endpointService.create({ method: 'GET', path, collectionId: collection.id }),
   );
@@ -88,7 +88,7 @@ describe('deleting a collection', () => {
 
   it('spares an endpoint that another collection also holds', () => {
     const { collection, endpoints } = seedCollectionWithEndpoints('A', ['/shared']);
-    const other = collectionService.create('B');
+    const other = collectionService.create('B')!;
     // move_endpoint with a null source adds a second membership without dropping
     // the first, so the endpoint legitimately belongs to both collections.
     collectionRepo.moveEndpoint(endpoints[0].id, null, other.id, 0);
@@ -102,5 +102,56 @@ describe('deleting a collection', () => {
 
   it('returns false for an unknown collection', () => {
     expect(collectionService.remove('does-not-exist')).toBe(false);
+  });
+
+  it('deletes nested collections and every endpoint in the subtree', () => {
+    const { collection: app } = seedCollectionWithEndpoints('App A', ['/a']);
+    const { collection: chat } = seedCollectionWithEndpoints('Chat', ['/a/chat'], app.id);
+    seedCollectionWithEndpoints('Rooms', ['/a/chat/rooms'], chat.id);
+    seedCollectionWithEndpoints('App B', ['/b']);
+
+    expect(collectionService.remove(app.id)).toBe(true);
+
+    expect(collectionService.getAll().map(c => c.name)).toEqual(['App B']);
+    expect(endpointService.getAll().map(e => e.path)).toEqual(['/b']);
+    expect(routeRegistry.match('GET', '/a/chat/rooms')).toBeUndefined();
+  });
+
+  it('spares an endpoint also held outside the subtree', () => {
+    const { collection: app } = seedCollectionWithEndpoints('App A', []);
+    const { endpoints } = seedCollectionWithEndpoints('Chat', ['/shared'], app.id);
+    const other = collectionService.create('App B')!;
+    collectionRepo.moveEndpoint(endpoints[0].id, null, other.id, 0);
+
+    collectionService.remove(app.id);
+
+    expect(endpointService.getAll().map(e => e.path)).toEqual(['/shared']);
+  });
+});
+
+describe('nested collections', () => {
+  beforeEach(() => {
+    initDb(':memory:');
+    initSchema();
+    routeRegistry.reload([]);
+  });
+
+  it('creates under a parent, ordering among siblings only', () => {
+    const app = collectionService.create('App A')!;
+    collectionService.create('App B');
+    const chat = collectionService.create('Chat', app.id)!;
+    expect(chat).toMatchObject({ parentId: app.id, sortOrder: 0 });
+    expect(collectionService.create('Orphan', 'nope')).toBeNull();
+  });
+
+  it('moves between parents and refuses cycles', () => {
+    const a = collectionService.create('A')!;
+    const b = collectionService.create('B')!;
+    const child = collectionService.create('Child', a.id)!;
+
+    expect(collectionService.move(child.id, b.id)).toMatchObject({ parentId: b.id, sortOrder: 0 });
+    expect(collectionService.move(b.id, child.id)).toBe('Cannot move a collection into itself or its descendants');
+    expect(collectionService.move(b.id, b.id)).toBe('Cannot move a collection into itself or its descendants');
+    expect(collectionService.move(child.id, null)).toMatchObject({ parentId: null, sortOrder: 2 });
   });
 });

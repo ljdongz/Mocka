@@ -340,6 +340,12 @@ export function initSchema(): void {
     db.exec("ALTER TABLE request_records ADD COLUMN session_id TEXT");
   }
 
+  // Migration: nested collections
+  const collCols = db.prepare("PRAGMA table_info(collections)").all() as { name: string }[];
+  if (!collCols.some(c => c.name === 'parent_id')) {
+    db.exec("ALTER TABLE collections ADD COLUMN parent_id TEXT REFERENCES collections(id) ON DELETE CASCADE");
+  }
+
   // Indexes on foreign-key and hot-path columns (idempotent; created after all
   // migrations so ALTER-added columns such as preset_id exist).
   db.exec(`
@@ -352,6 +358,7 @@ export function initSchema(): void {
     CREATE INDEX IF NOT EXISTS idx_response_variants_preset ON response_variants(preset_id);
     CREATE INDEX IF NOT EXISTS idx_query_params_endpoint ON query_params(endpoint_id);
     CREATE INDEX IF NOT EXISTS idx_request_headers_endpoint ON request_headers(endpoint_id);
+    CREATE INDEX IF NOT EXISTS idx_collections_parent ON collections(parent_id);
     CREATE INDEX IF NOT EXISTS idx_collection_endpoints_endpoint ON collection_endpoints(endpoint_id);
     CREATE INDEX IF NOT EXISTS idx_sequence_presets_endpoint ON sequence_presets(endpoint_id);
     CREATE INDEX IF NOT EXISTS idx_request_records_timestamp ON request_records(timestamp);

@@ -3,6 +3,7 @@ import { useEndpointStore } from '../../stores/endpoint.store';
 import { useCollectionStore } from '../../stores/collection.store';
 import { useTranslation, fmt } from '../../i18n';
 import { ModalOverlay } from '../shared/ModalOverlay';
+import { ancestorIds, subtreeIds } from '../../utils/collection-tree';
 
 interface Props {
   open: boolean;
@@ -29,11 +30,14 @@ export function DeleteConfirmDialog({ open, collectionIds, endpointIds, onClose,
 
   useEffect(() => { if (open) setError(''); }, [open]);
 
-  // The server deletes a collection's endpoints with it, in one transaction, so
-  // only endpoints no selected collection covers need a request of their own.
-  const cascaded = new Set(
-    collections.filter(c => collectionIds.includes(c.id)).flatMap(c => c.endpointIds ?? []),
+  // The server deletes a collection's nested collections and endpoints with it, in one
+  // transaction, so only the outermost selected collections need a request — a nested one
+  // would already be gone and fail — and only endpoints none of them covers need their own.
+  const rootCollectionIds = collectionIds.filter(id =>
+    !ancestorIds(collections, id).slice(1).some(a => collectionIds.includes(a)),
   );
+  const covered = new Set(rootCollectionIds.flatMap(id => subtreeIds(collections, id)));
+  const cascaded = new Set(collections.filter(c => covered.has(c.id)).flatMap(c => c.endpointIds ?? []));
   const standaloneEndpointIds = endpointIds.filter(id => !cascaded.has(id));
 
   const run = async () => {
@@ -42,7 +46,7 @@ export function DeleteConfirmDialog({ open, collectionIds, endpointIds, onClose,
     // allSettled so one id that is already gone cannot abort the rest.
     const results = await Promise.allSettled([
       ...standaloneEndpointIds.map(id => deleteEndpoint(id)),
-      ...collectionIds.map(id => removeCollection(id)),
+      ...rootCollectionIds.map(id => removeCollection(id)),
     ]);
     const failed = results.filter(r => r.status === 'rejected').length;
     setDeleting(false);

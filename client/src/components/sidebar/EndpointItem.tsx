@@ -9,6 +9,7 @@ import { HttpMethodBadge } from '../shared/HttpMethodBadge';
 import { StatusCodeBadge } from '../shared/StatusCodeBadge';
 import type { Endpoint } from '../../types';
 import { buildFullUrl } from '../../utils/url';
+import { ancestorIds, flattenTree } from '../../utils/collection-tree';
 
 export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
   const t = useTranslation();
@@ -106,7 +107,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
   if (editMode) {
     return (
       <div
-        onClick={() => toggleEndpointSelection(endpoint.id, currentCollId)}
+        onClick={() => toggleEndpointSelection(endpoint.id, currentCollId ? ancestorIds(collections, currentCollId) : [])}
         className={clsx(
           'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left cursor-pointer',
           isChecked ? 'bg-bg-hover' : 'hover:bg-bg-hover',
@@ -115,7 +116,7 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
         <input
           type="checkbox"
           checked={isChecked}
-          onChange={() => toggleEndpointSelection(endpoint.id, currentCollId)}
+          onChange={() => toggleEndpointSelection(endpoint.id, currentCollId ? ancestorIds(collections, currentCollId) : [])}
           onClick={e => e.stopPropagation()}
           className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-accent-primary"
         />
@@ -227,12 +228,13 @@ export function EndpointItem({ endpoint }: { endpoint: Endpoint }) {
             >
               {t.endpointItem.uncollected}
             </div>
-            {collections.map(c => (
+            {flattenTree(collections).map(({ collection: c, depth }) => (
               <div
                 key={c.id}
                 onClick={e => { e.stopPropagation(); handleMove(c.id); }}
+                style={{ paddingLeft: `${0.75 + depth * 0.75}rem` }}
                 className={clsx(
-                  'px-3 py-1.5 text-xs cursor-pointer hover:bg-bg-hover',
+                  'pr-3 py-1.5 text-xs cursor-pointer hover:bg-bg-hover',
                   currentCollId === c.id ? 'text-accent-primary font-medium' : 'text-text-secondary',
                 )}
               >

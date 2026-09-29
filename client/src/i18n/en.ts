@@ -39,6 +39,9 @@ const en = {
     importExport: 'Import / Export',
     settings: 'Settings',
     addEndpoint: 'Add Endpoint',
+    addSubCollection: 'Add Collection Inside',
+    moveCollection: 'Move Collection',
+    topLevel: 'Top level',
     stomp: 'STOMP',
     rename: 'Rename',
     editMode: 'Select to delete',
@@ -87,6 +90,7 @@ const en = {
 
   newCollection: {
     title: 'New Collection',
+    titleIn: 'New Collection in {0}',
     collectionName: 'Collection Name',
     placeholder: 'My Collection',
     failedToCreate: 'Failed to create collection',

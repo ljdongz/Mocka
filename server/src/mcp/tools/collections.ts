@@ -5,7 +5,7 @@ import { mockaFetch, toolResult, toolError } from '../client.js';
 export function registerCollectionTools(server: McpServer) {
   server.tool(
     'list_collections',
-    'List all collections and their endpoint IDs',
+    'List all collections with their parentId (null = top level; collections nest, e.g. one top-level collection per app) and endpoint IDs',
     {},
     async () => {
       try {
@@ -16,13 +16,16 @@ export function registerCollectionTools(server: McpServer) {
 
   server.tool(
     'create_collection',
-    'Create a new collection to group endpoints',
-    { name: z.string().describe('Collection name (e.g. "Auth", "Users")') },
-    async ({ name }) => {
+    'Create a new collection to group endpoints, optionally nested inside another collection',
+    {
+      name: z.string().describe('Collection name (e.g. "Auth", "Users")'),
+      parentId: z.string().nullable().optional().describe('Enclosing collection ID (omit or null for top level)'),
+    },
+    async ({ name, parentId }) => {
       try {
         return toolResult(await mockaFetch('/api/collections', {
           method: 'POST',
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({ name, parentId: parentId ?? null }),
         }));
       } catch (e) { return toolError(e); }
     },
@@ -46,8 +49,25 @@ export function registerCollectionTools(server: McpServer) {
   );
 
   server.tool(
+    'move_collection',
+    'Move a collection (with everything inside it) under another collection, or to the top level with parentId null. Refuses moving a collection into its own subtree.',
+    {
+      id: z.string().describe('Collection ID'),
+      parentId: z.string().nullable().describe('New enclosing collection ID, or null for top level'),
+    },
+    async ({ id, parentId }) => {
+      try {
+        return toolResult(await mockaFetch(`/api/collections/${id}/move`, {
+          method: 'PUT',
+          body: JSON.stringify({ parentId }),
+        }));
+      } catch (e) { return toolError(e); }
+    },
+  );
+
+  server.tool(
     'delete_collection',
-    'Delete a collection and the endpoints inside it. Use remove_endpoint_from_collection to ungroup an endpoint without deleting it.',
+    'Delete a collection, its nested collections and the endpoints inside them. Use remove_endpoint_from_collection to ungroup an endpoint without deleting it.',
     { id: z.string().describe('Collection ID') },
     async ({ id }) => {
       try {
@@ -59,7 +79,7 @@ export function registerCollectionTools(server: McpServer) {
 
   server.tool(
     'reorder_collections',
-    'Reorder collections by providing the full list of collection IDs in the desired order',
+    'Reorder sibling collections (same parent) by providing their IDs in the desired order',
     { orderedIds: z.array(z.string()).describe('Collection IDs in desired order') },
     async ({ orderedIds }) => {
       try {

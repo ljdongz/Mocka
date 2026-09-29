@@ -79,6 +79,8 @@ export interface SequencePreset {
 export interface Collection {
   id: string;
   name: string;
+  /** Enclosing collection; null at the top level. */
+  parentId: string | null;
   isExpanded: boolean;
   sortOrder: number;
   createdAt: string;
@@ -108,10 +110,10 @@ export type Language = 'en' | 'ko';
 export interface Settings {
   port: number;
   responseDelay: number;
-  autoSaveEndpoints: boolean;
-  historyToast: boolean;
   uploadRateKbps: number;
   maxBodyMB: number;
+  autoSaveEndpoints: boolean;
+  historyToast: boolean;
   theme: Theme;
   language: Language;
 }

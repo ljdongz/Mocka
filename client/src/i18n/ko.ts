@@ -41,6 +41,9 @@ const ko: Translations = {
     importExport: 'Import / Export',
     settings: '설정',
     addEndpoint: 'Endpoint 추가',
+    addSubCollection: '하위 Collection 추가',
+    moveCollection: 'Collection 이동',
+    topLevel: '최상위',
     stomp: 'STOMP',
     rename: '이름 변경',
     editMode: '선택 삭제',
@@ -89,6 +92,7 @@ const ko: Translations = {
 
   newCollection: {
     title: '새 Collection',
+    titleIn: '{0} 안에 새 Collection',
     collectionName: 'Collection 이름',
     placeholder: 'My Collection',
     failedToCreate: 'Collection 생성에 실패했습니다',

@@ -2,11 +2,13 @@ import { create } from 'zustand';
 import { collectionsApi } from '../api/collections';
 import { useEndpointStore } from './endpoint.store';
 import type { Collection } from '../types';
+import { subtreeIds } from '../utils/collection-tree';
 
 interface CollectionStore {
   collections: Collection[];
   fetch: () => Promise<void>;
-  create: (name: string) => Promise<Collection>;
+  create: (name: string, parentId?: string | null) => Promise<Collection>;
+  move: (id: string, parentId: string | null) => Promise<void>;
   update: (id: string, data: { name?: string }) => Promise<void>;
   remove: (id: string) => Promise<void>;
   toggleExpanded: (id: string) => Promise<void>;
@@ -26,14 +28,19 @@ export const useCollectionStore = create<CollectionStore>((set) => ({
     set({ collections });
   },
 
-  create: async (name) => {
-    const c = await collectionsApi.create(name);
+  create: async (name, parentId = null) => {
+    const c = await collectionsApi.create(name, parentId);
     set(s => {
       const exists = s.collections.some(x => x.id === c.id);
       if (exists) return { collections: s.collections.map(x => x.id === c.id ? c : x) };
       return { collections: [...s.collections, c] };
     });
     return c;
+  },
+
+  move: async (id, parentId) => {
+    await collectionsApi.move(id, parentId);
+    set({ collections: await collectionsApi.getAll() });
   },
 
   update: async (id, data) => {
@@ -43,7 +50,11 @@ export const useCollectionStore = create<CollectionStore>((set) => ({
 
   remove: async (id) => {
     await collectionsApi.delete(id);
-    set(s => ({ collections: s.collections.filter(x => x.id !== id) }));
+    // Nested collections go with it.
+    set(s => {
+      const gone = new Set(subtreeIds(s.collections, id));
+      return { collections: s.collections.filter(x => !gone.has(x.id)) };
+    });
     // The server deletes the collection's endpoints with it — but spares any it
     // shares with another collection, so which ones went is the server's answer
     // to give. Re-read rather than guess, and don't wait on the websocket echo.
@@ -67,11 +78,14 @@ export const useCollectionStore = create<CollectionStore>((set) => ({
     set({ collections });
   },
 
+  // orderedIds are one parent's children; the tree reads order from sortOrder.
   reorderCollections: async (orderedIds) => {
-    set(s => {
-      const map = new Map(s.collections.map(c => [c.id, c]));
-      return { collections: orderedIds.map(id => map.get(id)!).filter(Boolean) };
-    });
+    set(s => ({
+      collections: s.collections.map(c => {
+        const i = orderedIds.indexOf(c.id);
+        return i === -1 ? c : { ...c, sortOrder: i };
+      }),
+    }));
     await collectionsApi.reorderCollections(orderedIds);
   },
 

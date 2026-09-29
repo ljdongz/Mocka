@@ -13,7 +13,7 @@ import { normalizePath } from '../models/route-path.js';
 import { exportAllConnections, importConnections } from './stomp-import-export.service.js';
 import type { StompExportConnection } from './stomp-import-export.service.js';
 
-export const EXPORT_VERSION = 4;
+export const EXPORT_VERSION = 5;
 
 interface ExportDataV1 {
   version: 1;
@@ -52,7 +52,12 @@ interface ExportDataV4 {
   stompConnections: StompExportConnection[];
 }
 
-export type ExportData = ExportDataV1 | ExportDataV2 | ExportDataV3 | ExportDataV4;
+/** v5 nests collections: `parentIndex` points at an earlier entry of `collections`. */
+interface ExportDataV5 extends Omit<ExportDataV4, 'version'> {
+  version: 5;
+}
+
+export type ExportData = ExportDataV1 | ExportDataV2 | ExportDataV3 | ExportDataV4 | ExportDataV5;
 
 interface ExportEndpoint {
   method: string;
@@ -87,6 +92,8 @@ interface ExportCollection {
   sortOrder: number;
   /** Indices into the endpoints array */
   endpointIndices: number[];
+  /** v5: index of the enclosing collection in the collections array (always an earlier entry); absent at top level */
+  parentIndex?: number;
 }
 
 export type ConflictPolicy = 'overwrite' | 'skip' | 'merge';
@@ -115,7 +122,15 @@ export function exportData(collectionIds?: string[]): ExportData {
   const filteredByCollection = !!(collectionIds && collectionIds.length > 0);
 
   if (filteredByCollection) {
-    collections = allCollections.filter(c => collectionIds.includes(c.id));
+    // A selected collection brings its whole subtree.
+    const selected = new Set(collectionIds);
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const c of allCollections) {
+        if (c.parentId && selected.has(c.parentId) && !selected.has(c.id)) { selected.add(c.id); grew = true; }
+      }
+    }
+    collections = allCollections.filter(c => selected.has(c.id));
     const includedEndpointIds = new Set<string>();
     for (const c of collections) {
       for (const eid of c.endpointIds ?? []) {
@@ -178,12 +193,25 @@ export function exportData(collectionIds?: string[]): ExportData {
     };
   });
 
-  const exportCollections: ExportCollection[] = collections.map(c => ({
+  // Parents before children, so parentIndex always points backwards and import can resolve it in one pass.
+  const ordered: Collection[] = [];
+  const included = new Set(collections.map(c => c.id));
+  const visit = (parentId: string | null) => {
+    for (const c of collections) {
+      const effectiveParent = c.parentId && included.has(c.parentId) ? c.parentId : null;
+      if (effectiveParent === parentId) { ordered.push(c); visit(c.id); }
+    }
+  };
+  visit(null);
+  const collectionIndexMap = new Map(ordered.map((c, i) => [c.id, i]));
+
+  const exportCollections: ExportCollection[] = ordered.map(c => ({
     name: c.name,
     sortOrder: c.sortOrder,
     endpointIndices: (c.endpointIds ?? [])
       .map(eid => endpointIndexMap.get(eid))
       .filter((idx): idx is number => idx !== undefined),
+    ...(c.parentId && collectionIndexMap.has(c.parentId) ? { parentIndex: collectionIndexMap.get(c.parentId) } : {}),
   }));
 
   return {
@@ -296,12 +324,15 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
       }
     }
 
-    // Import collections (with deduplication by name)
-    const importCollections = Array.isArray(data.collections) ? data.collections : [];
-    for (const importCol of importCollections) {
+    // Import collections (deduplicated by name among siblings under the same parent)
+    const importCollections: ExportCollection[] = Array.isArray(data.collections) ? data.collections : [];
+    const importedCollectionIds = new Map<number, string>();
+    for (const [colIndex, importCol] of importCollections.entries()) {
       try {
         const allCollections = collectionRepo.findAll();
-        const existingCol = allCollections.find(c => c.name === importCol.name);
+        const parentId = importCol.parentIndex !== undefined ? importedCollectionIds.get(importCol.parentIndex) ?? null : null;
+        const siblings = allCollections.filter(c => c.parentId === parentId);
+        const existingCol = siblings.find(c => c.name === importCol.name);
 
         if (existingCol && conflictPolicy === 'skip') {
           // Link new endpoints to existing collection
@@ -312,14 +343,17 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
               collectionRepo.addEndpoint(existingCol.id, epId, maxSort + 1);
             }
           }
+          importedCollectionIds.set(colIndex, existingCol.id);
           result.collectionsSkipped++;
         } else {
           const colId = uuid();
           collectionRepo.create({
             id: colId,
             name: existingCol ? `${importCol.name} (imported)` : importCol.name,
-            sortOrder: allCollections.length,
+            sortOrder: siblings.length,
+            parentId,
           });
+          importedCollectionIds.set(colIndex, colId);
 
           for (let sortIdx = 0; sortIdx < (importCol.endpointIndices ?? []).length; sortIdx++) {
             const epIndex = importCol.endpointIndices[sortIdx];

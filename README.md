@@ -39,7 +39,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 ## Features
 
 ### AI-Driven Mock Setup
-- **MCP Server (63 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
+- **MCP Server (64 tools)** — AI agents (Claude Code, Codex, Gemini, etc.) read your source code and create matching mock endpoints, configure response sequences, and manage collections — all through natural language
 - **Sequence Presets** — Named response scenarios (e.g. "Token Expired Flow") with sequential or loop modes. The AI can set up multi-step flows like `401 → token refresh → 200` in one conversation
 
 ### Manual Control
@@ -173,9 +173,9 @@ codex mcp add mocka -- mocka mcp
 
 Once configured, AI agents can create endpoints, set up sequence presets, configure response bodies, and manage collections — all through natural language.
 
-**Available tools (63):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, `create_dataset`, `update_dataset`, `create_stomp_connection`, `create_destination`, `add_message_variant`, `push_message`, `list_sessions`, `inject_error`, `stop_heartbeat`, and more.
+**Available tools (64):** `list_endpoints`, `create_endpoint`, `add_variant`, `update_variant`, `create_preset`, `set_active_preset`, `create_collection`, `move_endpoint`, `get_server_status`, `get_sequence_state`, `export_data`, `import_data`, `create_dataset`, `update_dataset`, `create_stomp_connection`, `create_destination`, `add_message_variant`, `push_message`, `list_sessions`, `inject_error`, `stop_heartbeat`, and more.
 
-> **Full MCP reference →** [docs/mcp](docs/mcp/README.md) (installation per client, the complete 63-tool catalog, example agent workflows, troubleshooting).
+> **Full MCP reference →** [docs/mcp](docs/mcp/README.md) (installation per client, the complete 64-tool catalog, example agent workflows, troubleshooting).
 
 ### Development
 

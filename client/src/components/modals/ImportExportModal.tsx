@@ -6,6 +6,7 @@ import { useStompStore } from '../../stores/stomp.store';
 import { importExportApi, type ConflictPolicy, type ExportData } from '../../api/import-export';
 import { ModalOverlay } from '../shared/ModalOverlay';
 import { useTranslation, fmt } from '../../i18n';
+import { flattenTree } from '../../utils/collection-tree';
 import { Download, Upload } from 'lucide-react';
 
 type Tab = 'export' | 'import';
@@ -156,8 +157,8 @@ export function ImportExportModal() {
                 {collections.length === 0 && (
                   <p className="text-xs text-text-muted p-2">{t.importExport.noCollections}</p>
                 )}
-                {collections.map(c => (
-                  <label key={c.id} className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer px-2 py-1 rounded hover:bg-bg-hover">
+                {flattenTree(collections).map(({ collection: c, depth }) => (
+                  <label key={c.id} style={{ paddingLeft: `${0.5 + depth * 1}rem` }} className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer pr-2 py-1 rounded hover:bg-bg-hover">
                     <input
                       type="checkbox"
                       checked={selectedCollections.includes(c.id)}

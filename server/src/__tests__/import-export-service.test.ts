@@ -6,6 +6,7 @@ import * as endpointService from '../services/endpoint.service.js';
 import * as endpointRepo from '../repositories/endpoint.repo.js';
 import * as stompService from '../services/stomp.service.js';
 import * as stompRegistry from '../services/stomp-registry.js';
+import * as collectionService from '../services/collection.service.js';
 import { exportData, importData, EXPORT_VERSION } from '../services/import-export.service.js';
 
 beforeEach(() => {
@@ -16,15 +17,15 @@ beforeEach(() => {
 
 describe('import-export service (post WebSocket removal)', () => {
   describe('exportData', () => {
-    it('uses EXPORT_VERSION 4 and carries NO wsEndpoints key', () => {
+    it('uses EXPORT_VERSION 5 and carries NO wsEndpoints key', () => {
       // Create an endpoint (it ships with one standard "Success" variant).
       const created = endpointService.create({ method: 'GET', path: '/api/users', name: 'Users' });
       expect(created.responseVariants?.length).toBeGreaterThanOrEqual(1);
 
       const data = exportData();
 
-      expect(EXPORT_VERSION).toBe(4);
-      expect(data.version).toBe(4);
+      expect(EXPORT_VERSION).toBe(5);
+      expect(data.version).toBe(5);
 
       // The endpoint is present in the export.
       expect(data.endpoints.length).toBe(1);
@@ -328,6 +329,46 @@ describe('import-export service (post WebSocket removal)', () => {
       expect(result.stompCreated).toBe(0);
       expect(result.errors).toEqual([]);
       expect(stompService.getAll()).toEqual([]);
+    });
+  });
+
+  describe('nested collections (v5)', () => {
+    function seedTree() {
+      const a = collectionService.create('App A')!;
+      const chat = collectionService.create('Chat', a.id)!;
+      const b = collectionService.create('App B')!;
+      collectionService.create('Chat', b.id);
+      endpointService.create({ method: 'GET', path: '/a/rooms', collectionId: chat.id });
+      return { a, chat, b };
+    }
+
+    it('exports parents before children with parentIndex, and a selection brings its subtree', () => {
+      const { a } = seedTree();
+      const all = exportData();
+      for (const [i, c] of all.collections.entries()) {
+        if (c.parentIndex !== undefined) expect(c.parentIndex).toBeLessThan(i);
+      }
+
+      const onlyA = exportData([a.id]);
+      expect(onlyA.collections.map(c => [c.name, c.parentIndex])).toEqual([['App A', undefined], ['Chat', 0]]);
+      expect(onlyA.endpoints.map(e => e.path)).toEqual(['/a/rooms']);
+    });
+
+    it('round-trips the tree, and dedups by name among siblings only', () => {
+      seedTree();
+      const data = exportData();
+      initDb(':memory:'); initSchema(); stompRegistry.reload([]);
+      importData(data, 'skip');
+
+      const tree = collectionService.getAll();
+      const byId = new Map(tree.map(c => [c.id, c]));
+      const paths = tree.map(c => (c.parentId ? byId.get(c.parentId)!.name + ' > ' : '') + c.name).sort();
+      expect(paths).toEqual(['App A', 'App A > Chat', 'App B', 'App B > Chat']);
+
+      // Importing again with skip reuses every collection, including the two same-named "Chat"s.
+      const again = importData(data, 'skip');
+      expect(again.collectionsSkipped).toBe(4);
+      expect(collectionService.getAll()).toHaveLength(4);
     });
   });
 });

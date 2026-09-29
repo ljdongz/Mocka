@@ -10,7 +10,7 @@
 
 Mocka ships with a built-in [MCP](https://modelcontextprotocol.io/) (Model Context Protocol) server. Once registered with an AI client, agents like **Claude Code**, **Codex CLI**, and **Gemini CLI** can read your project's API calls and create matching mock endpoints, configure response sequences, manage collections, seed datasets — all through conversation, with no manual UI work.
 
-The MCP server exposes **63 tools** that map 1:1 to Mocka's admin REST API, so anything you can do in the web UI, an agent can do through MCP — under the exact same matching, precedence, and resolution rules.
+The MCP server exposes **64 tools** that map 1:1 to Mocka's admin REST API, so anything you can do in the web UI, an agent can do through MCP — under the exact same matching, precedence, and resolution rules.
 
 > Example prompt:
 > *"Set up mocks for my auth API — the first `/login` call returns 401, retrying returns 200. Then add a `/users/:id` endpoint backed by a shared dataset."*
@@ -122,7 +122,7 @@ After registering, start Mocka and ask your agent to call `get_server_status` (o
 
 ---
 
-## Tool reference (63 tools)
+## Tool reference (64 tools)
 
 All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned by the corresponding `list_*` / `get_*` / `create_*` tools.
 
@@ -181,10 +181,11 @@ All tools are exposed as `mcp__mocka__<name>`. IDs referenced below are returned
 | Tool | Description | Key params |
 |------|-------------|------------|
 | `list_collections` | List collections and their endpoint IDs | — |
-| `create_collection` | Create a collection | `name` |
+| `create_collection` | Create a collection, optionally nested | `name`, `parentId?` |
+| `move_collection` | Move a collection (and its subtree) under another, or to top level | `id`, `parentId` |
 | `update_collection` | Rename a collection | `id`, `name` |
-| `delete_collection` | Delete a collection **and the endpoints inside it** | `id` |
-| `reorder_collections` | Reorder by full ordered ID list | `orderedIds` |
+| `delete_collection` | Delete a collection, **its nested collections and all endpoints inside** | `id` |
+| `reorder_collections` | Reorder sibling collections by ordered ID list | `orderedIds` |
 | `reorder_collection_endpoints` | Reorder endpoints inside a collection | `collectionId`, `orderedEndpointIds` |
 | `move_endpoint` | Move an endpoint between collections | `endpointId`, `fromCollectionId`, `toCollectionId`, `sortOrder?` |
 | `remove_endpoint_from_collection` | Ungroup without deleting | `collectionId`, `endpointId` |

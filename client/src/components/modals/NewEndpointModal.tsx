@@ -7,6 +7,7 @@ import { useSettingsStore } from '../../stores/settings.store';
 import { ModalOverlay } from '../shared/ModalOverlay';
 import { useTranslation } from '../../i18n';
 import type { HttpMethod } from '../../types';
+import { flattenTree } from '../../utils/collection-tree';
 import clsx from 'clsx';
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
@@ -137,8 +138,8 @@ export function NewEndpointModal() {
               className="w-full rounded border border-border-secondary bg-bg-input px-3 py-2 text-sm text-text-primary outline-none"
             >
               <option value="">{t.common.none}</option>
-              {collections.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+              {flattenTree(collections).map(({ collection: c, depth }) => (
+                <option key={c.id} value={c.id}>{'\u00a0\u00a0'.repeat(depth) + c.name}</option>
               ))}
             </select>
           </div>

@@ -3,7 +3,8 @@ import type { Collection } from '../types';
 
 export const collectionsApi = {
   getAll: () => api.get<Collection[]>('/api/collections'),
-  create: (name: string) => api.post<Collection>('/api/collections', { name }),
+  create: (name: string, parentId: string | null = null) => api.post<Collection>('/api/collections', { name, parentId }),
+  move: (id: string, parentId: string | null) => api.put<Collection>(`/api/collections/${id}/move`, { parentId }),
   update: (id: string, data: { name?: string }) => api.put<Collection>(`/api/collections/${id}`, data),
   delete: (id: string) => api.delete(`/api/collections/${id}`),
   toggleExpanded: (id: string) => api.patch<Collection>(`/api/collections/${id}/toggle`, {}),

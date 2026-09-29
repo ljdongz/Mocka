@@ -3,13 +3,15 @@ import { X } from 'lucide-react';
 import { useCollectionStore } from '../../stores/collection.store';
 import { useUIStore } from '../../stores/ui.store';
 import { ModalOverlay } from '../shared/ModalOverlay';
-import { useTranslation } from '../../i18n';
+import { useTranslation, fmt } from '../../i18n';
 
 export function NewCollectionModal() {
   const t = useTranslation();
   const open = useUIStore(s => s.showNewCollection);
   const close = () => useUIStore.getState().setShowNewCollection(false);
   const createCollection = useCollectionStore(s => s.create);
+  const parentId = useUIStore(s => s.newCollectionParentId);
+  const parentName = useCollectionStore(s => s.collections.find(c => c.id === parentId)?.name);
 
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -17,7 +19,7 @@ export function NewCollectionModal() {
   const handleSubmit = async () => {
     if (!name.trim()) { setError(t.validation.nameRequired); return; }
     try {
-      await createCollection(name.trim());
+      await createCollection(name.trim(), parentId);
       setName('');
       setError('');
       close();
@@ -36,7 +38,9 @@ export function NewCollectionModal() {
     <ModalOverlay open={open} onClose={handleClose}>
       <div className="w-[400px] rounded-lg border border-border-secondary bg-bg-surface p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-semibold text-text-primary">{t.newCollection.title}</h2>
+          <h2 className="text-base font-semibold text-text-primary truncate">
+            {parentName ? fmt(t.newCollection.titleIn, parentName) : t.newCollection.title}
+          </h2>
           <button onClick={handleClose} className="text-text-muted hover:text-text-secondary flex items-center">
             <X size={18} strokeWidth={2.5} />
           </button>
