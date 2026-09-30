@@ -354,6 +354,16 @@ describe('import-export service (post WebSocket removal)', () => {
       expect(datasetService.getAll()).toHaveLength(1);
     });
 
+    it('counts nested collections in removed', () => {
+      const a = collectionService.create('A')!;
+      collectionService.create('B', a.id);
+
+      const result = importData({ version: 5, exportedAt: '', endpoints: [], collections: [] } as any, 'replace');
+
+      expect(result.removed).toBe(2);
+      expect(collectionService.getAll()).toEqual([]);
+    });
+
     it('keeps one endpoint when the file repeats a method+path', () => {
       endpointService.create({ method: 'GET', path: '/dup' });
       const data = JSON.parse(JSON.stringify(exportData()));

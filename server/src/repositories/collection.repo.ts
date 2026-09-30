@@ -156,7 +156,11 @@ export function removeWithEndpoints(id: string, endpointIds: string[]): boolean 
 
 /** Every collection; endpoints are left alone (their memberships cascade away). */
 export function removeAll(): number {
-  return getDb().prepare('DELETE FROM collections').run().changes;
+  const db = getDb();
+  // Counted first: changes() skips child collections removed by the parent_id cascade.
+  const { n } = db.prepare('SELECT COUNT(*) AS n FROM collections').get() as { n: number };
+  db.prepare('DELETE FROM collections').run();
+  return n;
 }
 
 export function toggleExpanded(id: string): Collection | null {
