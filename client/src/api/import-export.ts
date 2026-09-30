@@ -13,7 +13,7 @@ export interface ImportResult {
   created: number;
   skipped: number;
   overwritten: number;
-  merged: number;
+  removed: number;
   collectionsCreated: number;
   collectionsSkipped: number;
   stompCreated: number;
@@ -22,7 +22,7 @@ export interface ImportResult {
   errors: string[];
 }
 
-export type ConflictPolicy = 'overwrite' | 'skip' | 'merge';
+export type ConflictPolicy = 'overwrite' | 'skip' | 'replace';
 
 export const importExportApi = {
   exportAll: () => api.post<ExportData>('/api/export', {}),

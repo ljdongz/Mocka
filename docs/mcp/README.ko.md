@@ -220,7 +220,7 @@ Gemini에는 `mcp add` 명령이 없어 Mocka가 설정을 직접 작성합니�
 | `export_data` | endpoint + collection + STOMP connection을 JSON으로 export(필터 가능, 필터링 시 HTTP endpoint만) | `collectionIds?` |
 | `import_data` | export된 JSON을 conflict policy로 import | `data`, `conflictPolicy?` |
 
-> `conflictPolicy` ∈ `overwrite｜skip｜merge`(기본 `skip`). Dataset, dataset binding, environment, history는 export/import에 **포함되지 않습니다.**
+> `conflictPolicy` ∈ `skip｜overwrite｜replace`(기본 `skip`). `replace`는 import 전에 모든 endpoint, collection, STOMP connection을 삭제합니다. Dataset, dataset binding, environment, history는 export/import에 **포함되지 않습니다.**
 
 ### History (2)
 

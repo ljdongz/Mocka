@@ -8,6 +8,7 @@ import * as stompService from '../services/stomp.service.js';
 import * as stompRegistry from '../services/stomp-registry.js';
 import * as collectionService from '../services/collection.service.js';
 import * as collectionRepo from '../repositories/collection.repo.js';
+import * as datasetService from '../services/dataset.service.js';
 import { exportData, importData, EXPORT_VERSION } from '../services/import-export.service.js';
 
 beforeEach(() => {
@@ -244,16 +245,11 @@ describe('import-export service (post WebSocket removal)', () => {
       expect(all[0].id).not.toBe(originalId);
     });
 
-    it('merge falls back to skip for STOMP, since STOMP has no merge semantics', () => {
+    it('replace drops live STOMP connections not in the file, even when the file carries none', () => {
       seedStomp();
-      const data = JSON.parse(JSON.stringify(exportData()));
-      const originalId = stompService.getAll()[0].id;
-
-      const result = importData(data, 'merge');
-
-      expect(result.stompSkipped).toBe(1);
-      expect(result.stompOverwritten).toBe(0);
-      expect(stompService.getAll()[0].id).toBe(originalId);
+      const result = importData({ version: 5, exportedAt: '', endpoints: [], collections: [] } as any, 'replace');
+      expect(result.removed).toBe(1);
+      expect(stompService.getAll()).toEqual([]);
     });
 
     it('a collection-filtered export carries no STOMP connections', () => {
@@ -330,6 +326,43 @@ describe('import-export service (post WebSocket removal)', () => {
       expect(result.stompCreated).toBe(0);
       expect(result.errors).toEqual([]);
       expect(stompService.getAll()).toEqual([]);
+    });
+  });
+
+  describe('replace', () => {
+    it('deletes existing endpoints, collections and STOMP connections, keeps datasets, then imports the file', () => {
+      const col = collectionService.create('Shared')!;
+      endpointService.create({ method: 'GET', path: '/shared', collectionId: col.id });
+      stompService.createConnection({ name: 'chat', path: '/ws/chat' });
+      const data = JSON.parse(JSON.stringify(exportData()));
+
+      // Local state the file does not have.
+      endpointService.create({ method: 'GET', path: '/local-only' });
+      collectionService.create('Local');
+      stompService.createConnection({ name: 'local', path: '/ws/local' });
+      datasetService.create({ name: 'users', keyField: 'id', records: [{ id: 1 }] });
+
+      const result = importData(data, 'replace');
+
+      expect(result.removed).toBe(2 + 2 + 2);
+      expect(result.errors).toEqual([]);
+      expect(endpointService.getAll().map(e => e.path)).toEqual(['/shared']);
+      // Same name as before the wipe, no "(imported)" copy.
+      expect(collectionService.getAll().map(c => c.name)).toEqual(['Shared']);
+      expect(collectionService.getAll()[0].endpointIds).toHaveLength(1);
+      expect(stompService.getAll().map(c => c.path)).toEqual(['/ws/chat']);
+      expect(datasetService.getAll()).toHaveLength(1);
+    });
+
+    it('keeps one endpoint when the file repeats a method+path', () => {
+      endpointService.create({ method: 'GET', path: '/dup' });
+      const data = JSON.parse(JSON.stringify(exportData()));
+      data.endpoints.push({ ...data.endpoints[0], name: 'second' });
+
+      const result = importData(data, 'replace');
+
+      expect(result.errors).toEqual([]);
+      expect(endpointService.getAll().map(e => e.name)).toEqual(['second']);
     });
   });
 

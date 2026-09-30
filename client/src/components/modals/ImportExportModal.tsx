@@ -30,6 +30,8 @@ export function ImportExportModal() {
   const [importResult, setImportResult] = useState<string | null>(null);
   const [isResultError, setIsResultError] = useState(false);
   const [loading, setLoading] = useState(false);
+  // replace deletes everything first, so the first Import click only arms it.
+  const [replaceArmed, setReplaceArmed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async () => {
@@ -56,6 +58,8 @@ export function ImportExportModal() {
 
   const handleImport = async () => {
     if (!importFile) return;
+    if (conflictPolicy === 'replace' && !replaceArmed) { setReplaceArmed(true); return; }
+    setReplaceArmed(false);
     setLoading(true);
     setImportResult(null);
     try {
@@ -71,10 +75,10 @@ export function ImportExportModal() {
       const result = await importExportApi.importData(data, conflictPolicy);
 
       const parts: string[] = [];
+      if (result.removed > 0) parts.push(fmt(t.importExport.countRemoved, result.removed));
       if (result.created > 0) parts.push(fmt(t.importExport.countCreated, result.created));
       if (result.skipped > 0) parts.push(fmt(t.importExport.countSkipped, result.skipped));
       if (result.overwritten > 0) parts.push(fmt(t.importExport.countOverwritten, result.overwritten));
-      if (result.merged > 0) parts.push(fmt(t.importExport.countMerged, result.merged));
       if (result.collectionsCreated > 0) parts.push(fmt(t.importExport.countCollectionsCreated, result.collectionsCreated));
       if (result.collectionsSkipped > 0) parts.push(fmt(t.importExport.countCollectionsSkipped, result.collectionsSkipped));
       if (result.stompCreated > 0) parts.push(fmt(t.importExport.countStompCreated, result.stompCreated));
@@ -190,7 +194,7 @@ export function ImportExportModal() {
                 ref={fileInputRef}
                 type="file"
                 accept=".json"
-                onChange={e => { setImportFile(e.target.files?.[0] ?? null); setImportResult(null); }}
+                onChange={e => { setImportFile(e.target.files?.[0] ?? null); setImportResult(null); setReplaceArmed(false); }}
                 className="w-full text-sm text-text-secondary file:mr-3 file:rounded file:border-0 file:bg-bg-hover file:px-3 file:py-1.5 file:text-sm file:text-text-primary file:cursor-pointer"
               />
             </div>
@@ -201,7 +205,7 @@ export function ImportExportModal() {
                 {([
                   ['skip', t.importExport.skip, t.importExport.skipDesc],
                   ['overwrite', t.importExport.overwrite, t.importExport.overwriteDesc],
-                  ['merge', t.importExport.merge, t.importExport.mergeDesc],
+                  ['replace', t.importExport.replace, t.importExport.replaceDesc],
                 ] as const).map(([value, label, desc]) => (
                   <label key={value} className="flex items-start gap-2 text-sm text-text-secondary cursor-pointer">
                     <input
@@ -209,7 +213,7 @@ export function ImportExportModal() {
                       name="conflictPolicy"
                       value={value}
                       checked={conflictPolicy === value}
-                      onChange={() => setConflictPolicy(value)}
+                      onChange={() => { setConflictPolicy(value); setReplaceArmed(false); }}
                       className="accent-accent-primary mt-0.5"
                     />
                     <div>
@@ -220,6 +224,12 @@ export function ImportExportModal() {
                 ))}
               </div>
             </div>
+
+            {replaceArmed && (
+              <div className="mb-3 rounded border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+                {t.importExport.replaceConfirm}
+              </div>
+            )}
 
             <button
               onClick={handleImport}

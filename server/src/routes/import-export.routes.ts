@@ -3,7 +3,7 @@ import * as importExportService from '../services/import-export.service.js';
 import { EXPORT_VERSION } from '../services/import-export.service.js';
 import type { ConflictPolicy } from '../services/import-export.service.js';
 
-const VALID_POLICIES = new Set(['skip', 'overwrite', 'merge']);
+const VALID_POLICIES = new Set(['skip', 'overwrite', 'replace']);
 
 export async function importExportRoutes(app: FastifyInstance): Promise<void> {
   // Export all or by collection IDs

@@ -5,6 +5,8 @@ import * as variantRepo from '../repositories/variant.repo.js';
 import * as presetRepo from '../repositories/preset.repo.js';
 import * as collectionRepo from '../repositories/collection.repo.js';
 import * as routeRegistry from './route-registry.js';
+import * as sequenceCounter from './sequence-counter.service.js';
+import * as stompService from './stomp.service.js';
 import { emit } from './domain-events.js';
 import type { Endpoint } from '../models/endpoint.js';
 import type { Collection } from '../models/collection.js';
@@ -100,13 +102,15 @@ interface ExportCollection {
   endpointSortOrders?: number[];
 }
 
-export type ConflictPolicy = 'overwrite' | 'skip' | 'merge';
+/** replace: delete every endpoint, collection and STOMP connection first, then import as overwrite. */
+export type ConflictPolicy = 'overwrite' | 'skip' | 'replace';
 
 export interface ImportResult {
   created: number;
   skipped: number;
   overwritten: number;
-  merged: number;
+  /** Endpoints, collections and STOMP connections deleted by replace. */
+  removed: number;
   collectionsCreated: number;
   collectionsSkipped: number;
   stompCreated: number;
@@ -248,7 +252,7 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
     created: 0,
     skipped: 0,
     overwritten: 0,
-    merged: 0,
+    removed: 0,
     collectionsCreated: 0,
     collectionsSkipped: 0,
     stompCreated: 0,
@@ -257,7 +261,13 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
     errors: [],
   };
 
+  const replace = conflictPolicy === 'replace';
+  // After the wipe nothing clashes except duplicates inside the file itself, which overwrite resolves.
+  const policy = replace ? 'overwrite' : conflictPolicy;
+
   withTransaction(() => {
+    if (replace) result.removed += endpointRepo.removeAll() + collectionRepo.removeAll();
+
     const importedEndpointIds = new Map<number, string>();
     const createdEndpointIds = new Set<string>();
 
@@ -276,7 +286,7 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
         const existing = endpointRepo.findByMethodAndPath(importEp.method, normalizePath(importEp.path));
 
         if (existing) {
-          switch (conflictPolicy) {
+          switch (policy) {
             case 'skip':
               importedEndpointIds.set(i, existing.id);
               result.skipped++;
@@ -297,38 +307,6 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
 
               importedEndpointIds.set(i, newId);
               result.overwritten++;
-              break;
-            }
-
-            case 'merge': {
-              const existingVariants = variantRepo.findByEndpointId(existing.id);
-              const existingDescs = new Set(existingVariants.map(v => `${v.statusCode}:${v.description}`));
-              let nextSort = existingVariants.length;
-
-              for (const v of importEp.responseVariants ?? []) {
-                const key = `${v.statusCode}:${v.description}`;
-                if (!existingDescs.has(key)) {
-                  variantRepo.create({
-                    id: uuid(),
-                    endpointId: existing.id,
-                    statusCode: v.statusCode,
-                    description: v.description,
-                    body: v.body,
-                    headers: v.headers,
-                    delay: v.delay,
-                    memo: v.memo,
-                    sortOrder: nextSort++,
-                    matchRules: v.matchRules ?? null,
-                    variantGroup: v.variantGroup ?? 'standard',
-                    presetId: null,
-                  });
-                }
-              }
-
-              const updated = endpointRepo.findById(existing.id)!;
-              routeRegistry.update(updated);
-              importedEndpointIds.set(i, existing.id);
-              result.merged++;
               break;
             }
           }
@@ -356,9 +334,10 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
         const allCollections = collectionRepo.findAll();
         const parentId = importCol.parentIndex !== undefined ? importedCollectionIds.get(importCol.parentIndex) ?? null : null;
         const siblings = allCollections.filter(c => c.parentId === parentId);
-        const existingCol = siblings.find(c => c.name === importCol.name);
+        // replace keeps the file's names as they are, even two siblings sharing one.
+        const existingCol = replace ? undefined : siblings.find(c => c.name === importCol.name);
 
-        if (existingCol && conflictPolicy === 'skip') {
+        if (existingCol && policy === 'skip') {
           // Link new endpoints to existing collection
           for (const epIndex of importCol.endpointIndices ?? []) {
             const epId = importedEndpointIds.get(epIndex);
@@ -412,11 +391,14 @@ export function importData(data: ExportData, conflictPolicy: ConflictPolicy): Im
 
   // STOMP runs in its own transaction, after the HTTP one has committed, so a
   // bad connection cannot roll back already-imported endpoints.
+  // removeConnection, not a raw delete, so live sessions on a wiped connection are dropped.
+  if (replace) {
+    for (const c of stompService.getAll()) if (stompService.removeConnection(c.id)) result.removed++;
+    sequenceCounter.resetAll();
+  }
   const stompConnections = (data as { stompConnections?: StompExportConnection[] }).stompConnections;
   if (Array.isArray(stompConnections) && stompConnections.length > 0) {
-    // STOMP has no merge semantics — treat it as skip.
-    const stompPolicy = conflictPolicy === 'overwrite' ? 'overwrite' : 'skip';
-    for (const r of importConnections(stompConnections, stompPolicy)) {
+    for (const r of importConnections(stompConnections, policy)) {
       if (r.created) result.stompCreated++;
       if (r.skipped) result.stompSkipped++;
       if (r.overwritten) result.stompOverwritten++;

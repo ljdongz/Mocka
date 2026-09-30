@@ -47,4 +47,15 @@ describe('export/import routes carry STOMP', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().errors).toEqual([]);
   });
+
+  it('the removed merge policy falls back to skip instead of wiping or failing', async () => {
+    endpointService.create({ method: 'GET', path: '/keep', name: 'mine' });
+    const data = (await app.inject({ method: 'POST', url: '/api/export', payload: {} })).json();
+    data.endpoints[0].name = 'theirs';
+
+    const res = await app.inject({ method: 'POST', url: '/api/import', payload: { data, conflictPolicy: 'merge' } });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().skipped).toBe(1);
+    expect(endpointService.getAll()[0].name).toBe('mine');
+  });
 });

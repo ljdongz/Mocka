@@ -132,6 +132,11 @@ export function remove(id: string): boolean {
   return result.changes > 0;
 }
 
+/** Variants, params, headers, presets and collection links follow via ON DELETE CASCADE. */
+export function removeAll(): number {
+  return getDb().prepare('DELETE FROM endpoints').run().changes;
+}
+
 export function toggleEnabled(id: string): Endpoint | null {
   const db = getDb();
   db.prepare('UPDATE endpoints SET is_enabled = NOT is_enabled, updated_at = datetime(\'now\') WHERE id = ?').run(id);

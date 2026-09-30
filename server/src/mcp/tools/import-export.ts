@@ -21,10 +21,10 @@ export function registerImportExportTools(server: McpServer) {
 
   server.tool(
     'import_data',
-    'Import mock data from a previously exported JSON, including any STOMP connections it carries. Supports conflict policies: overwrite (replace existing), skip (keep existing), merge (add missing variants; STOMP connections fall back to skip).',
+    'Import mock data from a previously exported JSON, including any STOMP connections it carries. Supports conflict policies: skip (keep existing), overwrite (replace existing on a method+path or STOMP path clash), replace (DELETE every existing endpoint, collection and STOMP connection first, then import). Datasets, environments, media and history are never touched.',
     {
       data: z.any().describe('The exported JSON data object (with version, endpoints, collections and optionally stompConnections fields)'),
-      conflictPolicy: z.enum(['overwrite', 'skip', 'merge']).optional().describe('How to handle existing endpoints with same method+path (default: skip)'),
+      conflictPolicy: z.enum(['skip', 'overwrite', 'replace']).optional().describe('How to handle existing data (default: skip). replace wipes all endpoints, collections and STOMP connections before importing.'),
     },
     async ({ data, conflictPolicy }) => {
       try {
