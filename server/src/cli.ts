@@ -127,6 +127,23 @@ async function status() {
   }
 }
 
+async function dashboard() {
+  const pid = readPid();
+  if (!pid || !isProcessAlive(pid)) {
+    console.log('Mocka is not running. Start it with `mocka start -d`.');
+    process.exit(1);
+  }
+
+  const url = `http://localhost:${await adminPort()}`;
+  const [cmd, args] = process.platform === 'darwin' ? ['open', [url]]
+    : process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]]
+    : ['xdg-open', [url]];
+  console.log(`Opening ${url}`);
+  spawn(cmd, args, { detached: true, stdio: 'ignore' })
+    .on('error', () => console.log(`Could not open a browser; visit ${url}`))
+    .unref();
+}
+
 const CONFIG_KEYS: Record<string, { dbKey: string; parse: (v: string) => string | null }> = {
   admin_port: { dbKey: 'admin_port', parse: v => { const n = parseInt(v, 10); return (n > 0 && n < 65536) ? String(n) : null; } },
   mock_port:  { dbKey: 'port',       parse: v => { const n = parseInt(v, 10); return (n > 0 && n < 65536) ? String(n) : null; } },
@@ -180,6 +197,9 @@ switch (command) {
   case 'status':
     await status();
     break;
+  case 'dashboard':
+    await dashboard();
+    break;
   case 'config':
     await config(flags);
     break;
@@ -215,6 +235,7 @@ switch (command) {
     console.log('  start -d        Start Mocka in the background');
     console.log('  stop            Stop the running Mocka instance');
     console.log('  status          Show whether Mocka is running and its addresses');
+    console.log('  dashboard       Open the Admin UI in your browser');
     console.log('  config          Show current configuration');
     console.log('  config k=v      Set configuration (admin_port, mock_port)');
     console.log('  mcp             Start the MCP server (stdio)');
