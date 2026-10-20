@@ -5,6 +5,9 @@ import type { ConflictPolicy } from '../services/import-export.service.js';
 
 const VALID_POLICIES = new Set(['skip', 'overwrite', 'replace']);
 
+/** Import files carry whole workspaces (variant bodies, datasets), well past Fastify's 1 MiB default. */
+export const IMPORT_BODY_LIMIT = 100 * 1024 * 1024;
+
 export async function importExportRoutes(app: FastifyInstance): Promise<void> {
   // Export all or by collection IDs
   app.post('/api/export', async (req) => {
@@ -13,7 +16,7 @@ export async function importExportRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // Import with conflict policy
-  app.post('/api/import', async (req, reply) => {
+  app.post('/api/import', { bodyLimit: IMPORT_BODY_LIMIT }, async (req, reply) => {
     const { data, conflictPolicy } = req.body as {
       data: importExportService.ExportData;
       conflictPolicy: ConflictPolicy;

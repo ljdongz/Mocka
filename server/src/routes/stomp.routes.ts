@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import * as stompService from '../services/stomp.service.js';
 import { exportConnection, importConnection, isStompExport } from '../services/stomp-import-export.service.js';
 import * as stompRuntime from '../services/stomp-runtime.service.js';
+import { IMPORT_BODY_LIMIT } from './import-export.routes.js';
 import {
   STOMP_CONNECT_POLICIES, STOMP_TRIGGERS, STOMP_SCOPES, STOMP_FIRE_KINDS,
   type StompConnection, type StompDestination, type StompMessageVariant,
@@ -232,7 +233,7 @@ export async function stompRoutes(app: FastifyInstance): Promise<void> {
     return exportConnection(id) ?? notFound(reply);
   });
 
-  app.post('/api/stomp/import', async (req, reply) => {
+  app.post('/api/stomp/import', { bodyLimit: IMPORT_BODY_LIMIT }, async (req, reply) => {
     const { data, conflictPolicy } = (req.body ?? {}) as { data?: unknown; conflictPolicy?: string };
     if (!isStompExport(data)) return badRequest(reply, 'Invalid file: expected a Mocka STOMP connection export (kind mocka-stomp-connection, version 1)');
     const policy = conflictPolicy === 'overwrite' ? 'overwrite' : 'skip';

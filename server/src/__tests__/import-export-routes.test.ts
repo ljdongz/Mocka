@@ -59,3 +59,19 @@ describe('export/import routes carry STOMP', () => {
     expect(endpointService.getAll()[0].name).toBe('mine');
   });
 });
+
+describe('import body size', () => {
+  let app: FastifyInstance;
+  beforeEach(async () => { initDb(':memory:'); initSchema(); stompRegistry.reload([]); app = await buildApp(); });
+  afterEach(async () => { await app.close(); closeDb(); });
+
+  it('accepts an import well past the 1 MiB default body limit', async () => {
+    const endpoints = Array.from({ length: 30 }, (_, i) => ({
+      method: 'GET', path: `/big/${i}`, name: `big ${i}`,
+      variants: [{ statusCode: 200, description: 'OK', body: JSON.stringify({ s: 'a'.repeat(100 * 1024) }), headers: '{}' }],
+    }));
+    const res = await app.inject({ method: 'POST', url: '/api/import', payload: { data: { version: 5, endpoints }, conflictPolicy: 'skip' } });
+    expect(res.statusCode).toBe(200);
+    expect(endpointService.getAll()).toHaveLength(30);
+  });
+});
