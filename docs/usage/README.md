@@ -282,13 +282,13 @@ The mock server sits on the same machine as the simulator, so an upload normally
 | Max body (MB) | settings `maxBodyMB` (default `5`) | Larger bodies get **413** naming the size and the limit — up front when `Content-Length` is sent |
 | Drop mid-upload | header `x-mock-upload-abort-percent: 50` | Closes the connection once that share of `Content-Length` has arrived, for failed-upload UI |
 
-Both settings take effect on the next request; no restart. `multipart/form-data` bodies are counted and discarded — History records `{"_multipart": {"bytes": …, "contentType": …}}`, so a large cap costs no memory. The response delay above starts only after the whole body is read.
+Both settings (Settings modal, or MCP `update_settings`) take effect on the next request; no restart. `multipart/form-data` bodies are counted and discarded — History records `{"_multipart": {"bytes": …, "contentType": …}}`, so a large cap costs no memory. The response delay above starts only after the whole body is read.
 
 ### Downloads — throttle
 
 Responses come back just as fast, so a download progress bar jumps straight to 100%. Set a download rate to pace the **response body** — mock JSON and `/__mocka/media/` files alike, Range (206) responses included:
 
-- Settings `downloadRateKbps` (default `0` = unlimited), or header `x-mock-download-rate-kbps: 300` on the request (wins).
+- Settings `downloadRateKbps` (default `0` = unlimited; from an agent, MCP `update_settings`), or header `x-mock-download-rate-kbps: 300` on the request (wins).
 - `Content-Length` is always sent, so the client knows the total and can show a percentage. 300 KB/s × 3 MB ≈ 10 s.
 - Pacing starts after the response delay; together they model a slow first byte followed by a slow transfer. No restart needed.
 

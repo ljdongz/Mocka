@@ -282,13 +282,13 @@ Preset "checkout"(sequential): [202 Accepted, 200 Processing, 200 Complete]
 | 최대 본문 (MB) | settings `maxBodyMB`(기본 `5`) | 넘으면 크기와 상한을 적은 **413**. `Content-Length`가 있으면 받기 전에 바로 거절 |
 | 업로드 중 끊기 | 헤더 `x-mock-upload-abort-percent: 50` | `Content-Length`의 그 비율만큼 받으면 연결을 끊음 — 업로드 실패 UI 확인용 |
 
-두 설정은 재시작 없이 다음 요청부터 적용됩니다. `multipart/form-data` 본문은 크기만 세고 버립니다 — History에는 `{"_multipart": {"bytes": …, "contentType": …}}`가 남으므로 상한을 크게 올려도 메모리가 늘지 않습니다. 위의 응답 지연은 본문을 다 받은 뒤에 시작됩니다.
+두 설정(Settings 화면 또는 MCP `update_settings`)은 재시작 없이 다음 요청부터 적용됩니다. `multipart/form-data` 본문은 크기만 세고 버립니다 — History에는 `{"_multipart": {"bytes": …, "contentType": …}}`가 남으므로 상한을 크게 올려도 메모리가 늘지 않습니다. 위의 응답 지연은 본문을 다 받은 뒤에 시작됩니다.
 
 ### 다운로드 — 속도 제한
 
 응답도 한 번에 도착하므로 다운로드 진행률이 바로 100%가 됩니다. 다운로드 속도를 정하면 **응답 본문**을 그 속도로 나눠 보냅니다 — 목 JSON과 `/__mocka/media/` 파일 모두, Range(206) 응답 포함:
 
-- settings `downloadRateKbps`(기본 `0` = 무제한) 또는 요청 헤더 `x-mock-download-rate-kbps: 300`(헤더 우선).
+- settings `downloadRateKbps`(기본 `0` = 무제한, 에이전트는 MCP `update_settings`) 또는 요청 헤더 `x-mock-download-rate-kbps: 300`(헤더 우선).
 - `Content-Length`를 항상 보내므로 클라이언트가 전체 크기를 알고 퍼센트를 표시할 수 있습니다. 300 KB/s × 3 MB ≈ 10초.
 - 응답 지연이 끝난 뒤 시작합니다 — 둘을 함께 쓰면 첫 바이트가 늦고 전송도 느린 상황이 됩니다. 재시작 필요 없음.
 
