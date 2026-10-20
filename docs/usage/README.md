@@ -284,6 +284,14 @@ The mock server sits on the same machine as the simulator, so an upload normally
 
 Both settings take effect on the next request; no restart. `multipart/form-data` bodies are counted and discarded — History records `{"_multipart": {"bytes": …, "contentType": …}}`, so a large cap costs no memory. The response delay above starts only after the whole body is read.
 
+### Downloads — throttle
+
+Responses come back just as fast, so a download progress bar jumps straight to 100%. Set a download rate to pace the **response body** — mock JSON and `/__mocka/media/` files alike, Range (206) responses included:
+
+- Settings `downloadRateKbps` (default `0` = unlimited), or header `x-mock-download-rate-kbps: 300` on the request (wins).
+- `Content-Length` is always sent, so the client knows the total and can show a percentage. 300 KB/s × 3 MB ≈ 10 s.
+- Pacing starts after the response delay; together they model a slow first byte followed by a slow transfer. No restart needed.
+
 ### Header Overrides (`x-mock-*` request headers)
 
 Three special request headers let the **caller** pick the response without changing server config — ideal for client-driven test scenarios:

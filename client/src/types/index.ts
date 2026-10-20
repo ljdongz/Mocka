@@ -115,6 +115,7 @@ export interface Settings {
   port: number;
   responseDelay: number;
   uploadRateKbps: number;
+  downloadRateKbps: number;
   maxBodyMB: number;
   autoSaveEndpoints: boolean;
   historyToast: boolean;

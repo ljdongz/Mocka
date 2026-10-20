@@ -7,6 +7,8 @@ export interface Settings {
   responseDelay: number;
   /** Request bodies are read at this rate (KB/s, 1 KB = 1024 B); 0 = unthrottled. */
   uploadRateKbps: number;
+  /** Response bodies are sent at this rate (KB/s, 1 KB = 1024 B); 0 = unthrottled. */
+  downloadRateKbps: number;
   /** Largest accepted request body, in MiB. Larger requests get a 413. */
   maxBodyMB: number;
   autoSaveEndpoints: boolean;
@@ -20,6 +22,7 @@ export const DEFAULT_SETTINGS: Settings = {
   port: 4650,
   responseDelay: 0,
   uploadRateKbps: 0,
+  downloadRateKbps: 0,
   maxBodyMB: 5,
   autoSaveEndpoints: true,
   historyToast: true,

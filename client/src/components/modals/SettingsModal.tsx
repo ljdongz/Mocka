@@ -21,6 +21,7 @@ export function SettingsModal() {
   const [port, setPort] = useState(String(settings.port));
   const [delay, setDelay] = useState(String(settings.responseDelay));
   const [uploadRate, setUploadRate] = useState(String(settings.uploadRateKbps));
+  const [downloadRate, setDownloadRate] = useState(String(settings.downloadRateKbps));
   const [maxBody, setMaxBody] = useState(String(settings.maxBodyMB));
   const [historyToast, setHistoryToast] = useState(settings.historyToast);
   const [theme, setTheme] = useState<Theme>(settings.theme);
@@ -30,6 +31,7 @@ export function SettingsModal() {
     setPort(String(settings.port));
     setDelay(String(settings.responseDelay));
     setUploadRate(String(settings.uploadRateKbps));
+    setDownloadRate(String(settings.downloadRateKbps));
     setMaxBody(String(settings.maxBodyMB));
     setHistoryToast(settings.historyToast);
     setTheme(settings.theme);
@@ -41,7 +43,7 @@ export function SettingsModal() {
     const newDelay = parseInt(delay, 10) || 0;
     await updateSettings({
       port: newPort, responseDelay: newDelay, historyToast, theme, language,
-      uploadRateKbps: Number(uploadRate) || 0, maxBodyMB: Number(maxBody) || 5,
+      uploadRateKbps: Number(uploadRate) || 0, downloadRateKbps: Number(downloadRate) || 0, maxBodyMB: Number(maxBody) || 5,
     });
     if (newPort !== settings.port) {
       await restartServer();
@@ -135,6 +137,17 @@ export function SettingsModal() {
             className="w-full rounded border border-border-secondary bg-bg-input px-3 py-2 text-sm text-text-primary font-mono outline-none focus:border-accent-primary"
           />
           <p className="mt-1 text-xs text-text-muted">{t.settings.uploadRateHelp}</p>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm text-text-tertiary mb-1.5">{t.settings.downloadRate}</label>
+          <input
+            type="number" style={{ MozAppearance: 'textfield' }}
+            value={downloadRate}
+            onChange={e => setDownloadRate(e.target.value)}
+            className="w-full rounded border border-border-secondary bg-bg-input px-3 py-2 text-sm text-text-primary font-mono outline-none focus:border-accent-primary"
+          />
+          <p className="mt-1 text-xs text-text-muted">{t.settings.downloadRateHelp}</p>
         </div>
 
         <div className="mb-4">

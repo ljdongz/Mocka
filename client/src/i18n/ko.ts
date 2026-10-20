@@ -22,6 +22,8 @@ const ko: Translations = {
     defaultResponseDelay: '기본 Response Delay (초)',
     uploadRate: '업로드 속도 (KB/s)',
     uploadRateHelp: '요청 본문을 이 속도로 천천히 읽어 업로드 진행률이 보이게 합니다. 0 = 무제한. 요청별: x-mock-upload-rate-kbps 헤더.',
+    downloadRate: '다운로드 속도 (KB/s)',
+    downloadRateHelp: '응답 본문과 미디어 파일을 이 속도로 천천히 보내 다운로드 진행률이 보이게 합니다. 0 = 무제한. 요청별: x-mock-download-rate-kbps 헤더.',
     maxBodySize: '최대 요청 본문 (MB)',
     maxBodySizeHelp: '넘으면 413으로 거절합니다. multipart 본문은 크기만 세고 저장하지 않습니다.',
     historyToast: 'History Toast 알림',

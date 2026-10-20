@@ -27,9 +27,11 @@ export function update(settings: Partial<Settings>): Settings {
     sanitized.responseDelay = Number.isFinite(n) && n >= 0 ? n : 0;
   }
 
-  if (sanitized.uploadRateKbps !== undefined) {
-    const n = Number(sanitized.uploadRateKbps);
-    sanitized.uploadRateKbps = Number.isFinite(n) && n > 0 ? n : 0;
+  for (const key of ['uploadRateKbps', 'downloadRateKbps'] as const) {
+    if (sanitized[key] !== undefined) {
+      const n = Number(sanitized[key]);
+      sanitized[key] = Number.isFinite(n) && n > 0 ? n : 0;
+    }
   }
 
   if (sanitized.maxBodyMB !== undefined) {

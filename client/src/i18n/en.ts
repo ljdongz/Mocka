@@ -20,6 +20,8 @@ const en = {
     defaultResponseDelay: 'Default Response Delay (s)',
     uploadRate: 'Upload Rate (KB/s)',
     uploadRateHelp: 'Read request bodies this slowly so upload progress is visible. 0 = unlimited. Per request: x-mock-upload-rate-kbps header.',
+    downloadRate: 'Download Rate (KB/s)',
+    downloadRateHelp: 'Send response bodies and media files this slowly so download progress is visible. 0 = unlimited. Per request: x-mock-download-rate-kbps header.',
     maxBodySize: 'Max Request Body (MB)',
     maxBodySizeHelp: 'Larger requests get a 413. Multipart bodies are counted, not stored.',
     historyToast: 'History Toast Notifications',

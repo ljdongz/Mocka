@@ -9,7 +9,8 @@ import { normalizeStompPath } from './models/stomp.js';
 import { MEDIA_URL_PREFIX } from './utils/template-media.js';
 import { ensureMediaDir } from './utils/paths.js';
 import * as settingsService from './services/settings.service.js';
-import { Transform } from 'stream';
+import { Readable, Transform } from 'stream';
+import { setTimeout as sleep } from 'timers/promises';
 
 function payloadTooLarge(bytes: number, limit: number) {
   const mb = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MiB`;
@@ -56,6 +57,29 @@ export function limitBody(headers: Record<string, string | string[] | undefined>
   });
 }
 
+/**
+ * Send a response body at bytesPerSec so the client's download progress moves in steps. The body is sliced into
+ * ~0.1 s pieces (at most 16 KB): a JSON body is a single chunk and a file reads in 64 KB chunks, which at a low
+ * rate would otherwise arrive as one long wait followed by everything at once.
+ */
+export function paceBody(body: string | Buffer | Readable, bytesPerSec: number): Readable {
+  const source: AsyncIterable<Buffer> | Buffer[] = typeof body === 'string' ? [Buffer.from(body)] : Buffer.isBuffer(body) ? [body] : body;
+  const step = Math.max(1, Math.min(16 * 1024, Math.round(bytesPerSec / 10)));
+  return Readable.from((async function* () {
+    const started = Date.now();
+    let sent = 0;
+    for await (const chunk of source) {
+      for (let i = 0; i < chunk.length; i += step) {
+        const piece = chunk.subarray(i, i + step);
+        sent += piece.length;
+        const ahead = sent / bytesPerSec * 1000 - (Date.now() - started);
+        if (ahead > 0) await sleep(ahead);
+        yield piece;
+      }
+    }
+  })());
+}
+
 export async function createMockServer(_port: number) {
   // The real cap is Settings.maxBodyMB, enforced live in preParsing; Fastify's own limit is only kept out of the way.
   // forceCloseConnections: a restart must not wait on a client's keep-alive socket (e.g. one that just got a 413).
@@ -71,6 +95,18 @@ export async function createMockServer(_port: number) {
   // that is still sending see a connection reset rather than the 413.
   app.addHook('onSend', async (req, reply) => {
     if (reply.statusCode === 413) req.raw.resume();
+  });
+  // Download throttle (x-mock-download-rate-kbps header > Settings.downloadRateKbps, KB/s), for mock responses and
+  // media files alike. It starts after the response delay. A string body gets its Content-Length set here, since
+  // Fastify only adds one for strings and the client needs the total to show progress; files already carry theirs.
+  app.addHook('onSend', async (req, reply, payload) => {
+    const headerRate = Number(req.headers['x-mock-download-rate-kbps']);
+    const bytesPerSec = (headerRate > 0 ? headerRate : settingsService.getAll().downloadRateKbps) * 1024;
+    if (!(bytesPerSec > 0) || payload == null || req.method === 'HEAD' || reply.statusCode === 204 || reply.statusCode === 304) {
+      return payload;
+    }
+    if (typeof payload === 'string' || Buffer.isBuffer(payload)) reply.header('content-length', Buffer.byteLength(payload));
+    return paceBody(payload as string | Buffer | Readable, bytesPerSec);
   });
 
   // Registered media files, served straight off disk under a reserved prefix.
@@ -108,8 +144,10 @@ export async function createMockServer(_port: number) {
     reply.header('access-control-allow-methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     reply.header('access-control-allow-headers', 'Content-Type, Authorization');
 
+    // Returning the reply makes Fastify wait for it to finish; otherwise async onSend hooks leave a window where the
+    // lifecycle carries on into the route handler.
     if (req.method === 'OPTIONS') {
-      reply.code(204).send();
+      return reply.code(204).send();
     }
   });
 
@@ -123,7 +161,7 @@ export async function createMockServer(_port: number) {
     const path = normalizeStompPath(req.url.split('?')[0]);
     const conn = stompRegistry.getByPath(path);
     if (!conn || !conn.isEnabled) {
-      reply.code(404).send({ error: `No STOMP connection configured for ${path}` });
+      return reply.code(404).send({ error: `No STOMP connection configured for ${path}` });
     }
   });
 
