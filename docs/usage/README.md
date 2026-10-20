@@ -329,7 +329,7 @@ A collection is only deleted when you ticked **the collection itself**, never as
 
 ### Import / Export
 
-Export endpoints + collections + STOMP connections to a versioned JSON document (current **version 4**) and re-import with a conflict policy:
+Export endpoints + collections + STOMP connections to a versioned JSON document (current **version 5**) and re-import with a conflict policy. Import files can be up to **100 MiB**:
 
 - **skip** (default) — keep existing endpoints on a `method+path` clash.
 - **overwrite** — delete + recreate (collection memberships preserved).
@@ -338,7 +338,7 @@ Export endpoints + collections + STOMP connections to a versioned JSON document 
 > [!WARNING]
 > Export/import covers endpoints, their variants (with match rules), collections, and STOMP connections (with their destinations, variants, and sequence presets). **Datasets, dataset bindings, environments, and history are NOT exported.** An invalid `conflictPolicy` (including the removed `merge`) silently defaults to `skip`.
 >
-> STOMP connections are matched by **path**, and `skip` / `overwrite` / `replace` apply the same way. `replace` removes every STOMP connection even when the file carries none (a collection-filtered or pre-v4 file). A **collection-filtered** export carries HTTP endpoints only, since collections never hold STOMP connections. Older version 1–3 files import unchanged.
+> STOMP connections are matched by **path**, and `skip` / `overwrite` / `replace` apply the same way. `replace` removes every STOMP connection even when the file carries none (a collection-filtered or pre-v4 file). A **collection-filtered** export carries HTTP endpoints only, since collections never hold STOMP connections. Older version 1–4 files import unchanged.
 
 ### Request History
 

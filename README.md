@@ -62,6 +62,7 @@ You can also use the web UI to create and manage endpoints by hand. Either way, 
 - **Path Parameters** — Dynamic routes with `:param` or `{param}` syntax
 - **Environments** — Manage variables across dev/staging/production and switch instantly
 - **Response Delay** — Simulate latency per-variant or globally
+- **Network Throttling** — Cap upload and download speed (KB/s) so progress UI is visible, or drop an upload midway
 - **Real-time Logging** — Monitor incoming requests live
 - **Import / Export** — Share mock configurations as JSON
 - **Fully Local** — No cloud, no account, no rate limits. Works offline and over your local network
