@@ -66,11 +66,11 @@ async function main() {
     mockApp = await createMockServer(newPort);
     try {
       await mockApp.listen({ port: newPort, host: '0.0.0.0' });
-      setMockStatus(true);
+      setMockStatus(true, newPort);
       emit('server:status', { running: true, port: newPort });
       return { success: true, port: newPort };
     } catch (err: any) {
-      setMockStatus(false);
+      setMockStatus(false, newPort);
       emit('server:status', { running: false, port: newPort });
       return { success: false, error: err.message };
     }
@@ -87,12 +87,12 @@ async function main() {
   // Start Mock API
   try {
     await mockApp.listen({ port: mockPort, host: '0.0.0.0' });
-    setMockStatus(true);
+    setMockStatus(true, mockPort);
     console.log(`Mock API: http://${localIp}:${mockPort}`);
     emit('server:status', { running: true, port: mockPort });
   } catch (err) {
     console.error(`Failed to start mock server on port ${mockPort}:`, err);
-    setMockStatus(false);
+    setMockStatus(false, mockPort);
   }
 
   // Graceful shutdown

@@ -48,11 +48,11 @@ export async function createAdminServer(onRestart: RestartHandler) {
   await app.register(stompRoutes);
   await app.register(mediaRoutes);
 
-  // Server status
+  // Server status. The port is the one actually bound, which differs from Settings.port after a startup fallback.
   let mockServerRunning = false;
+  let mockServerPort = settingsService.getAll().port;
 
   app.get('/api/server/status', async () => {
-    const settings = settingsService.getAll();
     const nets = networkInterfaces();
     let localIp = 'localhost';
     for (const addrs of Object.values(nets)) {
@@ -61,7 +61,7 @@ export async function createAdminServer(onRestart: RestartHandler) {
     }
     return {
       running: mockServerRunning,
-      port: settings.port,
+      port: mockServerPort,
       localIp,
     };
   });
@@ -84,8 +84,9 @@ export async function createAdminServer(onRestart: RestartHandler) {
     });
   }
 
-  const setMockStatus = (running: boolean) => {
+  const setMockStatus = (running: boolean, port: number) => {
     mockServerRunning = running;
+    mockServerPort = port;
   };
 
   return { app, setMockStatus };

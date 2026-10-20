@@ -127,7 +127,7 @@ mocka stop && mocka start -d   # 새 바이너리로 데몬 재시작
 mocka start           # 포그라운드로 시작
 mocka start -d        # 백그라운드로 시작 (데몬)
 mocka stop            # 실행 중인 인스턴스 종료
-mocka status          # 실행 상태 확인
+mocka status          # 실행 상태와 Admin UI / Mock API 주소 확인
 mocka --version       # 설치된 버전 확인
 ```
 
@@ -305,7 +305,7 @@ mocka/
 | `mocka start` | Mocka 시작 (포그라운드) |
 | `mocka start -d` | Mocka 백그라운드 시작 |
 | `mocka stop` | 실행 중인 인스턴스 종료 |
-| `mocka status` | 실행 상태 확인 |
+| `mocka status` | 실행 상태와 Admin UI / Mock API 주소 확인 |
 | `mocka config` | 현재 설정 확인 |
 | `mocka config k=v` | 설정 변경 (admin_port, mock_port) |
 | `mocka mcp` | MCP 서버 시작 (stdio) |

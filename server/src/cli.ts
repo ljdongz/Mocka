@@ -96,7 +96,17 @@ function printVersion() {
   }
 }
 
-function status() {
+/** Admin port of the running server: ADMIN_PORT, else the saved setting, else the default. */
+async function adminPort(): Promise<number> {
+  if (process.env.ADMIN_PORT) return Number(process.env.ADMIN_PORT);
+  const { initSchema } = await import('./db/schema.js');
+  const { getDb } = await import('./db/connection.js');
+  initSchema();
+  const row = getDb().prepare("SELECT value FROM settings WHERE key = 'admin_port'").get() as { value: string } | undefined;
+  return Number(row?.value) || 4649;
+}
+
+async function status() {
   const pid = readPid();
   if (!pid || !isProcessAlive(pid)) {
     console.log('Mocka is not running');
@@ -104,6 +114,17 @@ function status() {
   }
 
   console.log(`Mocka is running (PID ${pid})`);
+
+  // Ask the server itself: the mock port may have fallen back to a free one at startup.
+  const port = await adminPort();
+  try {
+    const res = await fetch(`http://localhost:${port}/api/server/status`, { signal: AbortSignal.timeout(1000) });
+    const s = await res.json() as { running: boolean; port: number; localIp: string };
+    console.log(`  Admin UI: http://${s.localIp}:${port}`);
+    console.log(`  Mock API: ${s.running ? `http://${s.localIp}:${s.port}` : `not running (port ${s.port})`}`);
+  } catch {
+    console.log(`  Admin UI: http://localhost:${port} (not responding)`);
+  }
 }
 
 const CONFIG_KEYS: Record<string, { dbKey: string; parse: (v: string) => string | null }> = {
@@ -157,7 +178,7 @@ switch (command) {
     stop();
     break;
   case 'status':
-    status();
+    await status();
     break;
   case 'config':
     await config(flags);
@@ -179,11 +200,7 @@ switch (command) {
     } else {
       // Read admin_port from DB so MCP client connects to the right port
       if (!process.env.ADMIN_PORT && !process.env.MOCKA_ADMIN_URL) {
-        const { initSchema } = await import('./db/schema.js');
-        const { getDb } = await import('./db/connection.js');
-        initSchema();
-        const row = getDb().prepare("SELECT value FROM settings WHERE key = 'admin_port'").get() as { value: string } | undefined;
-        if (row) process.env.ADMIN_PORT = row.value;
+        process.env.ADMIN_PORT = String(await adminPort());
       }
       const { startMcpServer } = await import('./mcp/server.js');
       await startMcpServer();
@@ -197,7 +214,7 @@ switch (command) {
     console.log('  start           Start Mocka (foreground)');
     console.log('  start -d        Start Mocka in the background');
     console.log('  stop            Stop the running Mocka instance');
-    console.log('  status          Show whether Mocka is running');
+    console.log('  status          Show whether Mocka is running and its addresses');
     console.log('  config          Show current configuration');
     console.log('  config k=v      Set configuration (admin_port, mock_port)');
     console.log('  mcp             Start the MCP server (stdio)');

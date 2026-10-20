@@ -127,7 +127,7 @@ Your data in `~/Library/Application Support/Mocka/` and your MCP registration ar
 mocka start           # Start in foreground
 mocka start -d        # Start in background (daemon)
 mocka stop            # Stop the running instance
-mocka status          # Check if Mocka is running
+mocka status          # Check if Mocka is running, with its Admin UI / Mock API addresses
 mocka --version       # Show the installed version
 ```
 
@@ -305,7 +305,7 @@ mocka/
 | `mocka start` | Start Mocka (foreground) |
 | `mocka start -d` | Start Mocka in background |
 | `mocka stop` | Stop the running instance |
-| `mocka status` | Check if Mocka is running |
+| `mocka status` | Check if Mocka is running and show its Admin UI / Mock API addresses |
 | `mocka config` | Show current configuration |
 | `mocka config k=v` | Set configuration (admin_port, mock_port) |
 | `mocka mcp` | Start the MCP server (stdio) |
